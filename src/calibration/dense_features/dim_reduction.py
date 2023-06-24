@@ -8,7 +8,7 @@ from sklearn.decomposition import PCA
 
 
 
-BASE_PATH = "/storage/xyz/work/anon/research_projects/exp_calibration/"
+BASE_PATH = "/storage/ukp/work/sachdeva/research_projects/exp_calibration/"
 
 
 class DenseRepresentations:

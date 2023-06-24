@@ -12,7 +12,7 @@ DOC_STRIDE = 320
 MAX_LENGTH = 640
 SEED = 42
 
-BASE_PATH = "/storage/xyz/work/anon/research_projects/exp_calibration/"
+BASE_PATH = "/storage/ukp/work/sachdeva/research_projects/exp_calibration/"
 
 def _add_eos_examples(example):
     pass

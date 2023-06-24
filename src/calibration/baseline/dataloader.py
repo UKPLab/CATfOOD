@@ -13,8 +13,8 @@ from collections import OrderedDict
 from datasets import load_dataset, concatenate_datasets, Features, Value, Sequence
 
 
-BASE_PATH = "/storage/xyz/work/anon/research_projects/exp_calibration/"
-# BASE_PATH = "/home/anon/projects/xyz/exp_calibration/"
+BASE_PATH = "/storage/ukp/work/sachdeva/research_projects/exp_calibration/"
+# BASE_PATH = "/home/sachdeva/projects/ukp/exp_calibration/"
 
 class PreprocessData:
     def __init__(self,
@@ -381,8 +381,8 @@ def get_dev_samples_mrqa(data_path):
 
 if __name__ == '__main__':
     save_dir = "../data/squad/train_data/"
-    BASE_PATH = "/storage/xyz/work/anon/research_projects/exp_calibration/"
-    # BASE_PATH = "/home/anon/projects/xyz/exp_calibration/"
+    BASE_PATH = "/storage/ukp/work/sachdeva/research_projects/exp_calibration/"
+    # BASE_PATH = "/home/sachdeva/projects/ukp/exp_calibration/"
     dataloader = PreprocessData(
         "squad", "plain_text",
         # cf_path=None,

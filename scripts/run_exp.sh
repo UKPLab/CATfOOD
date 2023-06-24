@@ -1,4 +1,4 @@
-BASE_PATH="/storage/xyz/work/anon/research_projects/exp_calibration/src/calibration"
+BASE_PATH="/storage/ukp/work/sachdeva/research_projects/exp_calibration/src/calibration"
 
 RUN_SQUAD_EXP () {
     DATASET="squad"

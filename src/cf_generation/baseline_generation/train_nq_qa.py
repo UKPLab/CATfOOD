@@ -14,10 +14,10 @@ from transformers import (
     DataCollatorForSeq2Seq
 )
 
-# BASE_PATH = "/home/anon/projects/exp_calibration/src/rag/"
-# CACHE_DIR = "/home/anon/.cache"
-BASE_PATH = "/storage/xyz/work/anon/research_projects/exp_calibration/src/rag/"
-CACHE_DIR = "/storage/xyz/work/anon/.cache"
+# BASE_PATH = "/home/sachdeva/projects/exp_calibration/src/rag/"
+# CACHE_DIR = "/home/sachdeva/.cache"
+BASE_PATH = "/storage/ukp/work/sachdeva/research_projects/exp_calibration/src/rag/"
+CACHE_DIR = "/storage/ukp/work/sachdeva/.cache"
 
 OUTPUT_DIR = "t5-3b-nq-short-qa-seed-42"
 

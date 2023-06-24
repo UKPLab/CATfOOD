@@ -2,7 +2,7 @@ import jsonlines
 from tqdm import tqdm
 from datasets import load_dataset
 
-# BASE_PATH = "/storage/xyz/work/anon/research_projects/exp_calibration/"
+# BASE_PATH = "/storage/ukp/work/sachdeva/research_projects/exp_calibration/"
 BASE_PATH = "//"
 
 with jsonlines.open(f"{BASE_PATH}src/data/squad/squad_counterfactuals_noise_min_filtered_final_2.jsonl") as reader:

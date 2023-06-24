@@ -298,7 +298,7 @@ def get_dev_examples_hf():
 
     with open(
             os.path.join(
-                "/storage/xyz/work/anon/research_projects/exp_calibration/src/data/dev_hotpot.json"
+                "/storage/ukp/work/sachdeva/research_projects/exp_calibration/src/data/dev_hotpot.json"
             ), "r", encoding="utf-8"
     ) as reader:
         input_data = json.load(reader)["data"]
@@ -370,7 +370,7 @@ def get_dev_samples_mrqa(data_path):
 
 if __name__ == '__main__':
     # save_dir = "../data/squad/train_data/"
-    # BASE_PATH = "/storage/xyz/work/anon/research_projects/exp_calibration/"
+    # BASE_PATH = "/storage/ukp/work/sachdeva/research_projects/exp_calibration/"
     BASE_PATH = "//"
     # dataloader = PreprocessData(
     #     "squad", "plain_text",

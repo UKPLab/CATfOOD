@@ -9,7 +9,7 @@ from datasets import load_dataset
 
 from src.few_shot.utils import save_to_disk
 
-BASE_PATH="/storage/xyz/work/anon/research_projects/exp_calibration/"
+BASE_PATH="/storage/ukp/work/sachdeva/research_projects/exp_calibration/"
 
 
 def get_llama(model):

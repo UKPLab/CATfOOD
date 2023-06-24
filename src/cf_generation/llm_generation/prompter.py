@@ -7,7 +7,7 @@ import os.path as osp
 from typing import Union
 
 
-BASE_PATH = "/storage/xyz/work/anon/research_projects/exp_calibration/src/few_shot"
+BASE_PATH = "/storage/ukp/work/sachdeva/research_projects/exp_calibration/src/few_shot"
 
 class Prompter(object):
     __slots__ = ("template", "_verbose")

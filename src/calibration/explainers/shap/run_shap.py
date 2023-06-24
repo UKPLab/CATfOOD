@@ -36,8 +36,8 @@ logger = logging.getLogger(__name__)
 MODEL_CONFIG_CLASSES = list(MODEL_FOR_QUESTION_ANSWERING_MAPPING.keys())
 MODEL_TYPES = tuple(conf.model_type for conf in MODEL_CONFIG_CLASSES)
 
-BASE_PATH = "/storage/xyz/work/anon/research_projects/exp_calibration/"
-# BASE_PATH = "/home/anon/projects/xyz/exp_calibration/"
+BASE_PATH = "/storage/ukp/work/sachdeva/research_projects/exp_calibration/"
+# BASE_PATH = "/home/sachdeva/projects/ukp/exp_calibration/"
 
 import itertools
 from functools import partial

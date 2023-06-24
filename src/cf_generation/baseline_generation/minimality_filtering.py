@@ -23,8 +23,8 @@ import nltk
 from nltk.corpus import stopwords
 
 
-BASE_PATH = "/storage/xyz/work/anon/research_projects/exp_calibration/"
-nltk.download('stopwords', download_dir="/xyz-storage-1/anon/miniconda3/envs/llm/nltk_data")
+BASE_PATH = "/storage/ukp/work/sachdeva/research_projects/exp_calibration/"
+nltk.download('stopwords', download_dir="/ukp-storage-1/sachdeva/miniconda3/envs/llm/nltk_data")
 
 
 def remove_punctuations(txt, punct=string.punctuation):

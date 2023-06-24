@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
 ##SBATCH --job-name=attribution
-##SBATCH --mail-user=anon
-##SBATCH --output=/xyz-storage-1/anon/job-%j
+##SBATCH --mail-user=sachdeva@ukp.informatik.tu-darmstadt.de
+##SBATCH --output=/ukp-storage-1/sachdeva/job-%j
 ##SBATCH --mail-type=ALL
 ##SBATCH --time=72:00:00
-##SBATCH --partition=xyz
+##SBATCH --partition=ukp
 ##SBATCH --cpus-per-task=4
 ##SBATCH --ntasks=1
 ##SBATCH --mem=64GB
@@ -16,7 +16,7 @@
 #  export $(echo $(cat .env | sed 's/#.*//g'| xargs) | envsubst)
 #fi
 
-BASE_PATH="/xyz-storage-1/anon/research_projects/exp_calibration/src"
+BASE_PATH="/ukp-storage-1/sachdeva/research_projects/exp_calibration/src"
 
 #CUDA_LAUNCH_BLOCKING=1 python3 ${BASE_PATH}/simple_grads.py
 #python ${BASE_PATH}/faithfulness.py --metric suff --model_name roberta-squad-flan-ul2-context-rel-noise-seed-42 --model_type flan_ul2_context_noise_rel --dataset squad_adversarial

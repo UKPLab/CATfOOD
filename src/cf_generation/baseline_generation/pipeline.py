@@ -10,7 +10,7 @@ from transformers import RealmRetriever, RealmTokenizer, RealmConfig, AutoModelF
 from src.rag.modelling_realm import RealmForOpenQA
 from src.calibration.baseline import dataloader
 
-BASE_PATH = os.getenv("PYTHONPATH", "/home/anon/projects/exp_calibration/")
+BASE_PATH = os.getenv("PYTHONPATH", "/home/sachdeva/projects/exp_calibration/")
 NUM_BEAMS = 4
 
 class CounterfactualGeneration:

@@ -16,7 +16,7 @@ from transformers import (
 )
 import dataloader
 
-# BASE_PATH = "/storage/xyz/work/anon/research_projects/exp_calibration/"
+# BASE_PATH = "/storage/ukp/work/sachdeva/research_projects/exp_calibration/"
 BASE_PATH = "//"
 
 class Inference:

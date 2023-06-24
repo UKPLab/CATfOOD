@@ -24,7 +24,7 @@ torch.manual_seed(4)
 torch.cuda.manual_seed(4)
 np.random.seed(4)
 
-BASE_PATH = "/storage/xyz/work/anon/research_projects/exp_calibration/"
+BASE_PATH = "/storage/ukp/work/sachdeva/research_projects/exp_calibration/"
 
 
 class SimpleGradients(BaseExplainer):

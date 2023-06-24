@@ -1,11 +1,11 @@
 ##!/usr/bin/env bash
 #
 ##SBATCH --job-name=eval
-##SBATCH --mail-user=anon
-##SBATCH --output=/xyz-storage-1/anon/job-%j
+##SBATCH --mail-user=sachdeva@ukp.informatik.tu-darmstadt.de
+##SBATCH --output=/ukp-storage-1/sachdeva/job-%j
 ##SBATCH --mail-type=ALL
 ##SBATCH --time=72:00:00
-##SBATCH --partition=xyz
+##SBATCH --partition=ukp
 ##SBATCH --cpus-per-task=4
 ##SBATCH --ntasks=1
 ##SBATCH --mem=32GB
@@ -16,7 +16,7 @@
 #  export $(echo $(cat .env | sed 's/#.*//g'| xargs) | envsubst)
 #fi
 
-BASE_PATH="/xyz-storage-1/anon/research_projects/exp_calibration/src"
+BASE_PATH="/ukp-storage-1/sachdeva/research_projects/exp_calibration/src"
 #MODEL_NAME="roberta-squad-alpaca-13b-v1-temp-0.7-seed-1"
 #MODEL_NAME="roberta-squad-llama-13b-v2-temp-0.7-seed-1"
 #MODEL_NAME="roberta-squad-flan-t5-xxl-cn-filtered-cfs-seed-1"

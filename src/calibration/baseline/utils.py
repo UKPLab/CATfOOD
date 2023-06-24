@@ -5,8 +5,8 @@ from collections import OrderedDict
 import torch
 import pandas as pd
 
-BASE_PATH="/storage/xyz/work/anon/research_projects/exp_calibration/"
-# BASE_PATH = "/home/anon/projects/xyz/exp_calibration//"
+BASE_PATH="/storage/ukp/work/sachdeva/research_projects/exp_calibration/"
+# BASE_PATH = "/home/sachdeva/projects/ukp/exp_calibration//"
 
 
 def dump_to_bin(obj, fname):
@@ -134,7 +134,7 @@ if __name__ == '__main__':
     #
     # print(len(p_unq))
     # print(p_unq)
-    # base_path = "/home/anon/projects/xyz/exp_calibration"
+    # base_path = "/home/sachdeva/projects/ukp/exp_calibration"
     # file = base_path + "/src/data/squad_adv_new/calibration_data.bin"
     # data = load_bin(file)
     # print(data)

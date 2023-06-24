@@ -5,7 +5,7 @@ import edit_distance
 from munch import Munch
 import itertools
 
-BASE_PATH = "/storage/xyz/work/anon/research_projects/exp_calibration/"
+BASE_PATH = "/storage/ukp/work/sachdeva/research_projects/exp_calibration/"
 
 
 def levenshtein_distance(s1, s2):

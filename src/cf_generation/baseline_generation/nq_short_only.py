@@ -219,7 +219,7 @@ if __name__ == "__main__":
     import os
     import gzip
 
-    path = Path("/home/anon/Downloads/v1.0/dev")
+    path = Path("/home/sachdeva/Downloads/v1.0/dev")
     files = os.listdir(path)
     dataset_files = [path / str(f) for f in files]
     # dataset_file = dataset_files[0]
@@ -253,7 +253,7 @@ if __name__ == "__main__":
 
     # print(example)
     # save_to_disk(data, file_name=cache_file_name + ".jsonl")
-    # with jsonlines.open("/home/anon/Downloads/v1.0/train/data.jsonl") as file:
+    # with jsonlines.open("/home/sachdeva/Downloads/v1.0/train/data.jsonl") as file:
     #     for line in file.iter():
     #         # print(line)
     #         # print("--------------------------")

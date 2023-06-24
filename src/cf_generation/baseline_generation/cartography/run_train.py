@@ -53,7 +53,7 @@ wandb.init(config={
     "model": MODEL_NAME, "batch_size": BATCH_SIZE, "output_dir": OUTPUT_DIR,
 })
 wandb.run.name = WANDB_RUN_NAME
-BASE_PATH = "/storage/xyz/work/anon/research_projects/exp_calibration/"
+BASE_PATH = "/storage/ukp/work/sachdeva/research_projects/exp_calibration/"
 
 
 class CustomTrainer(Trainer):

@@ -2,7 +2,7 @@ import os
 
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 
-BASE_PATH = os.getenv("PYTHONPATH", "/home/anon/projects/exp_calibration/")
+BASE_PATH = os.getenv("PYTHONPATH", "/home/sachdeva/projects/exp_calibration/")
 
 if __name__ == '__main__':
     model_path = BASE_PATH+"t5-base-nq-short-qg-10ep/checkpoint-109150"

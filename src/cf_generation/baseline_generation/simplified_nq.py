@@ -12,8 +12,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-r"""Utilities to simplify the canonical NQ data.
-The canonical NQ data contains the HTML of each Wikipedia page along with a
+r"""Utilities to simplify the csachdevaical NQ data.
+The csachdevaical NQ data contains the HTML of each Wikipedia page along with a
 sequence of tokens on that page, each of which is indexed into the HTML.
 Many users will not want to use the HTML at all, and this file provides
 utilities to extract only the text into a new record of the form:

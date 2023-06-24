@@ -19,7 +19,7 @@ seed = 0
 torch.manual_seed(seed)
 
 
-BASE_PATH = "/storage/xyz/work/anon/research_projects/exp_calibration/"
+BASE_PATH = "/storage/ukp/work/sachdeva/research_projects/exp_calibration/"
 
 def save_to_disk(data, file_name):
     with jsonlines.open(file_name, "a") as writer:

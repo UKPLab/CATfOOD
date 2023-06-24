@@ -13,10 +13,10 @@ from transformers import (
     T5Config
 )
 
-# BASE_PATH = "/home/anon/projects/exp_calibration/src/rag/"
-# CACHE_DIR = "/home/anon/.cache"
-BASE_PATH = "/storage/xyz/work/anon/research_projects/exp_calibration/src/rag/"
-CACHE_DIR = "/storage/xyz/work/anon/.cache"
+# BASE_PATH = "/home/sachdeva/projects/exp_calibration/src/rag/"
+# CACHE_DIR = "/home/sachdeva/.cache"
+BASE_PATH = "/storage/ukp/work/sachdeva/research_projects/exp_calibration/src/rag/"
+CACHE_DIR = "/storage/ukp/work/sachdeva/.cache"
 
 os.environ['TRANSFORMERS_CACHE'] = CACHE_DIR
 os.environ['WANDB_PROJECT'] = "t5-squad-qg"

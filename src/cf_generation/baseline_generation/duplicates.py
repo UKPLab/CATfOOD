@@ -1,7 +1,7 @@
 import jsonlines
 from tqdm import tqdm
 
-BASE_PATH = "/storage/xyz/work/anon/research_projects/exp_calibration/"
+BASE_PATH = "/storage/ukp/work/sachdeva/research_projects/exp_calibration/"
 
 def remove_duplicates():
     examples = []

@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
 #SBATCH --job-name=explainer
-#SBATCH --mail-user=anon
-#SBATCH --output=/xyz-storage-1/anon/job-%j
+#SBATCH --mail-user=sachdeva@ukp.informatik.tu-darmstadt.de
+#SBATCH --output=/ukp-storage-1/sachdeva/job-%j
 #SBATCH --mail-type=ALL
 #SBATCH --time=72:00:00
-#SBATCH --partition=xyz
+#SBATCH --partition=ukp
 #SBATCH --cpus-per-task=4
 #SBATCH --ntasks=1
 #SBATCH --mem=64GB
@@ -16,7 +16,7 @@ if [ -f .env ]; then
   export $(echo $(cat .env | sed 's/#.*//g'| xargs) | envsubst)
 fi
 
-BASE_PATH="/storage/xyz/work/anon/research_projects/exp_calibration"
+BASE_PATH="/storage/ukp/work/sachdeva/research_projects/exp_calibration"
 
 
 CUDA_LAUNCH_BLOCKING=1 python -u ${BASE_PATH}/src/rag/shap/run_shap.py

@@ -98,7 +98,7 @@ print(retrieved_blocks)
 # for answer, block in zip(predicted_answer, retrieved_blocks):
 #     pass
 #
-BASE_PATH = os.getenv("PYTHONPATH", "/home/anon/projects/exp_calibration/")
+BASE_PATH = os.getenv("PYTHONPATH", "/home/sachdeva/projects/exp_calibration/")
 model_path = BASE_PATH+"t5-large-squad-qg-seed-42"
 tokenizer = AutoTokenizer.from_pretrained("t5-large")
 model = AutoModelForSeq2SeqLM.from_pretrained(model_path)

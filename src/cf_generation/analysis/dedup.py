@@ -276,9 +276,9 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     # args.path = "squad"
-    # args.google_repo_path = "/storage/xyz/work/anon/research_projects/exp_calibration/dedup_data"
+    # args.google_repo_path = "/storage/ukp/work/sachdeva/research_projects/exp_calibration/dedup_data"
     # args.name = "squad_dedup"
-    # args.output = "/storage/xyz/work/anon/research_projects/exp_calibration/output/suffix_array/squad_dedup"
+    # args.output = "/storage/ukp/work/sachdeva/research_projects/exp_calibration/output/suffix_array/squad_dedup"
     # args.split = "train"
     # args.column = "question"
     # args.cache_dir = "./cache"

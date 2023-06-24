@@ -5,8 +5,8 @@ from dataclasses import dataclass
 
 MODEL_CONFIG_CLASSES = list(MODEL_FOR_QUESTION_ANSWERING_MAPPING.keys())
 MODEL_TYPES = tuple(conf.model_type for conf in MODEL_CONFIG_CLASSES)
-# BASE_PATH="/home/anon/projects/xyz/exp_calibration"
-BASE_PATH="/storage/xyz/work/anon/research_projects/exp_calibration"
+# BASE_PATH="/home/sachdeva/projects/ukp/exp_calibration"
+BASE_PATH="/storage/ukp/work/sachdeva/research_projects/exp_calibration"
 
 # roberta-squad-llama-13b-v2-temp-0.7-seed-1
 # roberta-squad-flan-ul2-v1-temp-0.7

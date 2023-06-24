@@ -11,7 +11,7 @@ import jsonlines
 import torch
 from transformers import T5ForConditionalGeneration, T5Tokenizer
 
-BASE_PATH = "/storage/xyz/work/anon/research_projects/exp_calibration/"
+BASE_PATH = "/storage/ukp/work/sachdeva/research_projects/exp_calibration/"
 
 NUM_BEAMS = 4
 BATCH_SIZE = 32

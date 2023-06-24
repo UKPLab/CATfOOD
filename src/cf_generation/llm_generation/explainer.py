@@ -10,7 +10,7 @@ import collections
 
 # "{q} The possibile answers are {options_list with a, b, c}, but the correct of a, b, c is"
 
-BASE_PATH = "/storage/xyz/work/anon/research_projects/exp_calibration/"
+BASE_PATH = "/storage/ukp/work/sachdeva/research_projects/exp_calibration/"
 
 
 def process_data():

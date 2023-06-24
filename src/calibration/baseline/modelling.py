@@ -617,7 +617,7 @@ def one_pass_exp(args, X, Y, F1, vocab, train_test_split):
             output["importance"] = importance
             outputs.append(output)
             # print(output)
-        # BASE_PATH = "/storage/xyz/work/anon/research_projects/exp_calibration/"
+        # BASE_PATH = "/storage/ukp/work/sachdeva/research_projects/exp_calibration/"
         # save_file_name = "lime_squad_adv_classified_using_shap"
         # output_nbest_file = os.path.join(BASE_PATH, f"predictions_{save_file_name}.json")
         # with open(output_nbest_file, "w") as writer:

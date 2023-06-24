@@ -17,7 +17,7 @@ def _load_binary_file(file):
 
 
 if __name__ == '__main__':
-    # base_path = "/storage/xyz/work/anon/research_projects/exp_calibration"
+    # base_path = "/storage/ukp/work/sachdeva/research_projects/exp_calibration"
     # file_base_path = base_path + "/src/data/squad/rag_predictions_with_answers_noise_filtered_20p_chunk"
     # chunks = 5
     # files = [file_base_path + str(i+1) + ".jsonl" for i in range(chunks)]

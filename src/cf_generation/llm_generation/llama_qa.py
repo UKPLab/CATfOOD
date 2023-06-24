@@ -13,7 +13,7 @@ from src.few_shot.utils import save_to_disk
 
 # from src.few_shot.generation import LLaMA
 
-BASE_PATH="/storage/xyz/work/anon/research_projects/exp_calibration/"
+BASE_PATH="/storage/ukp/work/sachdeva/research_projects/exp_calibration/"
 
 
 # Set the seed
@@ -38,8 +38,8 @@ import argparse
 from tqdm import tqdm
 from datasets import load_dataset
 
-BASE_PATH="/storage/xyz/work/anon/research_projects/exp_calibration/"
-# BASE_PATH = "/home/anon/projects/xyz/exp_calibration/"
+BASE_PATH="/storage/ukp/work/sachdeva/research_projects/exp_calibration/"
+# BASE_PATH = "/home/sachdeva/projects/ukp/exp_calibration/"
 
 def save_to_disk(data, file_name):
     with jsonlines.open(file_name, "a") as writer:

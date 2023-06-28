@@ -19,42 +19,60 @@ warnings.filterwarnings("ignore")
 
 
 class CreateFeatures:
-    def __init__(self, path):
+    def __init__(self, path, model, dataset, method):
         self.path = path
         self.cls_tokens = ["[CLS]", "<s>"]
         self.sep_tokens = ["[SEP]", "</s>"]
         self.count = 0
         self.nlp = spacy.load("en_core_web_sm")
+        self.model = model
+        self.dataset = dataset.split("_")[0]
+        self.method = method
         # self.supar = Parser.load('crf-con-en')
 
     def _load_data(self):
+        if self.dataset == "squad":
+            pos_file = "pos_info.bin"
+        else:
+            pos_file = "pos_info_wo_space.bin"
+        if self.model == "base":
+            self.tagger_info = utils.load_bin(f"{self.path}/{pos_file}")
+            self.attributions = self.build_file_dict(dataset=self.dataset, split="addsent-dev", method=self.method)
+            # self.attributions = utils.load_bin(f"{self.path}/attn_info_with_easy_0.75.bin")
+            self.states = utils.load_bin(f"{self.path}/dense_repr_pca_10_info_base.bin")
+            self.preds_info = utils.read_json(
+                f"{self.path}/nbest_predictions_roberta_squad_top20.json")
 
-        # self.tagger_info = utils.load_bin(f"{self.path}/pos_info_wo_space.bin")
-        # self.attributions = self.build_file_dict(dataset="hotpot", split="addsent-dev", method="shap")
-        # # self.attributions = utils.load_bin(f"{self.path}/attn_info_with_easy_0.75.bin")
-        # self.states = utils.load_bin(f"{self.path}/dense_repr_pca_10_info_base.bin")
-        # self.preds_info = utils.read_json(
-        #     f"{self.path}/nbest_predictions_roberta_squad_top20.json")
+        elif self.model == "rag":
+            self.tagger_info = utils.load_bin(f"{self.path}/{pos_file}")
+            self.attributions = self.build_file_dict(dataset=self.dataset, split="addsent-dev", method=self.method)
+            # self.attributions = utils.load_bin(f"{self.path}/attn_info_with_easy_0.75.bin")
+            self.states = utils.load_bin(f"{self.path}/dense_repr_pca_10_info_rag.bin")
+            self.preds_info = utils.read_json(
+                f"{self.path}/nbest_predictions_roberta-squad-t5-squad-cfs-seed-42.json")
 
-        # self.tagger_info = utils.load_bin(f"{self.path}/pos_info_wo_space.bin")
-        # self.attributions = self.build_file_dict(dataset="trivia", split="addsent-dev", method="shap")
-        # # self.attributions = utils.load_bin(f"{self.path}/attn_info_with_easy_0.75.bin")
-        # self.states = utils.load_bin(f"{self.path}/dense_repr_pca_10_info_rag.bin")
-        # self.preds_info = utils.read_json(
-        #     f"{self.path}/nbest_predictions_roberta-squad-t5-squad-cfs-seed-42.json")
+        elif self.model == "llama":
+            self.tagger_info = utils.load_bin(f"{self.path}/{pos_file}")
+            self.attributions = self.build_file_dict(dataset=self.dataset, split="addsent-dev", method=self.method)
+            # self.attributions = utils.load_bin(f"{self.path}/attn_info_with_easy_0.75.bin")
+            self.states = utils.load_bin(f"{self.path}/dense_repr_pca_10_info_llama.bin")
+            self.preds_info = utils.read_json(
+                f"{self.path}/nbest_predictions_roberta-squad-llama-context-rel-seed-42.json")
 
-        self.tagger_info = utils.load_bin(f"{self.path}/pos_info.bin")
-        self.attributions = self.build_file_dict(dataset="squad", split="addsent-dev", method="shap")
-        # self.attributions = utils.load_bin(f"{self.path}/attn_info_with_easy_0.75.bin")
-        self.states = utils.load_bin(f"{self.path}/dense_repr_pca_10_info_flan_ul2.bin")
-        self.preds_info = utils.read_json(f"{self.path}/nbest_predictions_roberta-squad-flan-ul2-context-rel-noise-seed-42.json")
+        elif self.model == "gpt_neox":
+            self.tagger_info = utils.load_bin(f"{self.path}/{pos_file}")
+            self.attributions = self.build_file_dict(dataset=self.dataset, split="addsent-dev", method=self.method)
+            # self.attributions = utils.load_bin(f"{self.path}/attn_info_with_easy_0.75.bin")
+            self.states = utils.load_bin(f"{self.path}/dense_repr_pca_10_info_gpt_neox.bin")
+            self.preds_info = utils.read_json(
+                f"{self.path}/nbest_predictions_roberta-squad-gpt-neox-context-rel-seed-42.json")
 
-        # self.tagger_info = utils.load_bin(f"{self.path}/pos_info_wo_space.bin")
-        # self.attributions = self.build_file_dict(dataset="trivia", split="addsent-dev", method="shap")
-        # # self.attributions = utils.load_bin(f"{self.path}/attn_info_with_easy_0.75.bin")
-        # self.states = utils.load_bin(f"{self.path}/dense_repr_pca_10_info_gpt_neox.bin")
-        # self.preds_info = utils.read_json(
-        #     f"{self.path}/nbest_predictions_roberta-squad-gpt-neox-context-rel-seed-42.json")
+        elif self.model == "flan_ul2":
+            self.tagger_info = utils.load_bin(f"{self.path}/{pos_file}")
+            self.attributions = self.build_file_dict(dataset=self.dataset, split="addsent-dev", method=self.method)
+            # self.attributions = utils.load_bin(f"{self.path}/attn_info_with_easy_0.75.bin")
+            self.states = utils.load_bin(f"{self.path}/dense_repr_pca_10_info_flan_ul2.bin")
+            self.preds_info = utils.read_json(f"{self.path}/nbest_predictions_roberta-squad-flan-ul2-context-rel-noise-seed-42.json")
 
     def load_interp_info(self, file_dict, qas_id):
         return torch.load(file_dict[qas_id])
@@ -63,11 +81,19 @@ class CreateFeatures:
         # hard-coded path here: be careful
         # prefix = 'squad_sample-addsent_roberta-base'
         prefix = f'{dataset}/dev/roberta'
-        fnames = os.listdir(os.path.join('exp_roberta_flan_ul2_context_noise_rel', method, prefix))
+        if self.model == "gpt_neox" or self.model == "llama":
+            exp_file_name = f"exp_roberta_{self.model}_context_rel"
+        elif self.model == "flan_ul2":
+            exp_file_name = f"exp_roberta_{self.model}_context_noise_rel"
+        elif self.model == "rag":
+            exp_file_name = f"exp_roberta_{self.model}"
+        elif self.model == "base":
+            exp_file_name = f"exp_roberta_{self.model}"
+        fnames = os.listdir(os.path.join(exp_file_name, method, prefix))
         # print(fnames)
         qa_ids = [x.split('.')[0] for x in fnames]
         # exp_roberta_flan_ul2_context_noise_rel
-        fullnames = [os.path.join('exp_roberta_flan_ul2_context_noise_rel', method, prefix, x) for x in fnames]
+        fullnames = [os.path.join(exp_file_name, method, prefix, x) for x in fnames]
         return dict(zip(qa_ids, fullnames))
 
     def featurize(self):
@@ -79,40 +105,13 @@ class CreateFeatures:
         for q_id in tqdm(self.tagger_info, total=len(self.tagger_info), desc='transforming...'):
             total_count+=1
             try:
-                # if q_id == "6b67d06dbf4b4e2eae802b3e341ce8d4":
-                    # print(q_id)
                 tags = self.tagger_info[q_id]
                 # print(tags)
                 interp = self.load_interp_info(self.attributions, q_id)
                 # print(interp)
                 states = self.states[q_id]
-                # sorted_indices = np.argsort(interp["attribution"])
-                # k = 10
-                # top_k_indices = sorted_indices[-k:]
-                # # print(top_k_indices)
-                #
-                # topk_states = np.take(states, top_k_indices, axis=1)
-                # interp = self.attributions[q_id]
-                # print(interp)
-                # attr_len = len(interp["attribution"])
-                # interp["attribution"] = torch.rand(attr_len)
-                # print(len(ast.literal_eval(attributions)["attributions"]))
                 preds = self.preds_info[q_id]
-                # print(preds)
-                # print(interp)
-                # print(tags)
-                # print(len(tags["words"]))
-                # print(len(ast.literal_eval(attributions)))
-                # print(attributions)
-                # print(ast.literal_eval(preds["pred_text"])[0])
                 processed_instances[q_id] = self.extract_feature_for_instance(interp, tags, preds, states)
-                # else:
-                #     continue
-                # c+=1
-                # if c==1:
-                #     break
-                # print(self.count)
-            # print(processed_instances)
             except Exception as e:
                 c+=1
                 print(f"An exception occurred: {e}")
@@ -120,8 +119,10 @@ class CreateFeatures:
                 print(q_id)
                 traceback.print_exc()
                 continue
+            # if total_count==1:
+            #     break
         print("Total instances not processed: ", c)
-        utils.dump_to_bin(processed_instances, f"{self.path}/calib_data_shap_flan_ul2_test.bin")
+        utils.dump_to_bin(processed_instances, f"{self.path}/calib_data_{method}_{model}_mod.bin")
 
     def lemmatize_pos_tag(self, token_tags):
         """
@@ -196,227 +197,6 @@ class CreateFeatures:
     def handle_zero_division(self, n, d):
         return n / d if d else 0
 
-    def worF(self, tokens):
-        words = [x.lstrip() for x in tokens]
-        spaces = [False if i == len(tokens) - 1
-                  else tokens[i + 1][0] == ' ' for i in range(len(tokens))]
-
-        valid_idx = [i for i, w in enumerate(words) if len(w)]
-        words = [words[i] for i in valid_idx]
-        spaces = [spaces[i] for i in valid_idx]
-        doc = Doc(self.nlp.vocab, words=words, spaces=spaces)
-        processed_tokens = self.nlp(doc)
-        n_sent, n_token = 0, 0
-        token_list = []
-        for sent in processed_tokens.sents:
-            n_sent += 1
-            for token in sent:
-                token_list.append(token.lemma_.lower())
-                n_token += 1
-
-        to_SbFrQ_C = 0
-        to_SbCDC_C = 0
-        to_SbFrL_C = 0
-        to_SbCDL_C = 0
-        to_SbSBW_C = 0
-        to_SbL1W_C = 0
-        to_SbSBC_C = 0
-        to_SbL1C_C = 0
-
-        DB = pd.read_csv('./src/resources/SUBTLEXus.csv')
-        DB.set_index('Word_lowercased', inplace=True, drop=True)
-        for token in token_list:
-            if token in DB.index:
-                scores_for_this_token = list(DB.loc[token, :])
-                for i, score in enumerate(scores_for_this_token):
-                    scores_for_this_token[i] = 0 if str(score) == 'none' else scores_for_this_token[i]
-                to_SbFrQ_C += float(scores_for_this_token[1])
-                to_SbCDC_C += float(scores_for_this_token[2])
-                to_SbFrL_C += float(scores_for_this_token[3])
-                to_SbCDL_C += float(scores_for_this_token[4])
-                to_SbSBW_C += float(scores_for_this_token[5])
-                to_SbL1W_C += float(scores_for_this_token[6])
-                to_SbSBC_C += float(scores_for_this_token[7])
-                to_SbL1C_C += float(scores_for_this_token[8])
-
-        result = {
-            "to_SbFrQ_C": to_SbFrQ_C,
-            "as_SbFrQ_C": to_SbFrQ_C / n_sent,
-            "at_SbFrQ_C": to_SbFrQ_C / n_token,
-            "to_SbCDC_C": to_SbCDC_C,
-            "as_SbCDC_C": to_SbCDC_C / n_sent,
-            "at_SbCDC_C": to_SbCDC_C / n_token,
-            "to_SbFrL_C": to_SbFrL_C,
-            "as_SbFrL_C": to_SbFrL_C / n_sent,
-            "at_SbFrL_C": to_SbFrL_C / n_token,
-            "to_SbCDL_C": to_SbCDL_C,
-            "as_SbCDL_C": to_SbCDL_C / n_sent,
-            "at_SbCDL_C": to_SbCDL_C / n_token,
-            "to_SbSBW_C": to_SbSBW_C,
-            "as_SbSBW_C": to_SbSBW_C / n_sent,
-            "at_SbSBW_C": to_SbSBW_C / n_token,
-            "to_SbL1W_C": to_SbL1W_C,
-            "as_SbL1W_C": to_SbL1W_C / n_sent,
-            "at_SbL1W_C": to_SbL1W_C / n_token,
-            "to_SbSBC_C": to_SbSBC_C,
-            "as_SbSBC_C": to_SbSBC_C / n_sent,
-            "at_SbSBC_C": to_SbSBC_C / n_token,
-            "to_SbL1C_C": to_SbL1C_C,
-            "as_SbL1C_C": to_SbL1C_C / n_sent,
-            "at_SbL1C_C": to_SbL1C_C / n_token,
-        }
-        return result
-
-    def extract_worf_features(self, tokens, ans_range):
-        feat = common.IndexedFeature()
-        context_start = tokens.index(self.sep_tokens[1])
-        question_tokens = tokens[1:context_start]
-        context_tokens = tokens[context_start + 2: -1]
-
-        q_ents = self.worF(question_tokens)
-        c_ents = self.worF(context_tokens)
-        # print(q_ents)
-        # print(c_ents)
-        for k, v in q_ents.items():
-            feat.add_new(f"WOR_{k}_Q", v)
-        for k, v in c_ents.items():
-            feat.add_new(f"WOR_{k}_C", v)
-        return feat
-
-
-    def ttrF(self, tokens):
-        words = [x.lstrip() for x in tokens]
-        spaces = [False if i == len(tokens) - 1
-                  else tokens[i + 1][0] == ' ' for i in range(len(tokens))]
-
-        valid_idx = [i for i, w in enumerate(words) if len(w)]
-        words = [words[i] for i in valid_idx]
-        spaces = [spaces[i] for i in valid_idx]
-        doc = Doc(self.nlp.vocab, words=words, spaces=spaces)
-        processed_tokens = self.nlp(doc)
-        n_sent, n_token = 0, 0
-        token_list = []
-        for sent in processed_tokens.sents:
-            n_sent += 1
-            for token in sent:
-                token_list.append(token.lemma_.lower())
-                n_token += 1
-
-        n_utoken = 1
-        default_MTLD = 0.72
-        MTLD_count = 0
-        for token in token_list:
-            if token_list.count(token) == 1:
-                n_utoken += 1
-            if float(n_utoken / n_token) >= 0.72:
-                MTLD_count += 1
-
-        result = {
-            "SimpTTR_S": float(n_utoken / n_token),
-            "CorrTTR_S": float(n_utoken / math.sqrt(2 * n_token)),
-            "BiLoTTR_S": float(math.log(n_utoken) / math.log(n_token)),
-            "UberTTR_S": float(self.handle_zero_division(((math.log(n_utoken)) ** 2), (math.log(n_token / n_utoken)))),
-            "MTLDTTR_S": float(MTLD_count)
-        }
-        return result
-
-    def extract_ttrf_features(self, tokens, ans_range):
-        feat = common.IndexedFeature()
-        context_start = tokens.index(self.sep_tokens[1])
-        question_tokens = tokens[1:context_start]
-        context_tokens = tokens[context_start + 2: -1]
-
-        q_ents = self.ttrF(question_tokens)
-        c_ents = self.ttrF(context_tokens)
-        # print(q_ents)
-        # print(c_ents)
-        for k, v in q_ents.items():
-            feat.add_new(f"TTR_{k}_Q", v)
-        for k, v in c_ents.items():
-            feat.add_new(f"TTR_{k}_C", v)
-        return feat
-
-
-    def varF(self, tokens):
-
-        words = [x.lstrip() for x in tokens]
-        spaces = [False if i == len(tokens) - 1
-                  else tokens[i + 1][0] == ' ' for i in range(len(tokens))]
-
-        valid_idx = [i for i, w in enumerate(words) if len(w)]
-        words = [words[i] for i in valid_idx]
-        spaces = [spaces[i] for i in valid_idx]
-        doc = Doc(self.nlp.vocab, words=words, spaces=spaces)
-        processed_tokens = self.nlp(doc)
-        n_sent, n_token = 0, 0
-        for sent in processed_tokens.sents:
-            n_sent += 1
-            for token in sent:
-                n_token += 1
-
-        noun_list = []
-        verb_list = []
-        adje_list = []
-        adve_list = []
-        n_unoun = 0
-        n_uverb = 0
-        n_uadje = 0
-        n_uadve = 0
-
-        for token in processed_tokens:
-            if token.pos_ == "NOUN":
-                noun_list.append(token.lemma)
-            if token.pos_ == "VERB":
-                verb_list.append(token.lemma)
-            if token.pos_ == "ADJ":
-                adje_list.append(token.lemma)
-            if token.pos_ == "ADV":
-                adve_list.append(token.lemma)
-        for noun in noun_list:
-            if noun_list.count(noun) == 1:
-                n_unoun += 1
-        for verb in verb_list:
-            if verb_list.count(verb) == 1:
-                n_uverb += 1
-        for adje in adje_list:
-            if adje_list.count(adje) == 1:
-                n_uadje += 1
-        for adve in adve_list:
-            if adve_list.count(adve) == 1:
-                n_uadve += 1
-
-        result = {
-            "SimpNoV_S": float(self.handle_zero_division(n_unoun, (len(noun_list)))),
-            "SquaNoV_S": float(self.handle_zero_division((n_unoun) ** 2, (len(noun_list)))),
-            "CorrNoV_S": float(self.handle_zero_division(n_unoun, (math.sqrt(2 * len(noun_list))))),
-            "SimpVeV_S": float(self.handle_zero_division(n_uverb, (len(verb_list)))),
-            "SquaVeV_S": float(self.handle_zero_division((n_uverb) ** 2, (len(verb_list)))),
-            "CorrVeV_S": float(self.handle_zero_division(n_uverb, (math.sqrt(2 * len(verb_list))))),
-            "SimpAjV_S": float(self.handle_zero_division(n_uadje, (len(adje_list)))),
-            "SquaAjV_S": float(self.handle_zero_division((n_uadje) ** 2, (len(adje_list)))),
-            "CorrAjV_S": float(self.handle_zero_division(n_uadje, (math.sqrt(2 * len(adje_list))))),
-            "SimpAvV_S": float(self.handle_zero_division(n_uadve, (len(adve_list)))),
-            "SquaAvV_S": float(self.handle_zero_division((n_uadve) ** 2, (len(adve_list)))),
-            "CorrAvV_S": float(self.handle_zero_division(n_uadve, (math.sqrt(2 * len(adve_list))))),
-        }
-
-        return result
-
-    def extract_varf_features(self, tokens, ans_range):
-        feat = common.IndexedFeature()
-        context_start = tokens.index(self.sep_tokens[1])
-        question_tokens = tokens[1:context_start]
-        context_tokens = tokens[context_start + 2: -1]
-
-        q_ents = self.varF(question_tokens)
-        c_ents = self.varF(context_tokens)
-        # print(q_ents)
-        # print(c_ents)
-        for k,v in q_ents.items():
-            feat.add_new(f"VAR_{k}_Q", v)
-        for k,v in c_ents.items():
-            feat.add_new(f"VAR_{k}_C", v)
-        return feat
 
     def pos_tags(self, tokens):
         words = [x.lstrip() for x in tokens]
@@ -529,150 +309,11 @@ class CreateFeatures:
 
         q_ents = self.pos_tags(question_tokens)
         c_ents = self.pos_tags(context_tokens)
-        # print(q_ents)
-        # print(c_ents)
         for k,v in q_ents.items():
             feat.add_new(f"_POS_{k}_Q", v)
         for k,v in c_ents.items():
             feat.add_new(f"_POS_{k}_C", v)
         return feat
-
-
-
-    def shaf(self, tokens, source):
-        words = [x.lstrip() for x in tokens]
-        spaces = [False if i == len(tokens) - 1
-                  else tokens[i + 1][0] == ' ' for i in range(len(tokens))]
-
-        valid_idx = [i for i, w in enumerate(words) if len(w)]
-        words = [words[i] for i in valid_idx]
-        spaces = [spaces[i] for i in valid_idx]
-        doc = Doc(self.nlp.vocab, words=words, spaces=spaces)
-        processed_tokens = self.nlp(doc)
-        n_sent, n_token = 0, 0
-        for sent in processed_tokens.sents:
-            n_sent += 1
-            for token in sent:
-                n_token += 1
-
-        total_count_char = len(words)
-        total_count_tokn = n_token
-        total_count_syll = 0
-        for token in words:
-            total_count_syll += self.count_syllables(token)
-        result = [
-            (f"SHA_TokSenM_S_{source}", float(n_token * n_sent)),
-            (f"SHA_TokSenS_S_{source}", float(math.sqrt(n_token * n_sent))),
-            (f"SHA_TokSenL_S_{source}", float(self.handle_zero_division(math.log(n_token), math.log(n_sent)))),
-            (f"SHA_as_Token_C_{source}", float(self.handle_zero_division(total_count_tokn, n_sent))),
-            (f"SHA_as_Sylla_C_{source}", float(self.handle_zero_division(total_count_syll, n_sent))),
-            (f"SHA_at_Sylla_C_{source}", float(total_count_syll / n_token)),
-            (f"SHA_as_Chara_C_{source}", float(self.handle_zero_division(total_count_char, n_sent))),
-            (f"SHA_at_Chara_C_{source}", float(total_count_char / n_token))
-        ]
-        # result = self.nan_check(result)
-        return result
-
-    def psyF(self, tokens, source):
-        words = [x.lstrip() for x in tokens]
-        spaces = [False if i == len(tokens) - 1
-                  else tokens[i + 1][0] == ' ' for i in range(len(tokens))]
-
-        valid_idx = [i for i, w in enumerate(words) if len(w)]
-        words = [words[i] for i in valid_idx]
-        spaces = [spaces[i] for i in valid_idx]
-        doc = Doc(self.nlp.vocab, words=words, spaces=spaces)
-        processed_tokens = self.nlp(doc)
-        n_sent, n_token = 0, 0
-        for sent in processed_tokens.sents:
-            n_sent += 1
-            for token in sent:
-                n_token += 1
-
-        to_AAKuW_C = 0
-        to_AAKuL_C = 0
-        to_AABiL_C = 0
-        to_AABrL_C = 0
-        to_AACoL_C = 0
-
-        DB = pd.read_csv('./src/resources/AoAKuperman.csv')
-        DB.set_index('Word', inplace=True, drop=True)
-        for token in words:
-            if token in DB.index:
-                scores_for_this_token = list(DB.loc[token, :])
-                for i, score in enumerate(scores_for_this_token):
-                    scores_for_this_token[i] = 0 if str(score) == 'none' else scores_for_this_token[i]
-                to_AAKuW_C += float(scores_for_this_token[7])
-                to_AAKuL_C += float(scores_for_this_token[9])
-                to_AABiL_C += float(scores_for_this_token[11])
-                to_AABrL_C += float(scores_for_this_token[12])
-                to_AACoL_C += float(scores_for_this_token[13])
-
-        result = [
-            (f"PSY_to_AAKuW_C_{source}", to_AAKuW_C),
-            (f"PSY_as_AAKuW_C_{source}", to_AAKuW_C / n_sent),
-            (f"PSY_at_AAKuW_C_{source}", to_AAKuW_C / n_token),
-            (f"PSY_to_AAKuL_C_{source}", to_AAKuL_C),
-            (f"PSY_as_AAKuL_C_{source}", to_AAKuL_C / n_sent),
-            (f"PSY_at_AAKuL_C_{source}", to_AAKuL_C / n_token),
-            (f"PSY_to_AABiL_C_{source}", to_AABiL_C),
-            (f"PSY_as_AABiL_C_{source}", to_AABiL_C / n_sent),
-            (f"PSY_at_AABiL_C_{source}", to_AABiL_C / n_token),
-            (f"PSY_to_AABrL_C_{source}", to_AABrL_C),
-            (f"PSY_as_AABrL_C_{source}", to_AABrL_C / n_sent),
-            (f"PSY_at_AABrL_C_{source}", to_AABrL_C / n_token),
-            (f"PSY_to_AACoL_C_{source}", to_AABrL_C),
-            (f"PSY_as_AACoL_C_{source}", to_AABrL_C / n_sent),
-            (f"PSY_at_AACoL_C_{source}", to_AABrL_C / n_token),
-        ]
-        return result
-
-
-    def endf(self, tokens, source):
-
-        words = [x.lstrip() for x in tokens]
-        spaces = [False if i == len(tokens) - 1
-                  else tokens[i + 1][0] == ' ' for i in range(len(tokens))]
-
-        valid_idx = [i for i, w in enumerate(words) if len(w)]
-        words = [words[i] for i in valid_idx]
-        spaces = [spaces[i] for i in valid_idx]
-        doc = Doc(self.nlp.vocab, words=words, spaces=spaces)
-        processed_tokens = self.nlp(doc)
-        n_sent, n_token = 0, 0
-        for sent in processed_tokens.sents:
-            n_sent += 1
-            for token in sent:
-                n_token += 1
-
-        to_EntiM_C = 0
-        to_UEnti_C = 0
-        ent_list = []
-        unique_ent_list = []
-
-        for ent in processed_tokens.ents:
-            to_EntiM_C += 1
-            ent_list.append(ent.text)
-
-        for ent in ent_list:
-            if ent_list.count(ent) == 1:
-                to_UEnti_C += 1
-                unique_ent_list.append(ent)
-
-        result = [
-            # total number of Entities Mentions counts
-            (f"ENT_to_EntiM_{source}", to_EntiM_C),
-            # average number of Entities Mentions counts per sentence
-            (f"ENT_as_EntiM_{source}", to_EntiM_C / n_sent),
-            # average number of Entities Mentions counts per token (word)
-            (f"ENT_at_EntiM_{source}", to_EntiM_C / n_token),
-            # unique ents...
-            (f"ENT_to_UEnti_{source}", to_UEnti_C),
-            (f"ENT_as_UEnti_{source}", to_UEnti_C / n_sent),
-            (f"ENT_at_UEnti_{source}", to_UEnti_C / n_token)
-        ]
-
-        return result
 
     def extract_entity_features(self, tokens, ans_range):
         feat = common.IndexedFeature()
@@ -682,40 +323,6 @@ class CreateFeatures:
 
         q_ents = self.endf(question_tokens, source="Q")
         c_ents = self.endf(context_tokens, source="C")
-        # print(q_ents)
-        # print(c_ents)
-        for f in q_ents:
-            feat.add_new(f[0], f[1])
-        for f in c_ents:
-            feat.add_new(f[0], f[1])
-        return feat
-
-    def extract_shallow_features(self, tokens, ans_range):
-        feat = common.IndexedFeature()
-        context_start = tokens.index(self.sep_tokens[1])
-        question_tokens = tokens[1:context_start]
-        context_tokens = tokens[context_start + 2: -1]
-
-        q_ents = self.shaf(question_tokens, source="Q")
-        c_ents = self.shaf(context_tokens, source="C")
-        # print(q_ents)
-        # print(c_ents)
-        for f in q_ents:
-            feat.add_new(f[0], f[1])
-        for f in c_ents:
-            feat.add_new(f[0], f[1])
-        return feat
-
-    def extract_psy_features(self, tokens, ans_range):
-        feat = common.IndexedFeature()
-        context_start = tokens.index(self.sep_tokens[1])
-        question_tokens = tokens[1:context_start]
-        context_tokens = tokens[context_start + 2: -1]
-
-        q_ents = self.psyF(question_tokens, source="Q")
-        c_ents = self.psyF(context_tokens, source="C")
-        # print(q_ents)
-        # print(c_ents)
         for f in q_ents:
             feat.add_new(f[0], f[1])
         for f in c_ents:
@@ -726,11 +333,6 @@ class CreateFeatures:
     def extract_bow_feature(self, words, tags, ans_range):
         feat = common.IndexedFeature()
         context_start = words.index(self.sep_tokens[1])
-        # print(words)
-        # print(words[ans_range[0]: ans_range[1]])
-        # # print(words[ans_range[1]])
-        # print(context_start)
-        # print(ans_range)
         for i, (i_token, i_pos, i_tag) in enumerate(tags):
             i_src = self.source_of_token(i, i_token, context_start, ans_range)
             if i_src == 'Q' or i_src == 'A' or i_src == 'C':
@@ -864,47 +466,6 @@ class CreateFeatures:
         feat.add('STAT_STD_' + part, attributions.std())
         return feat
 
-    # def extract_state_features(self, states):
-    #     feat = common.IndexedFeature()
-    #     # print(states.shape)
-    #     rep = torch.mean(states, dim=-1)
-    #     # print(torch.mean(states, dim=1).shape)
-    #     # print(rep)
-    #     # print(rep.shape)
-    #     repr = rep.tolist()[0]
-    #     # print(repr)
-    #
-    #     for i, value in enumerate(repr):
-    #         feat.add_new(f"REPR_TOPK_{i}", value)
-    #     # context_start = tokens.index(self.sep_tokens[1])
-    #     # question_tokens = tokens[1:context_start]
-    #     # context_tokens = tokens[context_start + 2: -1]
-    #     #
-    #     # q_ents = self.endf(question_tokens, source="Q")
-    #     # c_ents = self.endf(context_tokens, source="C")
-    #
-    #     # result = [
-    #     #     # total number of Entities Mentions counts
-    #     #     (f"ENT_to_EntiM_{source}", to_EntiM_C),
-    #     #     # average number of Entities Mentions counts per sentence
-    #     #     (f"ENT_as_EntiM_{source}", to_EntiM_C / n_sent),
-    #     #     # average number of Entities Mentions counts per token (word)
-    #     #     (f"ENT_at_EntiM_{source}", to_EntiM_C / n_token),
-    #     #     # unique ents...
-    #     #     (f"ENT_to_UEnti_{source}", to_UEnti_C),
-    #     #     (f"ENT_as_UEnti_{source}", to_UEnti_C / n_sent),
-    #     #     (f"ENT_at_UEnti_{source}", to_UEnti_C / n_token)
-    #     # ]
-    #     # print(q_ents)
-    #     # print(c_ents)
-    #     # for f in q_ents:
-    #     #     feat.add_new(f[0], f[1])
-    #     # for f in c_ents:
-    #     #     feat.add_new(f[0], f[1])
-    #
-    #
-    #     return feat
-
     def extract_state_features(self, attr, tokens, ans_range, states):
         feat = common.IndexedFeature()
         context_start = tokens.index(self.sep_tokens[1])
@@ -916,199 +477,79 @@ class CreateFeatures:
         # print(torch.mean(states, dim=1).shape)
         # mean_token_states = torch.mean(states, dim=1)
         start, end = ans_range
-        # ans_indices = list(range(start, end + 1))
+        ans_indices = list(range(start, end + 1))
+        # print(ans_indices)
         # print(states.shape)
         q_states = states[:, 1:context_start, :]
         # print(q_states.shape)
         # print(q_states)
         c_states = states[:, context_start + 2: -1, :]
-        a_states = states[:, start: end + 1, :]
+        torch.set_printoptions(threshold=10_000)
+        # print(c_states)
+        # print(c_states[:, :start-(context_start+2), :])
+        # remove answer states from context states
+        c_states_before = c_states[:, :start-(context_start+2), :]
+        c_states_after = c_states[:, end+1-(context_start+2):, :]
+        final_c_states = torch.cat((c_states_before, c_states_after), dim=1)
+        # print(final_c_states.shape)
+
+        a_states = states[:, start:end+1, :]
+        # print(a_states)
 
         attribution = np.array(attr["attribution"])
+        # print(len(attribution))
         question_attr = attribution[1:context_start]
         # print(len(question_attr))
         context_attr = attribution[context_start + 2: -1]
+        c_attr_before = context_attr[:start - (context_start + 2)]
+        c_attr_after = context_attr[end + 1 - (context_start + 2):]
+        final_c_attr = np.concatenate((c_attr_before, c_attr_after), axis=0)
         # print(len(context_attr))
+        ans_attr = attribution[start: end+1]
+        # print(len(ans_attr))
 
         ques_sorted_indices = np.argsort(question_attr)
-        qk = 3
-        ques_top_k_indices = ques_sorted_indices[-qk:]
-        ques_topk_states = np.take(q_states, ques_top_k_indices, axis=1) # .tolist()[0]
-        # print(ques_topk_states.shape)
+        # take topk indices
+        topk_ques_indices = ques_sorted_indices[-int(ques_sorted_indices.shape[0]*0.10):]
+        # print(ques_sorted_indices.shape)
+        ques_topk_states = np.take(q_states, topk_ques_indices, axis=1) # .tolist()[0]
 
-        cxt_sorted_indices = np.argsort(context_attr)
-        ck = 5
-        cxt_top_k_indices = cxt_sorted_indices[-ck:]
-        cxt_topk_states = np.take(c_states, cxt_top_k_indices, axis=1) # .tolist()[0]
+        topc_percent = 0.10
+        cxt_sorted_indices = np.argsort(final_c_attr)
+        cxt_top_k_indices = cxt_sorted_indices[-int(cxt_sorted_indices.shape[0] * topc_percent):]
+        cxt_topk_states = np.take(final_c_states, cxt_top_k_indices, axis=1) # .tolist()[0]
+
+        topa_percent = 0.20
+        ans_sorted_indices = np.argsort(ans_attr)
+        ans_top_k_indices = ans_sorted_indices[-int(ans_sorted_indices.shape[0] * topa_percent):]
+        ans_topk_states = np.take(a_states, ans_top_k_indices, axis=1)
 
         q_rep = torch.mean(ques_topk_states, dim=1).tolist()[0]
         # print(q_rep.shape)
         c_rep = torch.mean(cxt_topk_states, dim=1).tolist()[0]
         # print(c_rep.shape)
-        a_rep = torch.mean(a_states, dim=1).tolist()[0]
-        # print(q_rep)
-        # answer_states = np.take(rep, ans_indices, axis=1).tolist()[0]
-
-        # print("ans range: ", ans_range)
-
-        # print(ques_topk_states)
-
-        # print(torch.mean(states, dim=1).shape)
-        # print(rep)
-        # print(rep.shape)
-        # repr = rep.tolist()[0]
-        # print(repr)
+        a_rep = torch.mean(ans_topk_states, dim=1).tolist()[0]
 
         # for i, value in enumerate(q_rep):
         #     if math.isnan(value):
         #         continue
         #     feat.add_new(f"REPR_TOPK_Q_{i}", value)
-        # for i, value in enumerate(c_rep):
-        #     if math.isnan(value):
-        #         continue
-        #     feat.add_new(f"REPR_TOPK_C_{i}", value)
+        for i, value in enumerate(c_rep):
+            if math.isnan(value):
+                continue
+            feat.add_new(f"REPR_TOPK_C_{i}", value)
             # print(value)
         for i, value in enumerate(a_rep):
             if math.isnan(value):
                 continue
             feat.add_new(f"REPR_TOPK_A_{i}", value)
 
-        # context_start = tokens.index(self.sep_tokens[1])
-        # question_tokens = tokens[1:context_start]
-        # context_tokens = tokens[context_start + 2: -1]
-        #
-        # q_ents = self.endf(question_tokens, source="Q")
-        # c_ents = self.endf(context_tokens, source="C")
-
-        # result = [
-        #     # total number of Entities Mentions counts
-        #     (f"ENT_to_EntiM_{source}", to_EntiM_C),
-        #     # average number of Entities Mentions counts per sentence
-        #     (f"ENT_as_EntiM_{source}", to_EntiM_C / n_sent),
-        #     # average number of Entities Mentions counts per token (word)
-        #     (f"ENT_at_EntiM_{source}", to_EntiM_C / n_token),
-        #     # unique ents...
-        #     (f"ENT_to_UEnti_{source}", to_UEnti_C),
-        #     (f"ENT_as_UEnti_{source}", to_UEnti_C / n_sent),
-        #     (f"ENT_at_UEnti_{source}", to_UEnti_C / n_token)
-        # ]
-        # print(q_ents)
-        # print(c_ents)
-        # for f in q_ents:
-        #     feat.add_new(f[0], f[1])
-        # for f in c_ents:
-        #     feat.add_new(f[0], f[1])
         return feat
-
-    # def extract_state_features(self, attr, tokens, ans_range, states):
-    #     feat = common.IndexedFeature()
-    #     context_start = tokens.index(self.sep_tokens[1])
-    #     # print(states.shape)
-    #     # rep = torch.mean(states, dim=-1)
-    #     # repr = rep.tolist()[0]
-    #     # question_repr = repr[1:context_start]
-    #     # context_repr = repr[context_start + 2: -1]
-    #     # print(torch.mean(states, dim=1).shape)
-    #     # mean_token_states = torch.mean(states, dim=1)
-    #     start, end = ans_range
-    #     # ans_indices = list(range(start, end + 1))
-    #     # print(states.shape)
-    #     q_states = states[:, 1:context_start, :]
-    #     # print(q_states.shape)
-    #     # print(q_states)
-    #     c_states = states[:, context_start + 2: -1, :]
-    #     a_states = states[:, start: end + 1, :]
-    #
-    #     q_rep = torch.mean(q_states, dim=1)
-    #     # print(q_rep.shape)
-    #     c_rep = torch.mean(c_states, dim=1)
-    #     # print(c_rep.shape)
-    #     a_rep = torch.mean(a_states, dim=1).tolist()[0]
-    #
-    #     attribution = np.array(attr["attribution"])
-    #     question_attr = attribution[1:context_start]
-    #     # print(len(question_attr))
-    #     context_attr = attribution[context_start + 2: -1]
-    #     # print(len(context_attr))
-    #
-    #     ques_sorted_indices = np.argsort(question_attr)
-    #     qk = 3
-    #     ques_top_k_indices = ques_sorted_indices[-qk:]
-    #     ques_topk_states = np.take(q_rep, ques_top_k_indices, axis=1).tolist()[0]
-    #     # print(ques_topk_states)
-    #
-    #     cxt_sorted_indices = np.argsort(context_attr)
-    #     ck = 10
-    #     cxt_top_k_indices = cxt_sorted_indices[-ck:]
-    #     cxt_topk_states = np.take(c_rep, cxt_top_k_indices, axis=1).tolist()[0]
-    #
-    #     # answer_states = np.take(rep, ans_indices, axis=1).tolist()[0]
-    #
-    #     # print("ans range: ", ans_range)
-    #
-    #     # print(ques_topk_states)
-    #
-    #     # print(torch.mean(states, dim=1).shape)
-    #     # print(rep)
-    #     # print(rep.shape)
-    #     # repr = rep.tolist()[0]
-    #     # print(repr)
-    #
-    #     for i, value in enumerate(ques_topk_states):
-    #         if math.isnan(value):
-    #             continue
-    #         feat.add_new(f"REPR_TOPK_Q_{i}", value)
-    #     for i, value in enumerate(cxt_topk_states):
-    #         if math.isnan(value):
-    #             continue
-    #         feat.add_new(f"REPR_TOPK_C_{i}", value)
-    #         # print(value)
-    #     for i, value in enumerate(a_rep):
-    #         if math.isnan(value):
-    #             continue
-    #         feat.add_new(f"REPR_TOPK_A_{i}", value)
-    #     # context_start = tokens.index(self.sep_tokens[1])
-    #     # question_tokens = tokens[1:context_start]
-    #     # context_tokens = tokens[context_start + 2: -1]
-    #     #
-    #     # q_ents = self.endf(question_tokens, source="Q")
-    #     # c_ents = self.endf(context_tokens, source="C")
-    #
-    #     # result = [
-    #     #     # total number of Entities Mentions counts
-    #     #     (f"ENT_to_EntiM_{source}", to_EntiM_C),
-    #     #     # average number of Entities Mentions counts per sentence
-    #     #     (f"ENT_as_EntiM_{source}", to_EntiM_C / n_sent),
-    #     #     # average number of Entities Mentions counts per token (word)
-    #     #     (f"ENT_at_EntiM_{source}", to_EntiM_C / n_token),
-    #     #     # unique ents...
-    #     #     (f"ENT_to_UEnti_{source}", to_UEnti_C),
-    #     #     (f"ENT_as_UEnti_{source}", to_UEnti_C / n_sent),
-    #     #     (f"ENT_at_UEnti_{source}", to_UEnti_C / n_token)
-    #     # ]
-    #     # print(q_ents)
-    #     # print(c_ents)
-    #     # for f in q_ents:
-    #     #     feat.add_new(f[0], f[1])
-    #     # for f in c_ents:
-    #     #     feat.add_new(f[0], f[1])
-    #     return feat
 
     def extract_polarity_feature(self, attr, tags, words, tags_for_tok, ans_index, polarity, include_basic=True,
                                  include_stats=False):
         named_feat = common.IndexedFeature()
         token_attribution = self.aggregate_token_attribution(attr, tags, polarity)
-        # link_attribution = None
-        # elif args.method in ['probe']:
-        # link_attribution = self.aggregate_link_attribution(attr, polarity)
-        # print(token_attribution.size, len(words))
-        # print(words)
-        # print(attr)
-        #
-        # if token_attribution.size != len(words):
-        #     print(token_attribution.size, len(words))
-        #     print(words)
-        #     self.count += 1
         assert token_attribution.size == len(words)
         # if link_attribution is not None:
         #     assert link_attribution.shape == (len(words), len(words))
@@ -1175,7 +616,10 @@ class CreateFeatures:
         # print("------------------")
         # print(preds)
         # print("example:", example)
-        gold_text = example[2]['text']
+        if self.dataset == "squad":
+            gold_text = example[2]['text']
+        else:
+            gold_text = example[2]
         # print('gold text', gold_text)
         # print(gold_text)
 
@@ -1198,7 +642,6 @@ class CreateFeatures:
         # print("start_index:", start_index)
         # print("end_index:", end_index)
         segments = tags["segments"]
-        # print("segments:", segments)
 
         transformed_start_idx = 0
         while segments[transformed_start_idx + 1][0] <= start_index:
@@ -1215,13 +658,6 @@ class CreateFeatures:
         tags_for_tok = [self.lemmatize_pos_tag(x) for x in tags_for_tok]
 
         named_feat.add_set(self.extract_state_features(attr, words, ans_range, states))
-
-        # named_feat.add_set(self.extract_entity_features(words, ans_range))
-        # named_feat.add_set(self.extract_shallow_features(words, ans_range))
-        # named_feat.add_set(self.extract_psy_features(words, ans_range))
-        # named_feat.add_set(self.extract_varf_features(words, ans_range))
-        # named_feat.add_set(self.extract_ttrf_features(words, ans_range))
-        # named_feat.add_set(self.extract_worf_features(words, ans_range))
         named_feat.add_set(self.extract_bow_feature(words, tags_for_tok, ans_range))
         named_feat.add_set(self.extract_polarity_feature(attr, tags, words, tags_for_tok, ans_range, 'NEU'))
         # print({'feature': named_feat, 'label': calib_label, 'f1_score': f1})
@@ -1231,6 +667,9 @@ class CreateFeatures:
 if __name__ == "__main__":
     # base_model = "roberta-base"
     # tokenizer = AutoTokenizer.from_pretrained(base_model)
-    data_path = "./src/data/squad_adversarial"
-    feat = CreateFeatures(path=data_path)
+    model = "gpt_neox"
+    dataset = "hotpot_qa"
+    method = "shap"
+    data_path = f"./src/data/{dataset}"
+    feat = CreateFeatures(path=data_path, model=model, dataset=dataset, method=method)
     feat.featurize()

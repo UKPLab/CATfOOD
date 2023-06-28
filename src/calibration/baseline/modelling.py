@@ -1,6 +1,7 @@
 import os
 import sys
 from collections import OrderedDict
+from itertools import islice
 
 sys.path.append('../..')
 import argparse
@@ -229,79 +230,6 @@ def proc_input_data(args, data):
                 continue
             new_feat.add(f, val)
 
-        # for f, val in ex['feature'].data.items():
-        #     if args.do_unnorm and 'NORMED' in f:
-        #         continue
-        #     if not args.do_unnorm and 'UNNORM' in f:
-        #         continue
-        #     # if 'TOK_C_' in f:
-        #     #     continue
-        #     # if 'BOW_Q' in f:
-        #     #     continue
-        #     # if ('PSY_to' in f or 'PSY_as' in f):
-        #     #     continue
-        #     # if f in [ 'PSY_at_AAKuW_C_Q', 'PSY_at_AAKuL_C_Q', 'PSY_at_AABrL_C_Q', 'PSY_at_AACoL_C_Q', 'PSY_at_AAKuW_C_C', 'PSY_at_AABiL_C_C', 'PSY_at_AABrL_C_C', 'PSY_at_AACoL_C_C']:
-        #     #     continue
-        #     # # if not ('PSY_at_AAKuL_C_C' in f or 'PSY_at_AABiL_C_Q' in f):  # and 'BOW_A' in f:
-        #     # #     continue
-        #     # # if f not in ['BASELINE_PROB_0', 'BASELINE_PROB_1', 'BASELINE_PROB_2', 'BASELINE_PROB_3', 'BASELINE_PROB_4', 'BASELINE_CONTEXT_LENGTH', 'BASELINE_PRED_ANS_LENGTH', 'FIRST_DISTINCT_PROB', 'ENT_at_EntiM_Q', 'ENT_at_UEnti_Q', 'ENT_to_EntiM_C', 'ENT_as_EntiM_C', 'ENT_at_EntiM_C', 'ENT_to_UEnti_C', 'ENT_as_UEnti_C', 'ENT_at_UEnti_C', 'SHA_TokSenM_S_Q', 'SHA_TokSenS_S_Q', 'SHA_as_Token_C_Q', 'SHA_as_Sylla_C_Q', 'SHA_at_Sylla_C_Q', 'SHA_as_Chara_C_Q', 'SHA_TokSenM_S_C', 'SHA_TokSenS_S_C', 'SHA_TokSenL_S_C', 'SHA_as_Token_C_C', 'SHA_as_Sylla_C_C', 'SHA_at_Sylla_C_C', 'SHA_as_Chara_C_C', 'PSY_to_AAKuW_C_Q', 'PSY_as_AAKuW_C_Q', 'PSY_at_AAKuW_C_Q', 'PSY_to_AAKuL_C_Q', 'PSY_as_AAKuL_C_Q', 'PSY_at_AAKuL_C_Q', 'PSY_to_AABiL_C_Q', 'PSY_as_AABiL_C_Q', 'PSY_at_AABiL_C_Q', 'PSY_to_AABrL_C_Q', 'PSY_as_AABrL_C_Q', 'PSY_at_AABrL_C_Q', 'PSY_to_AACoL_C_Q', 'PSY_as_AACoL_C_Q', 'PSY_at_AACoL_C_Q', 'PSY_to_AAKuW_C_C', 'PSY_as_AAKuW_C_C', 'PSY_at_AAKuW_C_C', 'PSY_to_AAKuL_C_C', 'PSY_as_AAKuL_C_C', 'PSY_at_AAKuL_C_C', 'PSY_to_AABiL_C_C', 'PSY_as_AABiL_C_C', 'PSY_at_AABiL_C_C', 'PSY_to_AABrL_C_C', 'PSY_as_AABrL_C_C', 'PSY_at_AABrL_C_C', 'PSY_to_AACoL_C_C', 'PSY_as_AACoL_C_C', 'PSY_at_AACoL_C_C', 'BOW_Q_VB', 'BOW_A_NNP', 'POS_NORMED_TOK_Q_W', 'POS_NORMED_TOK_Q_VB', 'POS_NORMED_TOK_Q_NNP', 'POS_NORMED_TOK_Q_CD', 'POS_NORMED_TOK_Q_NN', 'POS_SUM_TOK_Q', 'POS_NORMED_TOK_C_NNP', 'POS_NORMED_TOK_C_CD', 'POS_NORMED_TOK_C_VB', 'POS_NORMED_TOK_C_DT', 'POS_NORMED_TOK_C_JJ', 'POS_NORMED_TOK_C_NN', 'POS_NORMED_TOK_C_TO', 'POS_NORMED_TOK_C_IN', 'POS_NORMED_TOK_C_PRP', 'POS_NORMED_TOK_C_RB', 'POS_NORMED_TOK_C_W', 'POS_NORMED_TOK_C_MD', 'POS_SUM_TOK_C', 'POS_NORMED_TOK_A_NNP', 'BOW_Q_IN', 'POS_NORMED_TOK_Q_DT', 'POS_NORMED_TOK_Q_IN', 'POS_NORMED_TOK_Q_JJ', 'POS_NORMED_TOK_A_NN', 'POS_NORMED_TOK_C_CC', 'POS_NORMED_TOK_Q_RB', 'POS_NORMED_TOK_C_RP', 'POS_NORMED_TOK_Q_CC']:
-        #     # #     continue
-        #     # if f.startswith('SHA'):
-        #     #     continue
-        #     # if f.startswith('ENT'):
-        #     #     continue
-        #
-        #     if not ('BASELINE' in f
-        #             or f.startswith('BOW')
-        #             or f.startswith('POS')
-        #             # or 'ENT' in f
-        #             # or 'WOR' in f
-        #             # or 'BOW_C_NNP' in f
-        #             # or 'WOR_at_SbL1C_C_C' in f
-        #             # or 'WOR_at_SbSBC_C_C' in f
-        #             # or 'WOR_at_SbCDC_C_C' in f
-        #             # or 'WOR_at_SbL1W_C_C' in f
-        #
-        #             # or 'TTR_CorrTTR_S_C' in f
-        #             # or 'TTR_SimpTTR_S_C' in f  # 64.1
-        #             # or 'TTR_BiLoTTR_S_C' in f  #f1 82.9
-        #             # or 'TTR_UberTTR_S_C' in f
-        #             # or 'TTR_CorrTTR_S_C' in f
-        #             # or 'VAR_SquaAjV_S_C' in f
-        #             # or 'VAR_at_CoTag_C_C' in f
-        #             # or 'VAR_CorrAjV_S_C' in f
-        #             # or 'VAR_SquaNoV_S_C' in f  # 64 and 83 f1
-        #             # or 'VAR_CorrNoV_S_C' in f  # gg
-        #             # or 'VAR_SquaVeV_S_C' in f  # gg 64.2 use this
-        #             # or 'VAR_CorrVeV_S_C' in f   # gg 64.2
-        #             # or f.startswith('_POS')
-        #             # or '_POS_as_NoTag_C_Q' in f
-        #             # or '_POS_at_NoTag_C_C' in f
-        #             # or '_POS_at_NoTag_C_Q' in f
-        #             # or '_POS_to_NoTag_C_Q' in f
-        #             # or 'PSY_at_AAKuL_C_C' in f
-        #             # or 'PSY_at_AABiL_C_Q' in f
-        #             # or 'ENT_at_UEnti_C' in f  # use this
-        #             # or 'ENT_at_EntiM_C' in f    # use this
-        #             # or 'SHA_at_Sylla_C_Q' in f
-        #             # or 'SHA_as_Sylla_C_C' in f
-        #             # or 'SHA_at_Sylla_C_C' in f
-        #             # or 'SHA_TokSenL_S_C' in f
-        #     ):  # and 'BOW_A' in f:
-        #         continue
-        #     # if 'VAR' in f:
-        #     #     continue
-        #     if 'TOK_IN_' in f:
-        #         continue
-        #     if 'BOW_IN_' in f:
-        #         continue
-        #     if not args.do_bow:
-        #         if 'BOW_C' in f:
-        #             continue
-        #     # if any([func_t in f for func_t in ['_PUNCT', '_DT', '_TO', '_IN']]):
-        #     # if any([func_t in f for func_t in ['_DT']]):
-        #     # continue
-        #     new_feat.add(f, val)
         new_data[qas_id] = {'label': ex['label'], 'f1_score': ex['f1_score'], 'feature': new_feat}
     data = new_data
     if args.rm_baseline:
@@ -732,126 +660,114 @@ def main():
     # print(args)
     np.random.seed(args.seed)
     # data = load_bin('./calib_files/squad_addsent-dev_shap_calib_data.bin')
-    data = load_bin('./src/data/squad_adversarial/calib_data_shap_flan_ul2_test.bin')
-    # print(type(data))
+    for model in ["llama", "gpt_neox", "flan_ul2"]:
+        data = load_bin(f'./src/data/hotpot_qa/calib_data_simple_grads_{model}_mod.bin')
+        def take(n, iterable):
+            """Return the first n items of the iterable as a list."""
+            return list(islice(iterable, n))
 
-    from itertools import islice
-    def take(n, iterable):
-        """Return the first n items of the iterable as a list."""
-        return list(islice(iterable, n))
+        # data = take(1000, data.items())
+        data = proc_input_data(args, dict(data))
+        print("Total samples: ", len(data))
 
-    # data = take(1000, data.items())
-    data = proc_input_data(args, dict(data))
-    print("Total samples: ", len(data))
+        X, Y, F1, vocab = make_np_dataset(data)
+        # print(Y)
+        # print(np.sum(Y))
+        if args.quant_size > 0:
+            X, vocab = quantify_dataset(X, vocab, args.quant_size, args.quant_type)
+        # print(X.shape, Y.shape)
+        # print(np.sum(Y == 0)/ Y.size, np.sum(Y == 1)/ Y.size)
 
-    X, Y, F1, vocab = make_np_dataset(data)
-    # print(Y)
-    # print(np.sum(Y))
-    if args.quant_size > 0:
-        X, vocab = quantify_dataset(X, vocab, args.quant_size, args.quant_type)
-    # print(X.shape, Y.shape)
-    # print(np.sum(Y == 0)/ Y.size, np.sum(Y == 1)/ Y.size)
+        if args.dataset == 'squad':
+            # filter cf baseids
+            cf_baseids = [sample for sample in data if "-cf-" in sample]
+            cf_baseids_filtered = [sample.split('-')[0] for sample in cf_baseids if "turk" in sample]
+            print(len(cf_baseids_filtered))
+            data_without_cf = [sample for sample in data if sample not in cf_baseids]
+            print("Number of counterfactuals: ", len(cf_baseids))
+            baseids = [k.split('-')[0] for k in data_without_cf if args.dataset == 'squad' and "turk" in k]
 
-    if args.dataset == 'squad':
-        # filter cf baseids
-        cf_baseids = [sample for sample in data if "-cf-" in sample]
-        cf_baseids_filtered = [sample.split('-')[0] for sample in cf_baseids if "turk" in sample]
-        print(len(cf_baseids_filtered))
-        data_without_cf = [sample for sample in data if sample not in cf_baseids]
-        print("Number of counterfactuals: ", len(cf_baseids))
-        baseids = [k.split('-')[0] for k in data_without_cf if args.dataset == 'squad' and "turk" in k]
+        elif args.dataset == 'trivia':
+            # filter cf baseids
+            # cf_baseids = [sample for sample in data if "-cf-" in sample]
+            # print("Number of counterfactuals: ", len(cf_baseids))
+            cf_baseids_filtered = [sample.split('-')[0] for sample in data if '-cf-' in sample]
+            print("Number of filtered counterfactuals: ", len(cf_baseids_filtered))
+            data_without_cf = [sample for sample in data if '-cf-' not in sample]
+            # print(data_without_cf)
+            print("Number of original samples: ", len(data_without_cf))
+            baseids = [k for k in data_without_cf]
 
-    elif args.dataset == 'trivia':
-        # filter cf baseids
-        # cf_baseids = [sample for sample in data if "-cf-" in sample]
-        # print("Number of counterfactuals: ", len(cf_baseids))
-        cf_baseids_filtered = [sample.split('-')[0] for sample in data if '-cf-' in sample]
-        print("Number of filtered counterfactuals: ", len(cf_baseids_filtered))
-        data_without_cf = [sample for sample in data if '-cf-' not in sample]
-        # print(data_without_cf)
-        print("Number of original samples: ", len(data_without_cf))
-        baseids = [k for k in data_without_cf]
+        # print(len(baseids))
+        # print(baseids)
+        predefined_splits = gen_predefined_train_test_splits(baseids, args.n_run, args.train_size)
+        agg_results = []
+        for train_test_split in tqdm(predefined_splits, total=len(predefined_splits), desc='Running Exp...'):
+            if args.include_cf:
+                indices =[]
+                train_set = train_test_split[0]
+                test_set = train_test_split[1]
+                for i, b in enumerate(train_set):
+                    if baseids[b] in cf_baseids_filtered:
+                        indices.append(baseids[b])
 
-    # print(len(baseids))
-    # print(baseids)
-    predefined_splits = gen_predefined_train_test_splits(baseids, args.n_run, args.train_size)
-    agg_results = []
-    for train_test_split in tqdm(predefined_splits, total=len(predefined_splits), desc='Running Exp...'):
-        # print(train_test_split)
-        # for i, b in enumerate(train_test_split):
-        #     print(i, b)
+                cf_indices = []
+                for i, b in enumerate(data):
+                    # print(b)
+                    if "-cf-" in b and b.split("-")[0] in indices:
+                        cf_indices.append(i)
+                # print(cf_indices)
+                train_set.extend(cf_indices)
 
-        # if baseid in train_test_split and in cf_baseids_filtered then ad it to train
-        # train_set = [i for i in train_test_split[0] if baseids[i] in cf_baseids_filtered]
-        # print(train_set)
-        # print(len(train_set))
-        if args.include_cf:
-            indices =[]
-            train_set = train_test_split[0]
-            test_set = train_test_split[1]
-            for i, b in enumerate(train_set):
-                if baseids[b] in cf_baseids_filtered:
-                    indices.append(baseids[b])
-            # print(indices)
-            # print(len(indices))
-
-            cf_indices = []
-            for i, b in enumerate(data):
-                # print(b)
-                if "-cf-" in b and b.split("-")[0] in indices:
-                    cf_indices.append(i)
+            # print(train_set)
             # print(cf_indices)
-            train_set.extend(cf_indices)
+            # print(len(cf_indices))
+            # c=0
+            # for i in train_set:
+            #     if i in cf_indices:
+            #         c+=1
+            # print(c)
+            # shuffle cf_indices
+                np.random.shuffle(train_set)
+                augmented_train_set = (train_set, test_set)
+                print(len(train_set), len(test_set))
+            else:
+                augmented_train_set = train_test_split
+            # print(len(augmented_train_set[0]), len(augmented_train_set[1]))
+            agg_results.append(one_pass_exp(args, X, Y, F1, vocab, augmented_train_set))
 
-        # print(train_set)
-        # print(cf_indices)
-        # print(len(cf_indices))
-        # c=0
-        # for i in train_set:
-        #     if i in cf_indices:
-        #         c+=1
-        # print(c)
-        # shuffle cf_indices
-            np.random.shuffle(train_set)
-            augmented_train_set = (train_set, test_set)
-            print(len(train_set), len(test_set))
-        else:
-            augmented_train_set = train_test_split
-        # print(len(augmented_train_set[0]), len(augmented_train_set[1]))
-        agg_results.append(one_pass_exp(args, X, Y, F1, vocab, augmented_train_set))
+        # print(agg_results)
+        agg_base_acc = np.array([x[0] for x in agg_results])
+        agg_train_acc = np.array([x[1] for x in agg_results])
+        agg_dev_acc = np.array([x[2] for x in agg_results])
+        agg_auc = np.array([x[3] for x in agg_results])
+        agg_f1_curve = np.array([x[4] for x in agg_results]).mean(axis=0)
+        agg_macro_ce = np.array([x[6] for x in agg_results]).mean()
+        print('AVG MACRO CE {:.3f}'.format(agg_macro_ce))
 
-    # print(agg_results)
-    agg_base_acc = np.array([x[0] for x in agg_results])
-    agg_train_acc = np.array([x[1] for x in agg_results])
-    agg_dev_acc = np.array([x[2] for x in agg_results])
-    agg_auc = np.array([x[3] for x in agg_results])
-    agg_f1_curve = np.array([x[4] for x in agg_results]).mean(axis=0)
-    agg_macro_ce = np.array([x[6] for x in agg_results]).mean()
-    print('AVG MACRO CE {:.3f}'.format(agg_macro_ce))
+        print('AVG MAJORITY ACC {:.3f}'.format(agg_base_acc.mean()))
+        print('AVG TRAIN ACC {:.3f}'.format(agg_train_acc.mean()))
+        print('AVG DEV ACC: {:.3f} +/- {:.3f}, AUC: {:.3f}, MAX: {:.3f}, MIN: {:.3f}'.format(agg_dev_acc.mean(),
+                                                                                             agg_dev_acc.std(),
+                                                                                             agg_auc.mean(),
+                                                                                             agg_dev_acc.max(),
+                                                                                             agg_dev_acc.min()))
 
-    print('AVG MAJORITY ACC {:.3f}'.format(agg_base_acc.mean()))
-    print('AVG TRAIN ACC {:.3f}'.format(agg_train_acc.mean()))
-    print('AVG DEV ACC: {:.3f} +/- {:.3f}, AUC: {:.3f}, MAX: {:.3f}, MIN: {:.3f}'.format(agg_dev_acc.mean(),
-                                                                                         agg_dev_acc.std(),
-                                                                                         agg_auc.mean(),
-                                                                                         agg_dev_acc.max(),
-                                                                                         agg_dev_acc.min()))
-
-    # print numbers for copy paste
-    exp_numbers = [agg_base_acc.mean(), agg_dev_acc.mean(), agg_auc.mean()] + agg_f1_curve.tolist()
-    print(','.join(['{:.3f}'.format(x) for x in exp_numbers]))
-    exp_numbers = exp_numbers[1:]
-    print(','.join(['{:.1f}'.format(a * 100) for a in exp_numbers]))
-    if agg_results[0][5] is not None and args.show_imp:
-        agg_feat_imp = np.array([x[5] for x in agg_results])
-        # print(agg_feat_imp.shape)
-        agg_feat_imp = np.mean(agg_feat_imp, axis=0)
-        imp_idx = np.argsort(-np.abs(agg_feat_imp))
-        # pred_direction = prediction_direction_of_feat(X, Y, F1)
-        for rank, i in enumerate(imp_idx[:100]):
-            # print(imp_idx[i])
-            # print('Feat Rank:', rank, vocab.get_word(i), agg_feat_imp[i])
-            print(rank, vocab.get_word(i), agg_feat_imp[i])
+        # print numbers for copy paste
+        exp_numbers = [agg_base_acc.mean(), agg_dev_acc.mean(), agg_auc.mean()] + agg_f1_curve.tolist()
+        print(','.join(['{:.3f}'.format(x) for x in exp_numbers]))
+        exp_numbers = exp_numbers[1:]
+        print(','.join(['{:.1f}'.format(a * 100) for a in exp_numbers]))
+        if agg_results[0][5] is not None and args.show_imp:
+            agg_feat_imp = np.array([x[5] for x in agg_results])
+            # print(agg_feat_imp.shape)
+            agg_feat_imp = np.mean(agg_feat_imp, axis=0)
+            imp_idx = np.argsort(-np.abs(agg_feat_imp))
+            # pred_direction = prediction_direction_of_feat(X, Y, F1)
+            for rank, i in enumerate(imp_idx[:100]):
+                # print(imp_idx[i])
+                # print('Feat Rank:', rank, vocab.get_word(i), agg_feat_imp[i])
+                print(rank, vocab.get_word(i), agg_feat_imp[i])
 
 
 if __name__ == "__main__":

@@ -18,39 +18,37 @@ warnings.filterwarnings("ignore")
 
 
 class CreateFeatures:
-    def __init__(self, path):
+    def __init__(self, path, model, dataset, method):
         self.path = path
         self.cls_tokens = ["[CLS]", "<s>"]
         self.sep_tokens = ["[SEP]", "</s>"]
         self.count = 0
         self.nlp = spacy.load("en_core_web_sm")
         # self.supar = Parser.load('crf-con-en')
+        self.model = model
+        self.dataset = dataset.split("_")[0]
+        self.method = method
 
     def _load_data(self):
-
         self.tagger_info = utils.load_bin(f"{self.path}/pos_info.bin")
         self.ent_info = utils.load_bin(f"{self.path}/ent_info.bin")
-        self.attributions = utils.load_bin(f"{self.path}/simple_grads_info_rag.bin")
-        self.states = utils.load_bin(f"{self.path}/dense_repr_pca_10_info_rag.bin")
-        pred_df = pd.read_csv(f"{self.path}/outputs_rag.csv")
-        # self.tagger_info = utils.load_bin(f"{self.path}/pos_info.bin")
-        # self.ent_info = utils.load_bin(f"{self.path}/ent_info.bin")
-        # self.attributions = utils.load_bin(f"{self.path}/simple_grads_gpt_neox_context_rel.bin")
-        # self.states = utils.load_bin(f"{self.path}/dense_repr_pca_10_info_gpt_neox.bin")
-        # pred_df = pd.read_csv(f"{self.path}/outputs_gpt_neox_context_rel_filter.csv")
+        self.states = utils.load_bin(f"{self.path}/dense_repr_pca_10_info_{self.model}.bin")
+        if self.model == "rag":
+            self.attributions = utils.load_bin(f"{self.path}/{self.method}_info_rag.bin")
+            pred_df = pd.read_csv(f"{self.path}/outputs_rag.csv")
+        elif self.model == "base":
+            self.attributions = utils.load_bin(f"{self.path}/{self.method}_info_base.bin")
+            pred_df = pd.read_csv(f"{self.path}/outputs_roberta_wo_cf.csv")
+        elif self.model == "llama":
+            self.attributions = utils.load_bin(f"{self.path}/{self.method}_info_llama_context_rel.bin")
+            pred_df = pd.read_csv(f"{self.path}/outputs_llama_context_rel_filter.csv")
+        elif self.model == "gpt_neox":
+            self.attributions = utils.load_bin(f"{self.path}/{self.method}_info_gpt_neox_context_rel.bin")
+            pred_df = pd.read_csv(f"{self.path}/outputs_gpt_neox_context_rel_filter.csv")
+        elif self.model == "flan_ul2":
+            self.attributions = utils.load_bin(f"{self.path}/{self.method}_info_flan_ul2_context_noise_rel.bin")
+            pred_df = pd.read_csv(f"{self.path}/outputs_flan_ul2_context_rel_noise_filter.csv")
 
-        # self.tagger_info = utils.load_bin(f"{self.path}/pos_info.bin")
-        # self.ent_info = utils.load_bin(f"{self.path}/ent_info.bin")
-        # self.attributions = utils.load_bin(f"{self.path}/sc_attn_info_wo_cf.bin")
-        # self.states = utils.load_bin(f"{self.path}/dense_repr_pca_10_info_base.bin")
-        # pred_df = pd.read_csv(f"{self.path}/outputs_wo_cf_roberta.csv")
-
-        # self.tagger_info = utils.load_bin(f"{self.path}/pos_info.bin")
-        # self.ent_info = utils.load_bin(f"{self.path}/ent_info.bin")
-        # self.attributions = utils.load_bin(f"{self.path}/simple_grads_base.bin")
-        # self.states = utils.load_bin(f"{self.path}/dense_repr_pca_10_info_base.bin")
-        # pred_df = pd.read_csv(f"{self.path}/outputs_roberta_wo_cf.csv")
-        # print(pred_df.head())
         self.preds_info = pred_df.set_index('id').T.to_dict('dict')
         # self.preds_info = utils.read_json('outputs/addsent-dev_squad_predictions.json')
 
@@ -58,18 +56,15 @@ class CreateFeatures:
         self._load_data()
         processed_instances = OrderedDict()
         c = 0
-        # print(self.attributions)
         for q_id in tqdm(self.tagger_info, total=len(self.tagger_info), desc='transforming...'):
-            # print(q_id)
             tags = self.tagger_info[q_id]
             entities = self.ent_info[q_id]
-            # print(tags)
             attributions = self.attributions[q_id]
             states = self.states[q_id]
             preds = self.preds_info[q_id]
             processed_instances[q_id] = self.extract_feature_for_instance(attributions, tags, entities, preds, states)
             c+=1
-        utils.dump_to_bin(processed_instances, f"{self.path}/calib_data_simple_grads_repr_rag_10_testing.bin")
+        utils.dump_to_bin(processed_instances, f"{self.path}/calib_data_{self.method}_{self.model}_mod.bin")
 
     def lemmatize_pos_tag(self, token_tags):
         """
@@ -92,12 +87,8 @@ class CreateFeatures:
             tag = 'PRP'
         if tag.startswith('VB'):
             tag = 'VB'
-        if pos == 'PUNCT':  #or tag in [":"]:
+        if pos == 'PUNCT':
             tag = 'PUNCT'
-        # if tag == '$':
-        #     tag = 'SYM'
-        # if tag == "``" or tag == "''":
-        #     tag = "AUX"
         return tok, pos, tag
 
     def extract_baseline_feature(self, preds):
@@ -280,8 +271,6 @@ class CreateFeatures:
 
         q_ents = self.ttrF(question_tokens)
         c_ents = self.ttrF(context_tokens)
-        # print(q_ents)
-        # print(c_ents)
         for k, v in q_ents.items():
             feat.add_new(f"TTR_{k}_Q", v)
         for k, v in c_ents.items():
@@ -642,195 +631,62 @@ class CreateFeatures:
             feat.add_new(f[0], f[1])
         return feat
 
-    # def extract_state_features(self, attr, tokens, ans_range, states):
-    #     feat = common.IndexedFeature()
-    #     context_start = tokens.index(self.sep_tokens[1])
-    #     # print(states.shape)
-    #     # rep = torch.mean(states, dim=-1)
-    #     # repr = rep.tolist()[0]
-    #     # question_repr = repr[1:context_start]
-    #     # context_repr = repr[context_start + 2: -1]
-    #     # print(torch.mean(states, dim=1).shape)
-    #     # mean_token_states = torch.mean(states, dim=1)
-    #     start, end = ans_range
-    #     # ans_indices = list(range(start, end + 1))
-    #     # print(states.shape)
-    #     q_states = states[:, 1:context_start, :]
-    #     # print(q_states.shape)
-    #     # print(q_states)
-    #     c_states = states[:, context_start + 2: -1, :]
-    #     a_states = states[:, start: end + 1, :]
-    #
-    #     q_rep = torch.mean(q_states, dim=1)
-    #     # print(q_rep.shape)
-    #     c_rep = torch.mean(c_states, dim=1)
-    #     # print(c_rep.shape)
-    #     a_rep = torch.mean(a_states, dim=1).tolist()[0]
-    #
-    #     attribution = np.array(attr["attributions"])
-    #     question_attr = attribution[1:context_start]
-    #     # print(len(question_attr))
-    #     context_attr = attribution[context_start + 2: -1]
-    #     # print(len(context_attr))
-    #
-    #     ques_sorted_indices = np.argsort(question_attr)
-    #     qk = 3
-    #     ques_top_k_indices = ques_sorted_indices[-qk:]
-    #     ques_topk_states = np.take(q_rep, ques_top_k_indices, axis=1).tolist()[0]
-    #     # print(ques_topk_states)
-    #
-    #     cxt_sorted_indices = np.argsort(context_attr)
-    #     ck = 10
-    #     cxt_top_k_indices = cxt_sorted_indices[-ck:]
-    #     cxt_topk_states = np.take(c_rep, cxt_top_k_indices, axis=1).tolist()[0]
-    #
-    #     # answer_states = np.take(rep, ans_indices, axis=1).tolist()[0]
-    #
-    #     # print("ans range: ", ans_range)
-    #
-    #     # print(ques_topk_states)
-    #
-    #     # print(torch.mean(states, dim=1).shape)
-    #     # print(rep)
-    #     # print(rep.shape)
-    #     # repr = rep.tolist()[0]
-    #     # print(repr)
-    #
-    #     for i, value in enumerate(ques_topk_states):
-    #         if math.isnan(value):
-    #             continue
-    #         feat.add_new(f"REPR_TOPK_Q_{i}", value)
-    #     for i, value in enumerate(cxt_topk_states):
-    #         if math.isnan(value):
-    #             continue
-    #         feat.add_new(f"REPR_TOPK_C_{i}", value)
-    #         # print(value)
-    #     for i, value in enumerate(a_rep):
-    #         if math.isnan(value):
-    #             continue
-    #         feat.add_new(f"REPR_TOPK_A_{i}", value)
-    #     # context_start = tokens.index(self.sep_tokens[1])
-    #     # question_tokens = tokens[1:context_start]
-    #     # context_tokens = tokens[context_start + 2: -1]
-    #     #
-    #     # q_ents = self.endf(question_tokens, source="Q")
-    #     # c_ents = self.endf(context_tokens, source="C")
-    #
-    #     # result = [
-    #     #     # total number of Entities Mentions counts
-    #     #     (f"ENT_to_EntiM_{source}", to_EntiM_C),
-    #     #     # average number of Entities Mentions counts per sentence
-    #     #     (f"ENT_as_EntiM_{source}", to_EntiM_C / n_sent),
-    #     #     # average number of Entities Mentions counts per token (word)
-    #     #     (f"ENT_at_EntiM_{source}", to_EntiM_C / n_token),
-    #     #     # unique ents...
-    #     #     (f"ENT_to_UEnti_{source}", to_UEnti_C),
-    #     #     (f"ENT_as_UEnti_{source}", to_UEnti_C / n_sent),
-    #     #     (f"ENT_at_UEnti_{source}", to_UEnti_C / n_token)
-    #     # ]
-    #     # print(q_ents)
-    #     # print(c_ents)
-    #     # for f in q_ents:
-    #     #     feat.add_new(f[0], f[1])
-    #     # for f in c_ents:
-    #     #     feat.add_new(f[0], f[1])
-    #     return feat
-
     def extract_state_features(self, attr, tokens, ans_range, states):
         feat = common.IndexedFeature()
         context_start = tokens.index(self.sep_tokens[1])
-        # print(states.shape)
-        # rep = torch.mean(states, dim=-1)
-        # repr = rep.tolist()[0]
-        # question_repr = repr[1:context_start]
-        # context_repr = repr[context_start + 2: -1]
-        # print(torch.mean(states, dim=1).shape)
-        # mean_token_states = torch.mean(states, dim=1)
         start, end = ans_range
-        # ans_indices = list(range(start, end + 1))
-        # states = np.expand_dims(states, axis=0)
+        ans_indices = list(range(start, end + 1))
         q_states = states[:, 1:context_start, :]
-        # print(q_states.shape)
-        # print(q_states)
         c_states = states[:, context_start + 2: -1, :]
-        a_states = states[:, start: end + 1, :]
-        print(a_states.shape)
-
+        torch.set_printoptions(threshold=10_000)
+        # remove answer states from context states
+        c_states_before = c_states[:, :start - (context_start + 2), :]
+        c_states_after = c_states[:, end + 1 - (context_start + 2):, :]
+        final_c_states = torch.cat((c_states_before, c_states_after), dim=1)
+        a_states = states[:, start:end + 1, :]
         attribution = np.array(attr["attributions"])
         question_attr = attribution[1:context_start]
-        # print(len(question_attr))
         context_attr = attribution[context_start + 2: -1]
-        # print(len(context_attr))
+        c_attr_before = context_attr[:start - (context_start + 2)]
+        c_attr_after = context_attr[end + 1 - (context_start + 2):]
+        final_c_attr = np.concatenate((c_attr_before, c_attr_after), axis=0)
+        ans_attr = attribution[start: end + 1]
 
         ques_sorted_indices = np.argsort(question_attr)
-        qk = 3
-        ques_top_k_indices = ques_sorted_indices[-qk:]
-        ques_topk_states = np.take(q_states, ques_top_k_indices, axis=1) # .tolist()[0]
-        # print(ques_topk_states.shape)
+        # take topk indices
+        topk_ques_indices = ques_sorted_indices[-int(ques_sorted_indices.shape[0] * 0.10):]
+        ques_topk_states = np.take(q_states, topk_ques_indices, axis=1)
 
-        cxt_sorted_indices = np.argsort(context_attr)
-        ck = 5
-        cxt_top_k_indices = cxt_sorted_indices[-ck:]
-        cxt_topk_states = np.take(c_states, cxt_top_k_indices, axis=1) # .tolist()[0]
+        topc_percent = 0.10
+        cxt_sorted_indices = np.argsort(final_c_attr)
+        cxt_top_k_indices = cxt_sorted_indices[-int(cxt_sorted_indices.shape[0] * topc_percent):]
+        cxt_topk_states = np.take(final_c_states, cxt_top_k_indices, axis=1)
+
+        topa_percent = 0.20
+        ans_sorted_indices = np.argsort(ans_attr)
+        ans_top_k_indices = ans_sorted_indices[-int(ans_sorted_indices.shape[0] * topa_percent):]
+        ans_topk_states = np.take(a_states, ans_top_k_indices, axis=1)
 
         q_rep = torch.mean(ques_topk_states, dim=1).tolist()[0]
         # print(q_rep.shape)
         c_rep = torch.mean(cxt_topk_states, dim=1).tolist()[0]
         # print(c_rep.shape)
-        print(torch.mean(a_states, dim=1).shape)
-        print("-"*10)
-        a_rep = torch.mean(a_states, dim=1).tolist()[0]
-        # print(q_rep)
-        # answer_states = np.take(rep, ans_indices, axis=1).tolist()[0]
-
-        # print("ans range: ", ans_range)
-
-        # print(ques_topk_states)
-
-        # print(torch.mean(states, dim=1).shape)
-        # print(rep)
-        # print(rep.shape)
-        # repr = rep.tolist()[0]
-        # print(repr)
+        a_rep = torch.mean(ans_topk_states, dim=1).tolist()[0]
 
         # for i, value in enumerate(q_rep):
         #     if math.isnan(value):
         #         continue
         #     feat.add_new(f"REPR_TOPK_Q_{i}", value)
-        # for i, value in enumerate(c_rep):
-        #     if math.isnan(value):
-        #         continue
-        #     feat.add_new(f"REPR_TOPK_C_{i}", value)
+        for i, value in enumerate(c_rep):
+            if math.isnan(value):
+                continue
+            feat.add_new(f"REPR_TOPK_C_{i}", value)
             # print(value)
         for i, value in enumerate(a_rep):
             if math.isnan(value):
                 continue
             feat.add_new(f"REPR_TOPK_A_{i}", value)
-        # context_start = tokens.index(self.sep_tokens[1])
-        # question_tokens = tokens[1:context_start]
-        # context_tokens = tokens[context_start + 2: -1]
-        #
-        # q_ents = self.endf(question_tokens, source="Q")
-        # c_ents = self.endf(context_tokens, source="C")
 
-        # result = [
-        #     # total number of Entities Mentions counts
-        #     (f"ENT_to_EntiM_{source}", to_EntiM_C),
-        #     # average number of Entities Mentions counts per sentence
-        #     (f"ENT_as_EntiM_{source}", to_EntiM_C / n_sent),
-        #     # average number of Entities Mentions counts per token (word)
-        #     (f"ENT_at_EntiM_{source}", to_EntiM_C / n_token),
-        #     # unique ents...
-        #     (f"ENT_to_UEnti_{source}", to_UEnti_C),
-        #     (f"ENT_as_UEnti_{source}", to_UEnti_C / n_sent),
-        #     (f"ENT_at_UEnti_{source}", to_UEnti_C / n_token)
-        # ]
-        # print(q_ents)
-        # print(c_ents)
-        # for f in q_ents:
-        #     feat.add_new(f[0], f[1])
-        # for f in c_ents:
-        #     feat.add_new(f[0], f[1])
         return feat
 
     def extract_shallow_features(self, tokens, ans_range):
@@ -869,11 +725,6 @@ class CreateFeatures:
     def extract_bow_feature(self, words, tags, entities, ans_range):
         feat = common.IndexedFeature()
         context_start = words.index(self.sep_tokens[1])
-        # print(words)
-        # print(words[ans_range[0]: ans_range[1]])
-        # # print(words[ans_range[1]])
-        # print(context_start)
-        # print(ans_range)
         for i, (i_token, i_pos, i_tag) in enumerate(tags):
             i_src = self.source_of_token(i, i_token, context_start, ans_range)
             if i_src == 'Q' or i_src == 'A' or i_src == 'C':
@@ -1018,20 +869,7 @@ class CreateFeatures:
                                  include_stats=False):
         named_feat = common.IndexedFeature()
         token_attribution = self.aggregate_token_attribution(attr, tags, polarity)
-        # link_attribution = None
-        # elif args.method in ['probe']:
-        # link_attribution = self.aggregate_link_attribution(attr, polarity)
-        # print(token_attribution.size, len(words))
-        # print(words)
-        # print(attr)
-        #
-        # if token_attribution.size != len(words):
-        #     print(token_attribution.size, len(words))
-        #     print(words)
-        #     self.count += 1
-        # assert token_attribution.size == len(words)
-        # if link_attribution is not None:
-        #     assert link_attribution.shape == (len(words), len(words))
+
         if include_basic:
             named_feat.add_set(self.extract_token_attr_feature_in_question(
                 words,
@@ -1086,18 +924,12 @@ class CreateFeatures:
         return named_feat
 
     def extract_feature_for_instance(self, attr, tags, entities, preds, states):
-        # print(self.tagger_info)
-        # print(preds)
         predictions = ast.literal_eval(preds["pred_text"])[0]
-        # print(predictions)
-        # create labels
         pred_text = predictions[0]['answer']
-        # print(pred_text)
-        # print(preds["gold_text"])
-        # print(preds)
-        gold_text = preds['gold_text'] # ast.literal_eval(preds['gold_text'])  # preds['gold_text']
-        # gold_text = gold_text[0]["text"]
-        # print("gold_text:", gold_text)
+        if self.dataset == "squad":
+            gold_text = ast.literal_eval(preds['gold_text'])
+        else:
+            gold_text = preds['gold_text']
 
         exact_match = evaluate.get_score(
             metric="exact_match",
@@ -1129,13 +961,6 @@ class CreateFeatures:
         ents_for_tok = entities['ents']
 
         named_feat.add_set(self.extract_state_features(attr, words, ans_range, states))
-
-        # named_feat.add_set(self.extract_entity_features(words, ans_range))
-        # named_feat.add_set(self.extract_shallow_features(words, ans_range))
-        # named_feat.add_set(self.extract_psy_features(words, ans_range))
-        # named_feat.add_set(self.extract_varf_features(words, ans_range))
-        # named_feat.add_set(self.extract_ttrf_features(words, ans_range))
-        # named_feat.add_set(self.extract_worf_features(words, ans_range))
         named_feat.add_set(self.extract_bow_feature(words, tags_for_tok, ents_for_tok, ans_range))
         named_feat.add_set(self.extract_polarity_feature(attr, tags, words, tags_for_tok, ents_for_tok, ans_range, 'NEU'))
         # print({'feature': named_feat, 'label': calib_label, 'f1_score': f1})
@@ -1143,13 +968,9 @@ class CreateFeatures:
 
 
 if __name__ == "__main__":
-    # import argparse
-    #
-    # parser = argparse.ArgumentParser(description="Passing arguments for model, tokenizer, and dataset.")
-    # parser.add_argument("--dataset", type=str, required=True, help="Specify the dataset to use.")
-    #
-    # args = parser.parse_args()
-
-    data_path = "./src/data/trivia_qa"
-    feat = CreateFeatures(path=data_path)
-    feat.featurize()
+    for model in ["llama"]:#, "gpt_neox", "flan_ul2"]:
+        dataset = "trivia_qa"
+        method = "sc_attn"
+        data_path = f"./src/data/{dataset}"
+        feat = CreateFeatures(path=data_path, model=model, dataset=dataset, method=method)
+        feat.featurize()

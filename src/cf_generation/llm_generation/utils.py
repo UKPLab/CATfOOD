@@ -205,12 +205,20 @@ def filter_counterfactuals():
 
 def context_eval():
     data_path = os.path.join(BASE_PATH, "src/data/squad")
-    orig_ans_path = os.path.join(data_path, "counterfactual_data_gpt_jt_v2_qg_pipeline_all_data_cleaned.jsonl")
+    # counterfactual_data_gpt_neox_20b_v2_qg_pipeline_all_data_cleaned.jsonl
+    # counterfactual_data_gpt_jt_v2_qg_pipeline_all_data_cleaned.jsonl
+    # counterfactual_data_llama_13b_v1_qg_pipeline_all_data_cleaned.jsonl
+    # counterfactual_data_alpaca_13b_v2_qg_pipeline_all_data_cleaned.jsonl
+    # flan-t5-xxl-v3_collated_data_with_answers_processed.jsonl
+    # flan_ul2_collated_data_with_answers_processed.jsonl
+    orig_ans_path = os.path.join(data_path, "counterfactual_data_gpt_neox_20b_v2_qg_pipeline_all_data_cleaned.jsonl")
     answers = {}
 
-    path = os.path.join(data_path, f"counterfactual_samples_gpt_jt_context_relevance.jsonl")
+    # context rel file
+    path = os.path.join(data_path, f"counterfactual_samples_Llama-2-13b-chat-hf_gpt_neox_complete.jsonl")
     with jsonlines.open(path) as reader:
         for sample in tqdm(reader):
+            # print(sample)
             idx = sample["id"]
             context_rel = sample["context_relevance"]
             if idx in answers.keys():
@@ -228,11 +236,58 @@ def context_eval():
             idx = sample["id"]
             if idx in answers.keys():
                 context_rel = answers[idx][0]
-                if context_rel in ["True", "yes"]:
+                if context_rel.__contains__("True"):
                     examples.append(sample)
                     c+=1
     print(c)
-    save_to_disk(examples, os.path.join(data_path, "gpt_jt_collated_data_with_answers_processed_context_relevance.jsonl"))
+    save_to_disk(
+        examples,
+        os.path.join(data_path, "counterfactual_samples_Llama-2-13b-chat-hf_gpt_neox_context_filtered_complete.jsonl")
+    )
+
+
+def openai_context_eval():
+    data_path = os.path.join(BASE_PATH, "src/data/squad")
+    eval_model = "gpt-4-0314"
+    test_model = "flan_ul2"
+    save_path = BASE_PATH + f"src/data/squad/{eval_model}_qa_relevance_seed_0/"
+    orig_ans_path = os.path.join(save_path, f"counterfactual_samples_{eval_model}_{test_model}_500.jsonl")
+    answers = {}
+
+    # path = os.path.join(data_path, f"counterfactual_samples_gpt_jt_context_relevance.jsonl")
+    # with jsonlines.open(path) as reader:
+    #     for sample in tqdm(reader):
+    #         idx = sample["id"]
+    #         context_rel = sample["context_relevance"]
+    #         if idx in answers.keys():
+    #             answers[idx].append(context_rel)
+    #         else:
+    #             answers[idx] = [context_rel]
+            # break
+    # break
+    # print(list(answers.values())[:10])
+    c = 0
+    with jsonlines.open(orig_ans_path) as reader:
+        examples = []
+        for sample in tqdm(reader):
+            # target_answer = sample["answers"]["text"][0]
+            idx = sample["id"]
+            output = sample["context_relevance"]
+            context_rel = output["choices"][0]["message"]["content"]
+            if context_rel.__contains__("True"):
+                c+=1
+            # print(context_rel)
+            # break
+    print(c)
+
+
+    #         if idx in answers.keys():
+    #             context_rel = answers[idx][0]
+    #             if context_rel in ["True", "yes"]:
+    #                 examples.append(sample)
+    #                 c+=1
+    # print(c)
+    # save_to_disk(examples, os.path.join(data_path, "gpt_jt_collated_data_with_answers_processed_context_relevance.jsonl"))
 
 
 def context_noise_filter():
@@ -285,6 +340,34 @@ def context_noise_filter():
     print(c)
     save_to_disk(examples,
                  os.path.join(data_path, "flan_t5_xxl_collated_data_with_answers_processed_context_relevance_noise_filter.jsonl"))
+
+
+def compare_closed_open():
+    closed_model = "gpt-4-0314"
+    open_model = "Llama-2-13b-chat-hf"
+    test_model = "llama"
+    data_path = os.path.join(BASE_PATH, "src/data/squad")
+    open_path = os.path.join(data_path, f"{open_model}_qa_relevance_seed_0/counterfactual_samples_{open_model}_{test_model}_500_2.jsonl")
+    closed_path = os.path.join(data_path, f"{closed_model}_qa_relevance_seed_0/counterfactual_samples_{closed_model}_{test_model}_500.jsonl")
+
+    c = 0
+
+    with jsonlines.open(closed_path) as reader:
+        closed_examples = [sample for sample in tqdm(reader)]
+
+    with jsonlines.open(open_path) as reader:
+        open_examples = [sample for sample in tqdm(reader)]
+
+    for closed, open in zip(closed_examples, open_examples):
+        closed_ans = closed["context_relevance"]["choices"][0]["message"]["content"]
+        open_ans = open["context_relevance"]
+
+        if closed_ans.__contains__("True") and open_ans.__contains__("True"):
+            c+=1
+        if closed_ans.__contains__("False") and open_ans.__contains__("False"):
+            c+=1
+
+    print(c)
 
 
 def save_irrelevant_samples():
@@ -390,7 +473,7 @@ if __name__ == "__main__":
 
     # remove_duplicate_examples(subset_file, save_path)
     # filter_counterfactuals()
-    # context_eval()
+    context_eval()
     # select_noise_relevant_samples()
     # collate_jsonl_files()
     # _add_answer_to_noise_filtered()
@@ -403,62 +486,70 @@ if __name__ == "__main__":
     #     output_file=f"{BASE_PATH}src/data/squad/counterfactual_data_llama_13b_v1_qg_pipeline_all_data_cleaned.jsonl"
     # )
 
-    dataset = load_dataset("squad", "plain_text")
-    train_data = dataset["train"]
-    squad_data = [sample for sample in tqdm(train_data, total=len(train_data), desc="Loading SQuAD data ... ")]
-    c = 0
-    # read the jsonl file
-    files = [
-        "t5_squad_counterfactuals/rag_counterfactuals_with_answers_squad_qg_1.jsonl"
-        # "t5_squad_counterfactuals/rag_counterfactuals_complete_noise_min_filtered_final_dedup_1.jsonl",
-        #  "llama_collated_data_with_answers_processed_context_relevance.jsonl",
-         # "gpt_neox_collated_data_with_answers_processed_context_relevance.jsonl",
-         # "flan_ul2_collated_data_with_answers_processed_context_relevance_noise_filter.jsonl"
-    ]
-    file_paths = [f"{BASE_PATH}src/data/squad/{name}" for name in files]
-
+    # dataset = load_dataset("squad", "plain_text")
+    # train_data = dataset["train"]
+    # squad_data = [sample for sample in tqdm(train_data, total=len(train_data), desc="Loading SQuAD data ... ")]
+    # c = 0
+    # # read the jsonl file
+    # files = [
+    #     "t5_squad_counterfactuals/rag_counterfactuals_with_answers_squad_qg_1.jsonl"
+    #     # "t5_squad_counterfactuals/rag_counterfactuals_complete_noise_min_filtered_final_dedup_1.jsonl",
+    #     #  "llama_collated_data_with_answers_processed_context_relevance.jsonl",
+    #      # "gpt_neox_collated_data_with_answers_processed_context_relevance.jsonl",
+    #      # "flan_ul2_collated_data_with_answers_processed_context_relevance_noise_filter.jsonl"
+    # ]
+    # file_paths = [f"{BASE_PATH}src/data/squad/{name}" for name in files]
+    #
+    # # for path in file_paths:
+    # #     with jsonlines.open(path) as reader:
+    # #         ids = [example["id"].split("_")[0] for example in tqdm(reader)]
+    #
+    # common_ids = None
+    #
     # for path in file_paths:
     #     with jsonlines.open(path) as reader:
-    #         ids = [example["id"].split("_")[0] for example in tqdm(reader)]
+    #         ids = set([example["id"].split("_")[0] for example in tqdm(reader)])
+    #
+    #         if common_ids is None:
+    #             common_ids = ids
+    #         else:
+    #             common_ids = common_ids.intersection(ids)
+    #
+    # common_ids = list(common_ids)
+    # print(len(common_ids))
+    #
+    # for q_id in common_ids:
+    #     if q_id == "5726a49df1498d1400e8e5d5":
+    #         c += 1
+    #         # if c<200:
+    #         #     continue
+    #         orig_example = [sample for sample in squad_data if sample["id"] == q_id][0]
+    #         orig_question = orig_example["question"]
+    #         # if orig_question == "What did John Rawls publish?":
+    #         print("id: ", q_id)
+    #         print("Original question: ", orig_question)
+    #         for i, path in enumerate(file_paths):
+    #             with jsonlines.open(path) as reader:
+    #                 for example in tqdm(reader):
+    #                     id = example["id"].split("_")[0]
+    #                     context = example["context"]
+    #                     answer = example["answers"]
+    #                     if q_id == id:
+    #                         # question = example["question"]
+    #                         # print("Model: ", files[i].split("_")[0])
+    #                         # print("Cf: ", question)
+    #                         # print("context: ", context)
+    #                         # print("answer: ", answer)
+    #                         print(example)
+    #         print("-"*100)
+    #         break
+    #     else:
+    #         continue
 
-    common_ids = None
+    # compare_closed_open()
 
-    for path in file_paths:
-        with jsonlines.open(path) as reader:
-            ids = set([example["id"].split("_")[0] for example in tqdm(reader)])
-
-            if common_ids is None:
-                common_ids = ids
-            else:
-                common_ids = common_ids.intersection(ids)
-
-    common_ids = list(common_ids)
-    print(len(common_ids))
-
-    for q_id in common_ids:
-        if q_id == "5726a49df1498d1400e8e5d5":
-            c += 1
-            # if c<200:
-            #     continue
-            orig_example = [sample for sample in squad_data if sample["id"] == q_id][0]
-            orig_question = orig_example["question"]
-            # if orig_question == "What did John Rawls publish?":
-            print("id: ", q_id)
-            print("Original question: ", orig_question)
-            for i, path in enumerate(file_paths):
-                with jsonlines.open(path) as reader:
-                    for example in tqdm(reader):
-                        id = example["id"].split("_")[0]
-                        context = example["context"]
-                        answer = example["answers"]
-                        if q_id == id:
-                            # question = example["question"]
-                            # print("Model: ", files[i].split("_")[0])
-                            # print("Cf: ", question)
-                            # print("context: ", context)
-                            # print("answer: ", answer)
-                            print(example)
-            print("-"*100)
-            break
-        else:
-            continue
+    # model = "gpt_neox"
+    # collate_jsonl_files(
+    #     data_path=os.path.join(BASE_PATH, f"src/data/squad/Llama-2-13b-chat-hf_qa_relevance_{model}_seed_0/"),
+    #     save_path=os.path.join(BASE_PATH, f"src/data/squad/counterfactual_samples_Llama-2-13b-chat-hf_{model}_complete.jsonl")
+    # )

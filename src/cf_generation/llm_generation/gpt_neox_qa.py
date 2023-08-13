@@ -39,8 +39,8 @@ if __name__ == '__main__':
     # prompt = "Using the given context, generate a question that requires selecting a short " \
     #          "and specific answer from it."
 
-    prompt = "You are a question generation model. Given the context below, please generate a question that " \
-             "can be answered based on the information given in the context."  # use this
+    # prompt = "You are a question generation model. Given the context below, please generate a question that " \
+    #          "can be answered based on the information given in the context."  # use this
 
     # prompt = "As a question generation model, your task is to generate a relevant and informative question " \
     #          "based on the given context. The question should be of type what, where, which, why, who, how, etc., " \
@@ -122,6 +122,8 @@ if __name__ == '__main__':
     #          "in the context, while encouraging critical thinking and analysis. Please note that your " \
     #          "response should allow for various relevant and creative questions."  # nope
 
+    prompt = "Given the context please answer the question."
+
     model_name = "EleutherAI/gpt-neox-20b"
     model_identifier = model_name.split("/")[-1]
     save_path = BASE_PATH + f"src/data/squad/{model_identifier}_qg"
@@ -135,42 +137,25 @@ if __name__ == '__main__':
 
     model.eval()
     skipped_instances = 0
-    with jsonlines.open(BASE_PATH + "src/data/squad/squad_counterfactuals_noise_min_filtered_final_2.jsonl") as reader:
+    with jsonlines.open(
+            BASE_PATH +
+            "src/data/squad/counterfactual_samples_Llama-2-13b-chat-hf_gpt_neox_context_filtered_complete.jsonl") as reader:
         for example in tqdm(reader):
             try:
                 c += 1
-                if c<=35000:
-                    continue
+                if c==20:
+                    break
                 # print(c)
                 id = example["id"].split("_")[0]
                 context = example["context"]
+                question = example["question"]
                 orig_example = [sample for sample in squad_data if sample["id"] == id][0]
                 # print(orig_example)
                 orig_context = orig_example["context"]
                 orig_question = orig_example["question"]
                 orig_answer = orig_example["answers"]
-                # context = "The Eiffel Tower ( ; ) is a wrought-iron lattice tower on the Champ de Mars in Paris, France. " \
-                #           "It is named after the engineer Gustave Eiffel, whose company designed and " \
-                #           "built the tower. Constructed from 1887–1889 as the entrance to the 1889 World's Fair, it " \
-                #           "was initially criticized by some of France's leading artists and intellectuals for " \
-                #           "its design, but it has become a global cultural icon of France and one of the most " \
-                #           "recognisable structures in the world. The Eiffel Tower is the most-visited paid monument " \
-                #           "in the world; 6.91 million people ascended it in 2015. The tower is tall, about the same " \
-                #           "height as an 81- building, and the tallest structure in Paris. Its base is square, measuring " \
-                #           "on each side. During its construction, the Eiffel Tower surpassed the Washington Monument " \
-                #           "to become the tallest man-made structure in the world, a title it held for 41 years until " \
-                #           "the Chrysler Building in New York City was finished in 1930. Due to the addition of a " \
-                #           "broadcasting aerial at the top of the tower in 1957, it is now taller than the Chrysler " \
-                #           "Building by. Excluding transmitters, the Eiffel Tower is the second tallest free-standing " \
-                #           "structure in France after the Millau Viaduct. The tower has three levels for visitors, " \
-                #           "with restaurants on the first and second levels."
 
-                # input = f"{prompt} \nContext: {context} \nQuestion: "
-                # input = f"{prompt} \nContext: {orig_context} \nQuestion: {orig_question} \nAnswer: {orig_answer['text'][0]} " \
-                #         f"\n### \n{prompt} \nContext: {context} " \
-                #         f"\nQuestion: \nAnswer: \n###"
-
-                input = f"{prompt} \n\nContext: {context} \n\nQuestion: "   # use this one
+                input = f"{prompt} \nContext: {context} \nQuestion: {question} \nAnswer: "   # use this one
 
                 # input = f"{prompt}\n Context: {context}\n Question: "
 
@@ -179,20 +164,23 @@ if __name__ == '__main__':
                 generated_ids = model.generate(
                     inputs.input_ids,
                     attention_mask=inputs.attention_mask,
-                    max_new_tokens=50,
+                    max_new_tokens=20,
                     # temperature=0.5,
                 )
                 outputs = tokenizer.decode(generated_ids[0], skip_special_tokens=True)
-                # print(outputs)
+                answer = outputs[len(input):].strip().split("\n")[0]
+                print("pred: ", answer)
+                print("orig: ", example["answers"])
+                print("-"*100)
 
-                sentences = outputs.split("\nQuestion: ")[1].split("\n\n")
-                # remove empty strings from the list
-                sentences = [sentence for sentence in sentences if sentence]
-                question = sentences[0]
-                # remove ``` from the question
-                question = question.replace("```", "")
-                # remove new line characters
-                question = question.replace("\n", "")
+                # sentences = outputs.split("\nQuestion: ")[1].split("\n\n")
+                # # remove empty strings from the list
+                # sentences = [sentence for sentence in sentences if sentence]
+                # question = sentences[0]
+                # # remove ``` from the question
+                # question = question.replace("```", "")
+                # # remove new line characters
+                # question = question.replace("\n", "")
                 # print("Context: ", context)
                 # print("Original outputs: ", outputs)
                 # print("Actual question: ", question)
@@ -202,28 +190,29 @@ if __name__ == '__main__':
                 # if c == 20:
                 #     break
                 # break
-                result = {
-                    "id": example["id"],
-                    "question": question,
-                    "context": context
-                }
-                # print(result)
-                examples.append(result)
-                if c % 5000 == 0:
-                    save_to_disk(
-                        examples,
-                        f"{save_path}/counterfactual_questions_{model_identifier}_{c}.jsonl"
-                    )
-                    examples = []
+                # result = {
+                #     "id": example["id"],
+                #     "question": question,
+                #     "context": context,
+                #     "answer": answer
+                # }
+                # # print(result)
+                # examples.append(result)
+                # if c % 5000 == 0:
+                #     save_to_disk(
+                #         examples,
+                #         f"{save_path}/counterfactual_questions_{model_identifier}_{c}.jsonl"
+                #     )
+                #     examples = []
 
             except Exception as e:
-                print(outputs)
+                # print(outputs)
                 skipped_instances += 1
                 continue
 
         # save the remaining examples
-        if examples:
-            save_to_disk(
-                examples,
-                f"{save_path}/counterfactual_questions_{model_identifier}_{c}.jsonl"
-            )
+        # if examples:
+        #     save_to_disk(
+        #         examples,
+        #         f"{save_path}/counterfactual_questions_{model_identifier}_{c}.jsonl"
+        #     )

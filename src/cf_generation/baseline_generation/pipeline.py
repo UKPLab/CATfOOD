@@ -7,11 +7,11 @@ from typing import List
 from collections import OrderedDict
 from transformers import RealmRetriever, RealmTokenizer, RealmConfig, AutoModelForSeq2SeqLM, AutoTokenizer
 
-from src.rag.modelling_realm import RealmForOpenQA
+from src.cf_generation.baseline_generation.modelling_realm import RealmForOpenQA
 from src.calibration.baseline import dataloader
 
 BASE_PATH = os.getenv("PYTHONPATH", "/home/sachdeva/projects/exp_calibration/")
-NUM_BEAMS = 4
+NUM_BEAMS = 15
 
 class CounterfactualGeneration:
     def __init__(self, beam_size: int = 5, prefix: str= None):
@@ -33,18 +33,18 @@ class CounterfactualGeneration:
         # print(config)
         realm_config.reader_beam_size = beam_size
         self.realm_model = RealmForOpenQA.from_pretrained(
-            "google/realm-orqa-nq-openqa", retriever=self.retriever, config=realm_config)
+            "google/realm-orqa-nq-openqa", retriever=self.retriever, config=realm_config, torch_dtype=torch.bfloat16)
         self.realm_model.to(self.device)
 
         # --------------------------------
         # load question generation model
         # --------------------------------
-        model_path = BASE_PATH + "t5-large-squad-qg-seed-42"
+        model_path = BASE_PATH + "t5-3b-squad-qg-seed-42"
         self.qg_tokenizer = AutoTokenizer.from_pretrained(model_path)
         # self.qg_tokenizer.add_special_tokens(
         #     {"additional_special_tokens": [self.hl_token]}
         # )
-        self.qg_model = AutoModelForSeq2SeqLM.from_pretrained(model_path)
+        self.qg_model = AutoModelForSeq2SeqLM.from_pretrained(model_path, torch_dtype=torch.bfloat16)
         self.qg_model.to(self.device)
         self.qg_model.eval()
 
@@ -129,7 +129,7 @@ if __name__ == '__main__':
     cg = CounterfactualGeneration(beam_size=15, prefix=prefix)
 
     c = 0
-    cache_file_name = BASE_PATH + "src/data/squad/rag_counterfactuals_with_answers_squad_qg_3"
+    cache_file_name = BASE_PATH + "src/data/squad/rag_counterfactuals_with_answers_t5_3b_squad_qg_06082023"
     processed_instances = OrderedDict()
     outputs = []
     train_data, val_data = data.processed_train_val_set()
@@ -140,8 +140,8 @@ if __name__ == '__main__':
         # ex = remove_white_space(ex)
         try:
             c += 1
-            if c<=87000:
-                continue
+            # if c<=87000:
+            #     continue
 
             predicted_questions, predicted_answers, retrieved_blocks, start_pos, end_pos = \
                 cg.generate_question(ex["question"])
@@ -158,10 +158,10 @@ if __name__ == '__main__':
                 "end_positions": list(end_pos)
             })
 
-            # if c % 1000 == 0:
-            #     save_to_disk(outputs, file_name=cache_file_name + ".jsonl")
-            #     outputs = []
-            #     num_chunks -= 1
+            if c % 1000 == 0:
+                save_to_disk(outputs, file_name=cache_file_name + ".jsonl")
+                outputs = []
+                num_chunks -= 1
             # save last chunk
             # if num_chunks == 1 and c == train_len:
             #     save_to_disk(outputs, file_name=cache_file_name + ".jsonl")

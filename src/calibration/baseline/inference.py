@@ -346,4 +346,4 @@ if __name__ == '__main__':
         # print(f"Processed {c} instances of counterfactual data")
 
     df = pd.DataFrame(outputs)
-    df.to_csv(f"{BASE_PATH}src/data/{args.dataset}/outputs_rag.csv")
+    df.to_csv(f"{BASE_PATH}src/data/{args.dataset}/outputs_{args.model_name}.csv")

@@ -201,5 +201,5 @@ if __name__ == '__main__':
 
     print(f"Processed {c} instances of original data")
     utils.dump_to_bin(processed_instances,
-                      BASE_PATH + f"src/data/{args.dataset}/ig_info_base.bin")
+                      BASE_PATH + f"src/data/{args.dataset}/ig_info_{args.model_name}.bin")
     print(f"Saved instances: {c}")

@@ -298,7 +298,7 @@ def get_dev_examples_hf():
 
     with open(
             os.path.join(
-                "/storage/ukp/work/sachdeva/research_projects/exp_calibration/src/data/dev_hotpot.json"
+                "/storage/ukp/work/sachdeva/research_projects/exp_calibration/src/data/dev_trivia.json"
             ), "r", encoding="utf-8"
     ) as reader:
         input_data = json.load(reader)["data"]

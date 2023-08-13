@@ -496,8 +496,6 @@ class CreateFeatures:
             feat.add_new(f"_POS_{k}_C", v)
         return feat
 
-
-
     def shaf(self, tokens, source):
         words = [x.lstrip() for x in tokens]
         spaces = [False if i == len(tokens) - 1

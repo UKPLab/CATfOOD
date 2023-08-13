@@ -49,7 +49,7 @@ if __name__ == '__main__':
     model_name = "google/flan-t5-xxl"
     model_identifier = model_name.split("/")[-1]
 
-    save_path = BASE_PATH + f"src/data/squad/few_shot_{model_identifier}_qa_eval_seed_{args.seed}"
+    save_path = BASE_PATH + f"src/data/squad/noise_filter_{model_identifier}_qa_eval_seed_{args.seed}"
     if not os.path.exists(save_path):
         os.makedirs(save_path)
 
@@ -61,7 +61,7 @@ if __name__ == '__main__':
     # all_files = os.listdir(BASE_PATH + f"src/data/squad/few_shot_{model_identifier}_qg_temp_0.7/")
     # files = [file for file in all_files if file not in current_files]
     # print(files)
-    files = ["flan-t5-xxl-v3_collated_data_with_answers_processed.jsonl"]
+    files = ["counterfactual_samples_Llama-2-13b-chat-hf_flan-t5-xxl_context_filtered_complete.jsonl"]
 
     for file in files:
         c += 1

@@ -161,7 +161,7 @@ class PreprocessData:
         example["context"] = context
 
         if "answers" in example:
-            answer = example["answers"]["text"]#[0]
+            answer = example["answers"]["text"][0]
         else:
             answer = example["answer"]["text"]
         # handle spaces between special characters
@@ -267,7 +267,6 @@ def get_dev_examples(data_dir, file_name):
     sum = 0
     for i in input_data:
         sum += len(i["paragraphs"])
-    print(sum)
 
     examples = []
     for entry in tqdm(input_data):

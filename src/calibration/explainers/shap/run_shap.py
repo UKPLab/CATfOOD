@@ -14,6 +14,7 @@ import numpy as np
 import torch
 from typing import List, Tuple
 from tqdm import tqdm
+import pandas as pd
 
 from datasets import Dataset
 from common.config import InterpConfig, load_config_and_tokenizer
@@ -337,8 +338,8 @@ class ShapLM:
         # dataset = dataset.select(range(1445, 3560))
 
         # trivia_qa
-        dataset = Dataset.from_generator(dataloader.get_dev_examples_hf)
-        dataset = dataset.select(range(3670, 5901))
+        # dataset = Dataset.from_generator(dataloader.get_dev_examples_hf)
+        # dataset = dataset.select(range(0, 3000))
         # dataset = dataset.filter(lambda example: example['id'] == "")
 
         # for shortcuts
@@ -352,6 +353,37 @@ class ShapLM:
 
         # dataset = Dataset.from_generator(dataloader.get_dev_examples_hf)
         # dataset = dataset.select(range(0, 618))
+
+        # MRQA datasets
+        ##############################################################################################
+        data = dataloader.get_dev_samples_mrqa(BASE_PATH + "src/data/BioASQ-dev.jsonl")
+        data = data[1298:]
+
+        # Define a dictionary to map old keys to new keys
+        key_mapping = {
+            "qas_id": "id",
+            "question_text": "question",
+            "context_text": "context",
+            "answer_text": "answers",
+            # Add more key mappings...
+        }
+
+        # Rename specified keys in each sample
+        # Rename specified keys and wrap values in lists in each sample
+        renamed_samples = []
+        for sample in data:
+            renamed_sample = {
+                new_key: [sample[old_key]] if old_key == "answer_text" else sample[old_key]
+                for old_key, new_key in key_mapping.items()
+            }
+            renamed_samples.append(renamed_sample)
+
+        df = pd.DataFrame(renamed_samples)
+        # Create a pseudo-dataset with the list
+        dataset = Dataset.from_pandas(df)
+
+        ################################################################################################
+
         eval_dataloader = dataset.map(
             group_batch, batched=True, batch_size=args.eval_batch_size
         )
@@ -371,6 +403,7 @@ class ShapLM:
                                total=min(len(dataset), args.first_n_samples)):
             if idx == args.first_n_samples:
                 break
+            # changes here for dataset
             predictions, features, answers = self.question_answering(
                 request=[[ques, cxt] for ques, cxt in zip(batch["question"], batch["context"])],
             )

@@ -4,6 +4,7 @@ import json
 import jsonlines
 from tqdm import tqdm
 from datasets import load_dataset
+from fuzzywuzzy import fuzz
 
 import spacy
 
@@ -14,6 +15,23 @@ stop_words = set(spacy.lang.en.stop_words.STOP_WORDS)
 
 BASE_PATH="/storage/ukp/work/sachdeva/research_projects/exp_calibration/"
 # BASE_PATH = "/home/sachdeva/projects/ukp/exp_calibration/"
+
+import string
+
+
+def is_answer_close(original_answer, given_answer, threshold=80):
+    similarity_score = fuzz.ratio(original_answer.lower(), given_answer.lower())
+    return similarity_score >= threshold
+
+
+def remove_punctuation(input_string):
+    # Create a translation table to remove punctuation
+    translation_table = str.maketrans('', '', string.punctuation)
+
+    # Use the translate() method to remove punctuation
+    cleaned_string = input_string.translate(translation_table)
+    return cleaned_string
+
 
 def collate_jsonl_files(data_path=None, save_path=None):
 
@@ -205,17 +223,18 @@ def filter_counterfactuals():
 
 def context_eval():
     data_path = os.path.join(BASE_PATH, "src/data/squad")
+    # t5_squad_counterfactuals/rag_counterfactuals_complete_noise_min_filtered_final_dedup_1.jsonl
     # counterfactual_data_gpt_neox_20b_v2_qg_pipeline_all_data_cleaned.jsonl
     # counterfactual_data_gpt_jt_v2_qg_pipeline_all_data_cleaned.jsonl
     # counterfactual_data_llama_13b_v1_qg_pipeline_all_data_cleaned.jsonl
     # counterfactual_data_alpaca_13b_v2_qg_pipeline_all_data_cleaned.jsonl
     # flan-t5-xxl-v3_collated_data_with_answers_processed.jsonl
     # flan_ul2_collated_data_with_answers_processed.jsonl
-    orig_ans_path = os.path.join(data_path, "counterfactual_data_gpt_neox_20b_v2_qg_pipeline_all_data_cleaned.jsonl")
+    orig_ans_path = os.path.join(data_path, "flan-t5-xxl-v3_collated_data_with_answers_processed.jsonl")
     answers = {}
 
     # context rel file
-    path = os.path.join(data_path, f"counterfactual_samples_Llama-2-13b-chat-hf_gpt_neox_complete.jsonl")
+    path = os.path.join(data_path, f"counterfactual_samples_Llama-2-13b-chat-hf_flan-t5-xxl_complete.jsonl")
     with jsonlines.open(path) as reader:
         for sample in tqdm(reader):
             # print(sample)
@@ -242,7 +261,7 @@ def context_eval():
     print(c)
     save_to_disk(
         examples,
-        os.path.join(data_path, "counterfactual_samples_Llama-2-13b-chat-hf_gpt_neox_context_filtered_complete.jsonl")
+        os.path.join(data_path, "counterfactual_samples_Llama-2-13b-chat-hf_flan-t5-xxl_context_filtered_complete.jsonl")
     )
 
 
@@ -294,29 +313,31 @@ def context_noise_filter():
     data_path = os.path.join(BASE_PATH, "src/data/squad")
     rel_answers = {}
     seed_answers = {}
+    model = "flan-t5-xxl"
 
-    orig_ans_path = os.path.join(data_path, "flan-t5-xxl-v3_collated_data_with_answers_processed.jsonl")
+    orig_ans_path = os.path.join(data_path, "counterfactual_samples_Llama-2-13b-chat-hf_flan-t5-xxl_context_filtered_complete.jsonl")
     seeds = [0, 1, 42]
     for seed in seeds:
-        path = os.path.join(data_path, f"few_shot_flan-t5-xxl_qa_eval_seed_{seed}/counterfactual_samples_flan-t5-xxl_1.jsonl")
+        path = os.path.join(data_path, f"noise_filter_{model}_qa_eval_seed_{seed}/counterfactual_samples_{model}_1.jsonl")
         with jsonlines.open(path) as reader:
             for sample in tqdm(reader):
                 idx = sample["id"]
                 answer = sample["answer"]
+                answer = remove_punctuation(answer)
                 if idx in seed_answers.keys():
                     seed_answers[idx].append(answer.lower())
                 else:
                     seed_answers[idx] = [answer.lower()]
 
-    path = os.path.join(data_path, f"counterfactual_samples_flan_t5_xxl_context_relevance.jsonl")
-    with jsonlines.open(path) as reader:
-        for sample in tqdm(reader):
-            idx = sample["id"]
-            context_rel = sample["context_relevance"]
-            if idx in rel_answers.keys():
-                rel_answers[idx].append(context_rel)
-            else:
-                rel_answers[idx] = [context_rel]
+    # path = os.path.join(data_path, f"counterfactual_samples_flan_t5_xxl_context_relevance.jsonl")
+    # with jsonlines.open(path) as reader:
+    #     for sample in tqdm(reader):
+    #         idx = sample["id"]
+    #         context_rel = sample["context_relevance"]
+    #         if idx in rel_answers.keys():
+    #             rel_answers[idx].append(context_rel)
+    #         else:
+    #             rel_answers[idx] = [context_rel]
             # break
     # break
     # print(list(answers.values())[:10])
@@ -325,21 +346,25 @@ def context_noise_filter():
         examples = []
         for sample in tqdm(reader):
             target_answer = sample["answers"]["text"][0]
+            target_answer = remove_punctuation(target_answer)
             idx = sample["id"]
-            if idx in rel_answers.keys():
-                context_rel = rel_answers[idx][0]
-                if context_rel in ["True", "yes"]:
+            # if idx in rel_answers.keys():
+                # context_rel = rel_answers[idx][0]
+                # if context_rel in ["True", "yes"]:
+                #     examples.append(sample)
+                #     c += 1
+            if idx in seed_answers.keys():
+                # compare answers
+                ans_count = seed_answers[idx].count(target_answer.lower())
+                if ans_count >= 2 \
+                        or (is_answer_close(seed_answers[idx][0], target_answer.lower()) and
+                is_answer_close(seed_answers[idx][1], target_answer.lower()) and
+                is_answer_close(seed_answers[idx][2], target_answer.lower())):
                     examples.append(sample)
                     c += 1
-                elif idx in seed_answers.keys():
-                    # compare answers
-                    ans_count = seed_answers[idx].count(target_answer.lower())
-                    if ans_count >= 2:
-                        examples.append(sample)
-                        c += 1
     print(c)
     save_to_disk(examples,
-                 os.path.join(data_path, "flan_t5_xxl_collated_data_with_answers_processed_context_relevance_noise_filter.jsonl"))
+                 os.path.join(data_path, "counterfactual_samples_Llama-2-13b-chat-hf_flan_t5_xxl_context_filtered_noise_filtered_complete.jsonl"))
 
 
 def compare_closed_open():
@@ -351,7 +376,6 @@ def compare_closed_open():
     closed_path = os.path.join(data_path, f"{closed_model}_qa_relevance_seed_0/counterfactual_samples_{closed_model}_{test_model}_500.jsonl")
 
     c = 0
-
     with jsonlines.open(closed_path) as reader:
         closed_examples = [sample for sample in tqdm(reader)]
 
@@ -473,12 +497,14 @@ if __name__ == "__main__":
 
     # remove_duplicate_examples(subset_file, save_path)
     # filter_counterfactuals()
-    context_eval()
+    # context_eval()
     # select_noise_relevant_samples()
     # collate_jsonl_files()
     # _add_answer_to_noise_filtered()
 
-    # context_noise_filter()
+    context_noise_filter()
+    #
+    # print(is_answer_close("Stalin", "The answer is: Stalin."))
 
     ############ REMOVE DUPLICATES ############
     # remove_duplicate_examples(
@@ -548,7 +574,7 @@ if __name__ == "__main__":
 
     # compare_closed_open()
 
-    # model = "gpt_neox"
+    # model = "flan-t5-xxl"
     # collate_jsonl_files(
     #     data_path=os.path.join(BASE_PATH, f"src/data/squad/Llama-2-13b-chat-hf_qa_relevance_{model}_seed_0/"),
     #     save_path=os.path.join(BASE_PATH, f"src/data/squad/counterfactual_samples_Llama-2-13b-chat-hf_{model}_complete.jsonl")

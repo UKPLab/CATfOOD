@@ -119,14 +119,14 @@ class FaithfulEval:
 
     def load_data(self):
         self.tagger_info = utils.load_bin(f"{self.path}/pos_info.bin")
-        if self.model_type.__contains__("llama") or self.model_type.__contains__("gpt_neox"):
-            self.pred_df = pd.read_csv(f"{self.path}/outputs_{self.model_type}_filter.csv")
+        if self.model_type.__contains__("llama") or self.model_type.__contains__("gpt_neox") or self.model_type.__contains__("gpt_jt"):
+            self.pred_df = pd.read_csv(f"{self.path}/outputs_{self.model_type}.csv")
         elif self.model_type.__contains__("flan_ul2"):
-            self.pred_df = pd.read_csv(f"{self.path}/outputs_flan_ul2_context_rel_noise_filter.csv")
+            self.pred_df = pd.read_csv(f"{self.path}/outputs_{self.model_type}.csv")
         elif self.model_type.__contains__("base"):
-            self.pred_df = pd.read_csv(f"{self.path}/outputs_wo_cf_roberta.csv")
+            self.pred_df = pd.read_csv(f"{self.path}/outputs_{self.model_type}.csv")
         elif self.model_type.__contains__("rag"):
-            self.pred_df = pd.read_csv(f"{self.path}/outputs_rag.csv")
+            self.pred_df = pd.read_csv(f"{self.path}/outputs_{self.model_type}.csv")
         self.predictions = self.pred_df.set_index('id').T.to_dict('dict')
 
         if self.method == "shap":
@@ -500,11 +500,11 @@ class FaithfulEval:
             # if c==10:
             #     break
         utils.dump_to_bin(processed_instances,
-                          BASE_PATH + f"src/data/{self.dataset}/{self.method}_{metric}_{self.model_type}_5.bin")
+                          BASE_PATH + f"src/data/{self.dataset}/{self.method}_{metric}_{self.model_type}.bin")
 
     def get_mean_score(self, metric):
         sum_score, mean_score = 0, 0
-        scores = utils.load_bin(BASE_PATH + f"src/data/{self.dataset}/{self.method}_{metric}_{self.model_type}_5.bin")
+        scores = utils.load_bin(BASE_PATH + f"src/data/{self.dataset}/{self.method}_{metric}_{self.model_type}.bin")
         for ex in tqdm(self.data):
             if self.dataset not in ["squad", "squad_adversarial"]:
                 ex = self.remove_white_space(ex)
@@ -522,7 +522,6 @@ class FaithfulEval:
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description="Passing arguments for model, tokenizer, and dataset.")
-
     parser.add_argument(
         "--model_name",
         default="",
@@ -537,7 +536,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     methods = ["attn", "sc_attn", "simple_grads", "ig"]
-    # methods = ["attn"]
+    # methods = ["ig"]
 
     for method in methods:
         eval = FaithfulEval(
@@ -554,4 +553,5 @@ if __name__ == '__main__':
             print("Method: ", method)
             print("Score: ", score)
         else:
+            print("Running {}".format(method))
             eval.evaluate(topk=topk, metric=args.metric, context_only=True)

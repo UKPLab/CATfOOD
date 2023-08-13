@@ -31,9 +31,9 @@ for MODEL_NAME in "${models[@]}"
 do
     echo "Running exp. for model: ${MODEL_NAME}"
 
-    CUDA_LAUNCH_BLOCKING=1 python3 ${BASE_PATH}/calibration/explainers/attentions/attention.py --model_name "${MODEL_NAME}" --dataset "squad_adversarial"
-    CUDA_LAUNCH_BLOCKING=1 python3 ${BASE_PATH}/calibration/explainers/attentions/attention.py --model_name "${MODEL_NAME}" --dataset "trivia_qa"
-    CUDA_LAUNCH_BLOCKING=1 python3 ${BASE_PATH}/calibration/explainers/attentions/attention.py --model_name "${MODEL_NAME}" --dataset "hotpot_qa"
+    CUDA_LAUNCH_BLOCKING=1 python3 ${BASE_PATH}/calibration/explainers/gradients/integrated_grads.py --model_name "${MODEL_NAME}" --dataset "squad_adversarial"
+    CUDA_LAUNCH_BLOCKING=1 python3 ${BASE_PATH}/calibration/explainers/gradients/integrated_grads.py --model_name "${MODEL_NAME}" --dataset "trivia_qa"
+    CUDA_LAUNCH_BLOCKING=1 python3 ${BASE_PATH}/calibration/explainers/gradients/integrated_grads.py --model_name "${MODEL_NAME}" --dataset "hotpot_qa"
 
     echo "Finished exp. for model: ${MODEL_NAME}"
     echo "--------------------------------------"

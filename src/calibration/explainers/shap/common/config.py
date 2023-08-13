@@ -1,3 +1,5 @@
+import os
+
 from transformers import MODEL_FOR_QUESTION_ANSWERING_MAPPING
 from transformers import AutoConfig, AutoTokenizer
 
@@ -16,10 +18,10 @@ BASE_PATH="/storage/ukp/work/sachdeva/research_projects/exp_calibration"
 
 @dataclass
 class InterpConfig:
-    model_type: str = "roberta"
-    model_name_or_path: str = BASE_PATH + "/roberta-squad-t5-squad-cfs-seed-42"
+    model_type: str = os.getenv("MODEL_TYPE", "roberta")
+    model_name_or_path: str = f"{BASE_PATH}/{os.getenv('MODEL_NAME_OR_PATH', 'roberta-squad-gpt-neox-context-rel-seed-42')}"
     tokenizer_name_or_path: str = "roberta-base"
-    dataset: str = "squad_adversarial"
+    dataset: str = os.getenv("DATASET", "trivia")
     dataset_config: str = "AddSent"
     output_dir: str = BASE_PATH + "/src/data/squad"
     train_file: str = None
@@ -35,16 +37,16 @@ class InterpConfig:
     seed: int = 42
     local_rank: int = -1
     threads: int = -1
-    first_n_samples: int = 8000
+    first_n_samples: int = 13000
     do_vis: bool = False
     no_cuda: bool = False
     n_gpu: int = 1
     percent: float = 0.3
     percent_augment: float = 0.15
-    interp_dir: str = "exp_roberta_rag/shap/hotpot/dev/roberta"
-    visual_dir: str = "exp_roberta_rag/shap/hotpot/dev/visual"
-    # interp_dir: str = "exp_roberta_llama_context_rel/shap/hotpot/dev/roberta"
-    # visual_dir: str = "exp_roberta_llama_context_rel/shap/hotpot/dev/visual"
+    # interp_dir: str = f"{os.getenv('INTERP_DIR', 'exp_llama2_flan_ul2')}/shap/trivia/dev/roberta"
+    # visual_dir: str = f"{os.getenv('INTERP_DIR', 'exp_llama2_flan_ul2')}/shap/trivia/dev/visual"
+    interp_dir: str = "exp_roberta_gpt_neox_context_rel/shap/bioasq/dev/roberta"
+    visual_dir: str = "exp_roberta_gpt_neox_context_rel/shap/bioasq/dev/visual"
 
 
 def load_config_and_tokenizer(args):

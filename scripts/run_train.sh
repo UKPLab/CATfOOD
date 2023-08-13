@@ -84,20 +84,22 @@ BASE_PATH="/ukp-storage-1/sachdeva/research_projects/exp_calibration/src"
 
 ############ CARTOGRAPHY #############
 
+CF_PATH="${BASE_PATH}/data/squad/counterfactual_samples_Llama-2-13b-chat-hf_flan_t5_xxl_context_filtered_noise_filtered_complete.jsonl"
+
 CUDA_LAUNCH_BLOCKING=1 python3 ${BASE_PATH}/cf_generation/baseline_generation/train_qa.py \
 --model_name "roberta-base" \
---cf_path "src/data/squad/t5_squad_counterfactuals/rag_counterfactuals_complete_noise_min_filtered_final_dedup_1.jsonl" \
+--cf_path ${CF_PATH} \
 --seed 42 \
---output_dir "roberta-squad-t5-squad-cfs-seed-42-new"
+--output_dir "roberta-squad-llama2-flan-t5-xxl-cfs-cf-nf-seed-42"
 
 CUDA_LAUNCH_BLOCKING=1 python3 ${BASE_PATH}/cf_generation/baseline_generation/train_qa.py \
 --model_name "roberta-base" \
---cf_path "src/data/squad/t5_squad_counterfactuals/rag_counterfactuals_complete_noise_min_filtered_final_dedup_1.jsonl" \
+--cf_path ${CF_PATH} \
 --seed 0 \
---output_dir "roberta-squad-t5-squad-cfs-seed-0-new"
+--output_dir "roberta-squad-llama2-flan-t5-xxl-cf-nf-cfs-seed-0"
 
 CUDA_LAUNCH_BLOCKING=1 python3 ${BASE_PATH}/cf_generation/baseline_generation/train_qa.py \
 --model_name "roberta-base" \
---cf_path "src/data/squad/t5_squad_counterfactuals/rag_counterfactuals_complete_noise_min_filtered_final_dedup_1.jsonl" \
+--cf_path ${CF_PATH} \
 --seed 1 \
---output_dir "roberta-squad-t5-squad-cfs-seed-1-new"
+--output_dir "roberta-squad-llama2-flan-t5-xxl-cf-nf-cfs-seed-1"

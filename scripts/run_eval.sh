@@ -68,25 +68,3 @@ do
 
     echo "Finished inference for model: ${MODEL_NAME}"
 done
-
-
-#python ${BASE_PATH}/faithfulness.py --metric comp --model_name roberta-squad-flan-ul2-context-rel-noise-seed-42 --model_type flan_ul2_context_noise_rel --dataset trivia_qa
-#python ${BASE_PATH}/faithfulness.py --metric comp --model_name roberta-squad-gpt-neox-context-rel-seed-42 --model_type gpt_neox_context_rel --dataset trivia_qa
-#python ${BASE_PATH}/faithfulness.py --metric comp --model_name roberta-squad-llama-context-rel-seed-42 --model_type llama_context_rel --dataset trivia_qa
-#python ${BASE_PATH}/faithfulness.py --metric comp --model_name roberta-squad-t5-squad-cfs-seed-42 --model_type rag --dataset trivia_qa
-#python ${BASE_PATH}/faithfulness.py --metric comp --model_name roberta-squad --model_type base --dataset trivia_qa
-
-#python ${BASE_PATH}/faithfulness_2.py --metric suff --model_name roberta-squad-flan-ul2-context-rel-noise-seed-42 --model_type flan_ul2_context_noise_rel --dataset trivia_qa
-#python ${BASE_PATH}/faithfulness_2.py --metric suff --model_name roberta-squad-t5-squad-cfs-seed-42 --model_type rag --dataset trivia_qa
-
-#python ${BASE_PATH}/faithfulness.py --metric suff --model_name roberta-squad-flan-ul2-context-rel-noise-seed-42 --model_type flan_ul2_context_noise_rel --dataset hotpot_qa
-#python ${BASE_PATH}/faithfulness.py --metric suff --model_name roberta-squad-gpt-neox-context-rel-seed-42 --model_type gpt_neox_context_rel --dataset hotpot_qa
-#python ${BASE_PATH}/faithfulness.py --metric suff --model_name roberta-squad-llama-context-rel-seed-42 --model_type llama_context_rel --dataset hotpot_qa
-#python ${BASE_PATH}/faithfulness.py --metric suff --model_name roberta-squad-t5-squad-cfs-seed-42 --model_type rag --dataset hotpot_qa
-#python ${BASE_PATH}/faithfulness.py --metric suff --model_name roberta-squad --model_type base --dataset hotpot_qa
-
-#python ${BASE_PATH}/faithfulness_2.py --metric suff --model_name roberta-squad-flan-ul2-context-rel-noise-seed-42 --model_type flan_ul2_context_noise_rel --dataset trivia_qa
-#python ${BASE_PATH}/faithfulness_2.py --metric suff --model_name roberta-squad-gpt-neox-context-rel-seed-42 --model_type gpt_neox_context_rel --dataset trivia_qa
-#python ${BASE_PATH}/faithfulness_2.py --metric suff --model_name roberta-squad-llama-context-rel-seed-42 --model_type llama_context_rel --dataset trivia_qa
-#python ${BASE_PATH}/faithfulness_2.py --metric suff --model_name roberta-squad-t5-squad-cfs-seed-42 --model_type rag --dataset trivia_qa
-#python ${BASE_PATH}/faithfulness_2.py --metric suff --model_name roberta-squad --model_type base --dataset trivia_qa

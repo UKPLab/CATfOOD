@@ -69,11 +69,12 @@ def log_odds():
 
 class FaithfulEval:
 
-    def __init__(self, dataset, method, model_type, model, tokenizer):
+    def __init__(self, dataset, method, model_type, model_name, tokenizer):
         self.dataset = dataset
         self.method = method
         self.model_type = model_type
-        self.model = AutoModelForQuestionAnswering.from_pretrained(BASE_PATH+model)
+        self.model_name = model_name
+        self.model = AutoModelForQuestionAnswering.from_pretrained(BASE_PATH+model_name)
         self.tokenizer = AutoTokenizer.from_pretrained(tokenizer)
         self.path = f"src/data/{self.dataset}"
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -107,34 +108,35 @@ class FaithfulEval:
         return torch.load(file_dict[qas_id])
 
     def build_file_dict(self, dataset, model_type, method):
-        # hard-coded path here: be careful
-        # prefix = 'squad_sample-addsent_roberta-base'
-        prefix = f'{dataset}/dev/roberta'
+        # change acc. to paths
+        if dataset == "natural_questions":
+            dataset = "nq"
+        dataset_name = [dataset.split("_")[0] if dataset == "squad_adversarial" else dataset.replace("_", "")][0]
+        prefix = f'{dataset_name}/dev/roberta'
         fnames = os.listdir(os.path.join(f'exp_roberta_{model_type}', method, prefix))
         # print(fnames)
         qa_ids = [x.split('.')[0] for x in fnames]
-        # exp_roberta_flan_ul2_context_noise_rel
         fullnames = [os.path.join(f'exp_roberta_{model_type}', method, prefix, x) for x in fnames]
         return dict(zip(qa_ids, fullnames))
 
     def load_data(self):
-        self.tagger_info = utils.load_bin(f"{self.path}/pos_info.bin")
-        if self.model_type.__contains__("llama") or self.model_type.__contains__("gpt_neox") or self.model_type.__contains__("gpt_jt"):
-            self.pred_df = pd.read_csv(f"{self.path}/outputs_{self.model_type}.csv")
-        elif self.model_type.__contains__("flan_ul2"):
-            self.pred_df = pd.read_csv(f"{self.path}/outputs_{self.model_type}.csv")
-        elif self.model_type.__contains__("base"):
-            self.pred_df = pd.read_csv(f"{self.path}/outputs_{self.model_type}.csv")
-        elif self.model_type.__contains__("rag"):
-            self.pred_df = pd.read_csv(f"{self.path}/outputs_{self.model_type}.csv")
+        if self.model_name.__contains__("llama") or self.model_name.__contains__("gpt-neox") or self.model_name.__contains__("gpt-jt"):
+            self.pred_df = pd.read_csv(f"{self.path}/outputs_{self.model_name}.csv")
+        elif self.model_name.__contains__("flan-ul2"):
+            # print(f"{self.path}/outputs_{self.model_type}.csv")
+            self.pred_df = pd.read_csv(f"{self.path}/outputs_{self.model_name}.csv")
+        elif self.model_name == "roberta-squad":
+            self.pred_df = pd.read_csv(f"{self.path}/outputs_{self.model_name}.csv")
+        elif self.model_name.__contains__("t5"):
+            self.pred_df = pd.read_csv(f"{self.path}/outputs_{self.model_name}.csv")
         self.predictions = self.pred_df.set_index('id').T.to_dict('dict')
 
         if self.method == "shap":
             self.attributions = self.build_file_dict(
-                dataset=self.dataset, model_type=self.model_type.split("_")[0], method=self.method
+                dataset=self.dataset, model_type=self.model_type, method=self.method
             )
         else:
-            self.attributions = utils.load_bin(f"{self.path}/{self.method}_info_{self.model_type}.bin")
+            self.attributions = utils.load_bin(f"{self.path}/{self.method}_info_{self.model_name}.bin")
 
     def encode(self, inputs: list = None,
                add_special_tokens: bool = True,
@@ -386,8 +388,8 @@ class FaithfulEval:
         c = 0
         for ex in tqdm(self.data):
             if self.dataset not in ["squad", "squad_adversarial"]:
-                ex = self.remove_white_space(ex)
-                # pass
+                if method != "shap":
+                    ex = self.remove_white_space(ex)
 
             if self.dataset not in ["squad", "squad_adversarial"]:
                 q_id = ex["qas_id"]
@@ -404,9 +406,12 @@ class FaithfulEval:
             pred = self.predictions[q_id]
             predictions = ast.literal_eval(pred["pred_text"])
 
-            attributions = self.attributions[q_id]
-            # print(attributions)
-            importance = attributions["attributions"]
+            if self.method == "shap":
+                attributions = torch.load(self.attributions[q_id])
+                importance = attributions["attribution"]
+            else:
+                attributions = self.attributions[q_id]
+                importance = attributions["attributions"]
 
             pred_score = predictions[0][0]["score"]
             pred_text = predictions[0][0]["answer"]
@@ -535,15 +540,15 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    methods = ["attn", "sc_attn", "simple_grads", "ig"]
-    # methods = ["ig"]
+    # methods = ["attn", "sc_attn", "simple_grads", "ig"]
+    methods = ["shap"]
 
     for method in methods:
         eval = FaithfulEval(
             dataset=args.dataset,
             method=method,
             model_type=args.model_type,
-            model=args.model_name,
+            model_name=args.model_name,
             tokenizer=args.tokenizer,
         )
         topk = [2, 10, 20, 50]

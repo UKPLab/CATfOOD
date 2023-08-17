@@ -509,7 +509,10 @@ class FaithfulEval:
 
     def get_mean_score(self, metric):
         sum_score, mean_score = 0, 0
+        # if method == "shap":
         scores = utils.load_bin(BASE_PATH + f"src/data/{self.dataset}/{self.method}_{metric}_{self.model_type}.bin")
+        # else:
+        #     scores = utils.load_bin(BASE_PATH + f"src/data/{self.dataset}/{self.method}_{metric}_{self.model_name}.bin")
         for ex in tqdm(self.data):
             if self.dataset not in ["squad", "squad_adversarial"]:
                 ex = self.remove_white_space(ex)
@@ -540,8 +543,8 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    # methods = ["attn", "sc_attn", "simple_grads", "ig"]
-    methods = ["shap"]
+    methods = ["attn", "sc_attn", "simple_grads", "ig", "shap"]
+    # methods = ["shap"]
 
     for method in methods:
         eval = FaithfulEval(

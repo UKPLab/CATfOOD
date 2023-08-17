@@ -161,136 +161,83 @@ class POSTagger:
 
 
 if __name__ == "__main__":
-    # model_path = "./src/checkpoints/roberta_squad"
-    # model_path = "./roberta-squad"
-    # model = RobertaModel.from_pretrained(model_path)
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Passing arguments for model, tokenizer, and dataset.")
+    parser.add_argument("--dataset", type=str, required=True, help="Specify the dataset to use.")
+
+    args = parser.parse_args()
+
+    if args.dataset == "squad":
+        loader = dataloader.PreprocessData("squad", "plain_text", save_data=False, save_path="../../../../../")
+        data = loader.processed_val_set()
+    elif args.dataset == "squad_adversarial":
+        loader = dataloader.PreprocessData("squad_adversarial", "AddSent", save_data=False, save_path="../../../../../")
+        data = loader.processed_val_set()
+    elif args.dataset == "trivia_qa":
+        data = dataloader.get_dev_examples("./src/data", "dev_trivia.json")
+    elif args.dataset == "hotpot_qa":
+        data = dataloader.get_dev_examples("./src/data", "dev_hotpot.json")
+    elif args.dataset == "news_qa":
+        data = dataloader.get_dev_samples_mrqa(BASE_PATH + "src/data/NewsQA.jsonl")
+    elif args.dataset == "bioasq":
+        data = dataloader.get_dev_samples_mrqa(BASE_PATH + "src/data/BioASQ-dev.jsonl")
+    elif args.dataset == "natural_questions":
+        data = dataloader.get_dev_samples_mrqa(BASE_PATH + "src/data/NaturalQuestionsShort.jsonl")
+    else:
+        raise ValueError("Dataset not supported.")
+
     tokenizer = AutoTokenizer.from_pretrained("roberta-base")
-    #
-    # data = dataloader.PreprocessData("squad_adversarial",
-    #                                  "AddSent",
-    #                                  save_data=False,
-    #                                  save_path="../../")
-    # outputs = list()
-    # tagger = POSTagger(tokenizer=tokenizer)
-    # nlp = spacy.load("en_core_web_sm")
-    # c = 0
-    # processed_instances = OrderedDict()
-    # # process OOD data
-    # for ex in tqdm(data.processed_val_set()):
-    #     # ex = remove_white_space(ex)
-    #     try:
-    #         # if ex["id"] == "56e1239acd28a01900c67641":
-    #         #     print(ex)
-    #         tag_info = tagger.tag_instance(
-    #                         request={
-    #                                     "id": ex["id"],
-    #                                     "question": ex["question"],
-    #                                     "context": ex["context"],
-    #                                  },
-    #                         nlp=nlp
-    #                     )
-    #         processed_instances[ex["id"]] = tag_info
-    #         # print(tag_info)
-    #         c += 1
-    #     except Exception as e:
-    #         print(f"Unable to get tags: {e}")
-    #         print(ex)
-
-    # print(f"Processed {c} instances of original data")
-    # # process counterfactuals
-    # cf_path = BASE_PATH + "src/data/squad_adversarial/rag_counterfactuals_turk0_last.jsonl"
-    # with jsonlines.open(cf_path) as reader:
-    #     for ex in tqdm(reader):
-    #         try:
-    #             tag_info = tagger.tag_instance(
-    #                             request={
-    #                                         "id": ex["id"].replace("_", "-cf-"),
-    #                                         "question": ex["question"],
-    #                                         "context": ex["context"],
-    #                                      },
-    #                             nlp=nlp
-    #                         )
-    #             processed_instances[ex["id"].replace("_", "-cf-")] = tag_info
-    #             # print(tag_info)
-    #             c += 1
-    #         except Exception as e:
-    #             print(f"Unable to get cf tags: {e}")
-    #             print(ex)
-    #
-    #     print(f"Processed {c} instances of counterfactual data")
-    #
-    #     # if c == 1:
-    #         # break
-    # utils.dump_to_bin(processed_instances,
-    #                   BASE_PATH+"src/data/squad_adv_new/pos_info.bin")
-    #
-    # print(f"Saved instances: {c}")
-
-    ### Trivia QA
-    def remove_white_space(example):
-        example["question_text"] = ' '.join(example["question_text"].split())
-        example["context_text"] = ' '.join(example["context_text"].split())
-        return example
-
-    data = dataloader.get_dev_examples(BASE_PATH + "src/data", "dev_trivia.json")
-    # data = dataloader.get_dev_samples_mrqa(BASE_PATH + "src/data/NewsQA.jsonl")
-    # data = dataloader.get_dev_samples_mrqa(BASE_PATH + "src/data/BioASQ-dev.jsonl")
-    # data = dataloader.get_dev_samples_mrqa(BASE_PATH + "src/data/NaturalQuestionsShort.jsonl")
-
     outputs = list()
     tagger = POSTagger(tokenizer=tokenizer)
     nlp = spacy.load("en_core_web_sm")
     c = 0
     processed_instances = OrderedDict()
-    # process OOD data
-    for ex in tqdm(data):
-        # ex = remove_white_space(ex)
-        # print(ex)
-        # break
-        try:
-            # if ex["qas_id"] == "6b67d06dbf4b4e2eae802b3e341ce8d4":
-            #     print(ex)
-            tag_info = tagger.tag_instance(
-                request={
-                    "id": ex["qas_id"],
-                    "question": ex["question_text"],
-                    "context": ex["context_text"],
-                },
-                nlp=nlp
-            )
-            processed_instances[ex["qas_id"]] = tag_info
-            # print(tag_info)
-            c += 1
-        except Exception as e:
-            print(f"Unable to get tags: {e}")
-            print(ex)
-    #
-    # print(f"Processed {c} instances of original data")
-    # c = 0
-    # # process counterfactuals
-    # cf_path = BASE_PATH + "src/data/natural_questions/rag_counterfactuals_turk0.jsonl"
-    # with jsonlines.open(cf_path) as reader:
-    #     for ex in tqdm(reader):
-    #         try:
-    #             tag_info = tagger.tag_instance(
-    #                             request={
-    #                                         "id": ex["id"].replace("_", "-cf-"),
-    #                                         "question": ex["question"],
-    #                                         "context": ex["context"],
-    #                                      },
-    #                             nlp=nlp
-    #                         )
-    #             processed_instances[ex["id"].replace("_", "-cf-")] = tag_info
-    #             # print(tag_info)
-    #             c += 1
-    #         except Exception as e:
-    #             print(f"Unable to get cf tags: {e}")
-    #             print(ex)
-    #
-    #     print(f"Processed {c} instances of counterfactual data")
-    #
-    #     # if c == 1:
-    #         # break
+
+    if args.dataset == "squad_adversarial":
+        for ex in tqdm(data.processed_val_set()):
+            try:
+                tag_info = tagger.tag_instance(
+                                request={
+                                            "id": ex["id"],
+                                            "question": ex["question"],
+                                            "context": ex["context"],
+                                         },
+                                nlp=nlp
+                            )
+                processed_instances[ex["id"]] = tag_info
+                # print(tag_info)
+                c += 1
+            except Exception as e:
+                print(f"Unable to get tags: {e}")
+                print(ex)
+    elif args.dataset in ["trivia_qa", "hotpot_qa", "news_qa", "natural_questions", "bioasq"]:
+        def remove_white_space(example):
+            example["question_text"] = ' '.join(example["question_text"].split())
+            example["context_text"] = ' '.join(example["context_text"].split())
+            return example
+
+        for ex in tqdm(data):
+            ex = remove_white_space(ex)
+            # print(ex)
+            # break
+            try:
+                tag_info = tagger.tag_instance(
+                    request={
+                        "id": ex["qas_id"],
+                        "question": ex["question_text"],
+                        "context": ex["context_text"],
+                    },
+                    nlp=nlp
+                )
+                processed_instances[ex["qas_id"]] = tag_info
+                # print(tag_info)
+                c += 1
+            except Exception as e:
+                print(f"Unable to get tags: {e}")
+                print(ex)
+
+
     utils.dump_to_bin(processed_instances,
-                      BASE_PATH +"src/data/trivia_qa/pos_info_wo_space.bin")
+                      BASE_PATH + f"src/data/{args.dataset}/pos_info.bin")
     print(f"Saved instances: {c}")

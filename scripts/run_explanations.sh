@@ -20,16 +20,17 @@ BASE_PATH="/ukp-storage-1/sachdeva/research_projects/exp_calibration/src"
 
 # List of model names
 models=(
-    "roberta-squad-flan-ul2-context-rel-noise-seed-42"  \
-    "roberta-squad-gpt-neox-context-rel-seed-42"  \
-    "roberta-squad-llama-context-rel-seed-42"  \
-    "roberta-squad-t5-squad-cfs-seed-42"  \
+#    "roberta-squad-flan-ul2-context-rel-noise-seed-42"  \
+#    "roberta-squad-gpt-neox-context-rel-seed-42"  \
+#    "roberta-squad-llama-context-rel-seed-42"  \
+#    "roberta-squad-t5-squad-cfs-seed-42"  \
+    "roberta-squad"  \
 )
 
 datasets=(
-    "squad_adversarial"  \
-    "trivia_qa"  \
-    "hotpot_qa"  \
+#    "squad_adversarial"  \
+#    "trivia_qa"  \
+#    "hotpot_qa"  \
     "news_qa"  \
     "natural_questions"  \
     "bioasq"  \

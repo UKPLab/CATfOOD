@@ -20,10 +20,11 @@ BASE_PATH="/storage/ukp/work/sachdeva/research_projects/exp_calibration/src"
 
 # List of model names
 models=(
-"roberta-squad-flan-ul2-context-rel-noise-seed-42"  \
-"roberta-squad-gpt-neox-context-rel-seed-42"  \
-"roberta-squad-llama-context-rel-seed-42"  \
-"roberta-squad-t5-squad-cfs-seed-42"  \
+#"roberta-squad-flan-ul2-context-rel-noise-seed-42"  \
+#"roberta-squad-gpt-neox-context-rel-seed-42"  \
+#"roberta-squad-llama-context-rel-seed-42"  \
+#"roberta-squad-t5-squad-cfs-seed-42"  \
+"roberta-squad" \
 )
 
 # Loop through the model names

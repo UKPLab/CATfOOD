@@ -31,7 +31,7 @@ class CreateFeatures:
 
     def _load_data(self):
         self.tagger_info = utils.load_bin(f"{self.path}/pos_info.bin")
-        self.ent_info = utils.load_bin(f"{self.path}/ent_info.bin")
+        # self.ent_info = utils.load_bin(f"{self.path}/ent_info.bin")
         self.states = utils.load_bin(f"{self.path}/dense_repr_pca_10_info_{self.model}.bin")
         if self.model == "rag":
             self.attributions = utils.load_bin(f"{self.path}/{self.method}_info_rag.bin")
@@ -58,11 +58,11 @@ class CreateFeatures:
         c = 0
         for q_id in tqdm(self.tagger_info, total=len(self.tagger_info), desc='transforming...'):
             tags = self.tagger_info[q_id]
-            entities = self.ent_info[q_id]
+            # entities = self.ent_info[q_id]
             attributions = self.attributions[q_id]
             states = self.states[q_id]
             preds = self.preds_info[q_id]
-            processed_instances[q_id] = self.extract_feature_for_instance(attributions, tags, entities, preds, states)
+            processed_instances[q_id] = self.extract_feature_for_instance(attributions, tags, preds, states)
             c+=1
         utils.dump_to_bin(processed_instances, f"{self.path}/calib_data_{self.method}_{self.model}_mod.bin")
 
@@ -722,7 +722,7 @@ class CreateFeatures:
         return feat
 
 
-    def extract_bow_feature(self, words, tags, entities, ans_range):
+    def extract_bow_feature(self, words, tags, ans_range):
         feat = common.IndexedFeature()
         context_start = words.index(self.sep_tokens[1])
         for i, (i_token, i_pos, i_tag) in enumerate(tags):
@@ -732,13 +732,13 @@ class CreateFeatures:
                 feat.add('BOW_{}_{}'.format(i_src, i_tag))
                 feat.add('BOW_IN_{}'.format(i_tag))
 
-        for i, (i_token, i_iob, i_ent) in enumerate(entities):
-            if i_ent:
-                i_src = self.source_of_token(i, i_token, context_start, ans_range)
-                if i_src == 'Q' or i_src == 'A' or i_src == 'C':
-                    # print('BOW_{}_{}'.format(i_src, i_tag))
-                    feat.add('BOW_{}_{}'.format(i_src, i_ent))
-                    feat.add('BOW_IN_{}'.format(i_ent))
+        # for i, (i_token, i_iob, i_ent) in enumerate(entities):
+        #     if i_ent:
+        #         i_src = self.source_of_token(i, i_token, context_start, ans_range)
+        #         if i_src == 'Q' or i_src == 'A' or i_src == 'C':
+        #             # print('BOW_{}_{}'.format(i_src, i_tag))
+        #             feat.add('BOW_{}_{}'.format(i_src, i_ent))
+        #             feat.add('BOW_IN_{}'.format(i_ent))
 
         return feat
 
@@ -865,7 +865,7 @@ class CreateFeatures:
         feat.add('STAT_STD_' + part, attributions.std())
         return feat
 
-    def extract_polarity_feature(self, attr, tags, words, tags_for_tok, ents_for_tok, ans_index, polarity, include_basic=True,
+    def extract_polarity_feature(self, attr, tags, words, tags_for_tok, ans_index, polarity, include_basic=True,
                                  include_stats=False):
         named_feat = common.IndexedFeature()
         token_attribution = self.aggregate_token_attribution(attr, tags, polarity)
@@ -923,7 +923,7 @@ class CreateFeatures:
         named_feat.add_prefix(polarity + '_')
         return named_feat
 
-    def extract_feature_for_instance(self, attr, tags, entities, preds, states):
+    def extract_feature_for_instance(self, attr, tags, preds, states):
         predictions = ast.literal_eval(preds["pred_text"])[0]
         pred_text = predictions[0]['answer']
         if self.dataset == "squad":
@@ -958,18 +958,18 @@ class CreateFeatures:
         words, tags_for_tok = tags['words'], tags['tags']
         # words = [w for w in words if w != " "]
         tags_for_tok = [self.lemmatize_pos_tag(x) for x in tags_for_tok]
-        ents_for_tok = entities['ents']
+        # ents_for_tok = entities['ents']
 
         named_feat.add_set(self.extract_state_features(attr, words, ans_range, states))
-        named_feat.add_set(self.extract_bow_feature(words, tags_for_tok, ents_for_tok, ans_range))
-        named_feat.add_set(self.extract_polarity_feature(attr, tags, words, tags_for_tok, ents_for_tok, ans_range, 'NEU'))
+        named_feat.add_set(self.extract_bow_feature(words, tags_for_tok, ans_range))
+        named_feat.add_set(self.extract_polarity_feature(attr, tags, words, tags_for_tok, ans_range, 'NEU'))
         # print({'feature': named_feat, 'label': calib_label, 'f1_score': f1})
         return {'feature': named_feat, 'label': calib_label, 'f1_score': f1}
 
 
 if __name__ == "__main__":
-    for model in ["llama"]:#, "gpt_neox", "flan_ul2"]:
-        dataset = "trivia_qa"
+    for model in ["llama", "gpt_neox", "flan_ul2"]:
+        dataset = "squad_adversarial"
         method = "sc_attn"
         data_path = f"./src/data/{dataset}"
         feat = CreateFeatures(path=data_path, model=model, dataset=dataset, method=method)

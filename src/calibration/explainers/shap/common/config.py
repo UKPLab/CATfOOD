@@ -19,7 +19,7 @@ BASE_PATH="/storage/ukp/work/sachdeva/research_projects/exp_calibration"
 @dataclass
 class InterpConfig:
     model_type: str = os.getenv("MODEL_TYPE", "roberta")
-    model_name_or_path: str = f"{BASE_PATH}/{os.getenv('MODEL_NAME_OR_PATH', 'roberta-squad-gpt-neox-context-rel-seed-42')}"
+    model_name_or_path: str = f"{BASE_PATH}/{os.getenv('MODEL_NAME_OR_PATH', 'roberta-squad')}"
     tokenizer_name_or_path: str = "roberta-base"
     dataset: str = os.getenv("DATASET", "trivia")
     dataset_config: str = "AddSent"
@@ -45,8 +45,8 @@ class InterpConfig:
     percent_augment: float = 0.15
     # interp_dir: str = f"{os.getenv('INTERP_DIR', 'exp_llama2_flan_ul2')}/shap/trivia/dev/roberta"
     # visual_dir: str = f"{os.getenv('INTERP_DIR', 'exp_llama2_flan_ul2')}/shap/trivia/dev/visual"
-    interp_dir: str = "exp_roberta_gpt_neox_context_rel/shap/bioasq/dev/roberta"
-    visual_dir: str = "exp_roberta_gpt_neox_context_rel/shap/bioasq/dev/visual"
+    interp_dir: str = "exp_roberta_base/shap/nq/dev/roberta"
+    visual_dir: str = "exp_roberta_base/shap/nq/dev/visual"
 
 
 def load_config_and_tokenizer(args):

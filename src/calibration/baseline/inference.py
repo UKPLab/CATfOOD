@@ -317,33 +317,5 @@ if __name__ == '__main__':
         except Exception as e:
             print(f"Unable to get prediction: {e}")
 
-    # cf_path = BASE_PATH + "src/data/natural_questions/rag_counterfactuals_turk0.jsonl"
-    # with jsonlines.open(cf_path) as reader:
-    #     for ex in tqdm(reader):
-    #         try:
-    #             prediction = inf.question_answering(
-    #                 request=[[
-    #                     ex["question"],
-    #                     ex["context"],
-    #                 ]],
-    #                 top_k=20
-    #             )
-    #             result = {
-    #                 "id": ex["id"].replace("_", "-cf-"),
-    #                 "question": ex["question"],
-    #                 "context": ex["context"],
-    #                 "gold_text": [ex["answer"]],
-    #                 "pred_text": prediction["answers"],
-    #                 "answer_start": prediction["answer_start"],
-    #                 "answer_end": prediction["answer_end"]
-    #             }
-    #             outputs.append(result)
-    #             c += 1
-    #         except Exception as e:
-    #             print(f"Unable to get cf prediction: {e}")
-    #             print(ex)
-
-        # print(f"Processed {c} instances of counterfactual data")
-
     df = pd.DataFrame(outputs)
     df.to_csv(f"{BASE_PATH}src/data/{args.dataset}/outputs_{args.model_name}.csv")

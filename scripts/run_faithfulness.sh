@@ -1,10 +1,10 @@
-#!/usr/bin/env bash
-
+##!/usr/bin/env bash
+#
 ##SBATCH --job-name=eval
 ##SBATCH --mail-user=sachdeva@ukp.informatik.tu-darmstadt.de
 ##SBATCH --output=/ukp-storage-1/sachdeva/job-%j
 ##SBATCH --mail-type=ALL
-##SBATCH --time=10:00:00
+##SBATCH --time=6:30:00
 ##SBATCH --partition=yolo
 ##SBATCH --qos=yolo
 ##SBATCH --nodelist=penelope
@@ -22,17 +22,17 @@ BASE_PATH="/storage/ukp/work/sachdeva/research_projects/exp_calibration/src"
 
 # List of model names
 models=(
-#"roberta-squad-flan-ul2-context-rel-noise-seed-42"  \
+"roberta-squad-flan-ul2-context-rel-noise-seed-42"  \
 #"roberta-squad-gpt-neox-context-rel-seed-42"  \
-"roberta-squad-llama-context-rel-seed-42"  \
+#"roberta-squad-llama-context-rel-seed-42"  \
 #"roberta-squad-t5-squad-cfs-seed-42"  \
 #"roberta-squad" \
 )
 
 model_types=(
-#"flan_ul2_context_noise_rel"  \
+"flan_ul2_context_noise_rel"  \
 #"gpt_neox_context_rel"  \
-"llama_context_rel"  \
+#"llama_context_rel"  \
 #"rag"  \
 #"base" \
 )
@@ -41,8 +41,8 @@ datasets=(
 #    "squad_adversarial"  \
 #    "trivia_qa"  \
 #    "hotpot_qa"  \
-    "news_qa"  \
-    "natural_questions"  \
+#    "news_qa"  \
+#    "natural_questions"  \
     "bioasq"  \
     )
 
@@ -63,7 +63,8 @@ do
             --metric "${METRIC}" \
             --model_name "${MODEL_NAME}" \
             --model_type "${MODEL_TYPE}" \
-            --dataset "${DATASET}"
+            --dataset "${DATASET}"  \
+            --get_score
     done
 
     echo "Finished faithfulness exp. for model: ${MODEL_NAME}, model type: ${MODEL_TYPE}"

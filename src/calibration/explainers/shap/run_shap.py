@@ -356,8 +356,8 @@ class ShapLM:
 
         # MRQA datasets
         ##############################################################################################
-        data = dataloader.get_dev_samples_mrqa(BASE_PATH + "src/data/BioASQ-dev.jsonl")
-        data = data[1298:]
+        data = dataloader.get_dev_samples_mrqa(BASE_PATH + "src/data/NaturalQuestionsShort.jsonl")
+        data = data[11700:11850]
 
         # Define a dictionary to map old keys to new keys
         key_mapping = {

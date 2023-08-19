@@ -21,7 +21,7 @@ BASE_PATH="/ukp-storage-1/sachdeva/research_projects/exp_calibration/src"
 
 # List of model names
 models=(
-    "roberta-squad-flan-ul2-context-rel-noise-seed-42"  \
+#    "roberta-squad-flan-ul2-context-rel-noise-seed-42"  \
     "roberta-squad-gpt-neox-context-rel-seed-42"  \
     "roberta-squad-llama-context-rel-seed-42"  \
     "roberta-squad-t5-squad-cfs-seed-42"  \
@@ -32,9 +32,9 @@ datasets=(
 #    "squad_adversarial"  \
 #    "trivia_qa"  \
 #    "hotpot_qa"  \
-    "news_qa"  \
+#    "news_qa"  \
     "natural_questions"  \
-    "bioasq"  \
+#    "bioasq"  \
     )
 
 # Loop through the model names
@@ -44,7 +44,7 @@ do
 
     for DATASET in "${datasets[@]}"
     do
-        CUDA_LAUNCH_BLOCKING=1 python3 ${BASE_PATH}/calibration/dense_features/explanation_features.py --model_name "${MODEL_NAME}" --dataset "${DATASET}"
+        CUDA_LAUNCH_BLOCKING=1 python3 ${BASE_PATH}/calibration/dense_features/dim_reduction.py --model_name "${MODEL_NAME}" --dataset "${DATASET}"
     done
 
     echo "Finished exp. for model: ${MODEL_NAME}"

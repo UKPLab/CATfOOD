@@ -34,9 +34,9 @@ do
 #    CUDA_LAUNCH_BLOCKING=1 python3 ${BASE_PATH}/calibration/baseline/inference.py --model_name "${MODEL_NAME}" --dataset "squad_adversarial"
 #    CUDA_LAUNCH_BLOCKING=1 python3 ${BASE_PATH}/calibration/baseline/inference.py --model_name "${MODEL_NAME}" --dataset "trivia_qa"
 #    CUDA_LAUNCH_BLOCKING=1 python3 ${BASE_PATH}/calibration/baseline/inference.py --model_name "${MODEL_NAME}" --dataset "hotpot_qa"
-    CUDA_LAUNCH_BLOCKING=1 python3 ${BASE_PATH}/calibration/baseline/inference.py --model_name "${MODEL_NAME}" --dataset "news_qa"
-    CUDA_LAUNCH_BLOCKING=1 python3 ${BASE_PATH}/calibration/baseline/inference.py --model_name "${MODEL_NAME}" --dataset "natural_questions"
-    CUDA_LAUNCH_BLOCKING=1 python3 ${BASE_PATH}/calibration/baseline/inference.py --model_name "${MODEL_NAME}" --dataset "bioasq"
+    CUDA_LAUNCH_BLOCKING=1 python3 ${BASE_PATH}/shortcuts/inference.py --model_name "${MODEL_NAME}" --dataset "news_qa"
+    CUDA_LAUNCH_BLOCKING=1 python3 ${BASE_PATH}/shortcuts/inference.py --model_name "${MODEL_NAME}" --dataset "natural_questions"
+    CUDA_LAUNCH_BLOCKING=1 python3 ${BASE_PATH}/shortcuts/inference.py --model_name "${MODEL_NAME}" --dataset "bioasq"
 
     echo "Finished inference for model: ${MODEL_NAME}"
 done

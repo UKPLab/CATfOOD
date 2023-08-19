@@ -1,57 +1,60 @@
-BASE_PATH="/storage/ukp/work/sachdeva/research_projects/exp_calibration/src/calibration"
-
-RUN_SQUAD_EXP () {
-    DATASET="squad"
-    TRAIN_SIZE=${1:-500}
-    echo "${DATASET}-${TRAIN_SIZE}"
-    echo "METHOD, ACC, AUC, F1@25, F1@50, F1@75"
-    CONF_RES=$(python ${BASE_PATH}/run_exp.py --method shap --train_size ${TRAIN_SIZE} --dataset ${DATASET} --do_maxprob 2>/dev/null | tail -1)
-    echo 'Conf,'${CONF_RES}
-    KAM_RES=$(python ${BASE_PATH}/run_exp.py --method shap --train_size ${TRAIN_SIZE} --dataset ${DATASET} --do_baseline --arg_n_tree 300 --arg_max_depth 6  2>/dev/null  | tail -1)
-    echo 'KAMATH,'${KAM_RES}
-    BOW_RES=$(python ${BASE_PATH}/run_exp.py --method shap --train_size ${TRAIN_SIZE} --dataset ${DATASET} --do_bow --arg_n_tree 200 --arg_max_depth 20 2>/dev/null  | tail -1)
-    echo 'BOW,'${BOW_RES}
-#    EXPL_RES=$(python ${BASE_PATH}/run_exp.py --method lime --train_size ${TRAIN_SIZE} --dataset ${DATASET} --arg_n_tree 300 --arg_max_depth 20 2>/dev/null | tail -1)
-#    echo 'LimeCal,'${EXPL_RES}
-    EXPL_RES=$(python ${BASE_PATH}/run_exp.py --method shap --train_size ${TRAIN_SIZE} --dataset ${DATASET} --arg_n_tree 300 --arg_max_depth 20 2>/dev/null | tail -1)
-    echo 'ShapCal,'${EXPL_RES}
-}
+BASE_PATH="/storage/ukp/work/sachdeva/research_projects/exp_calibration/src"
 
 
-RUN_TRIVIA_EXP () {
-    DATASET="trivia"
-    TRAIN_SIZE=${1:-500}
-    echo "${DATASET}-${TRAIN_SIZE}"
-    echo "METHOD, ACC, AUC, F1@25, F1@50, F1@75"
-    CONF_RES=$(python ${BASE_PATH}/run_exp.py --method shap --train_size ${TRAIN_SIZE} --dataset ${DATASET} --do_maxprob 2>/dev/null | tail -1)
-    echo 'Conf,'${CONF_RES}
-    KAM_RES=$(python ${BASE_PATH}/run_exp.py --method shap --train_size ${TRAIN_SIZE} --dataset ${DATASET} --do_baseline --arg_n_tree 300 --arg_max_depth 6  2>/dev/null  | tail -1)
-    echo 'KAMATH,'${KAM_RES}
-    BOW_RES=$(python ${BASE_PATH}/run_exp.py --method shap --train_size ${TRAIN_SIZE} --dataset ${DATASET} --do_bow --arg_n_tree 200 --arg_max_depth 20 2>/dev/null  | tail -1)
-    echo 'BOW,'${BOW_RES}
-#    EXPL_RES=$(python ${BASE_PATH}/run_exp.py --method lime --train_size ${TRAIN_SIZE} --dataset ${DATASET} --arg_n_tree 300 --arg_max_depth 20 2>/dev/null | tail -1)
-#    echo 'LimeCal,'${EXPL_RES}
-    EXPL_RES=$(python ${BASE_PATH}/run_exp.py --method shap --train_size ${TRAIN_SIZE} --dataset ${DATASET} --arg_n_tree 300 --arg_max_depth 20 2>/dev/null | tail -1)
-    echo 'ShapCal,'${EXPL_RES}
-}
+# List of model names
+models=(
+#"roberta-squad" \
+#"roberta-squad-t5-squad-cfs-seed-42"  \
+"roberta-squad-llama-context-rel-seed-42"  \
+"roberta-squad-gpt-neox-context-rel-seed-42"  \
+"roberta-squad-flan-ul2-context-rel-noise-seed-42"  \
+)
 
+datasets=(
+#    "squad_adversarial"  \
+#    "trivia_qa"  \
+#    "hotpot_qa"  \
+    "news_qa"  \
+#    "natural_questions"  \
+#    "bioasq"  \
+)
 
-RUN_HOTPOT_EXP () {
-    DATASET="hotpot"
-    TRAIN_SIZE=${1:-500}
-    echo "${DATASET}-${TRAIN_SIZE}"
-    echo "METHOD, ACC, AUC, F1@25, F1@50, F1@75"
-    CONF_RES=$(python calib_exp/run_exp.py --method shap --train_size ${TRAIN_SIZE} --dataset ${DATASET} --do_maxprob 2>/dev/null | tail -1)
-    echo 'Conf,'${CONF_RES}
-    KAM_RES=$(python calib_exp/run_exp.py --method shap --train_size ${TRAIN_SIZE} --dataset ${DATASET} --do_baseline --arg_n_tree 300 --arg_max_depth 4  2>/dev/null  | tail -1)
-    echo 'KAMATH,'${KAM_RES}
-    BOW_RES=$(python calib_exp/run_exp.py --method shap --train_size ${TRAIN_SIZE} --dataset ${DATASET} --do_bow --arg_n_tree 300 --arg_max_depth 10 2>/dev/null  | tail -1)
-    echo 'BOW,'${BOW_RES}
-#    EXPL_RES=$(python calib_exp/run_exp.py --method lime --train_size ${TRAIN_SIZE} --dataset ${DATASET} --arg_n_tree 300 --arg_max_depth 10 2>/dev/null | tail -1)
-#    echo 'LimeCal,'${EXPL_RES}
-    EXPL_RES=$(python calib_exp/run_exp.py --method shap --train_size ${TRAIN_SIZE} --dataset ${DATASET} --arg_n_tree 300 --arg_max_depth 10 2>/dev/null | tail -1)
-    echo 'ShapCal,'${EXPL_RES}
-}
+exp_methods=(
+"shap" \
+"sc_attn"  \
+"ig"  \
+"attn"  \
+"simple_grads"  \
+)
 
-RUN_SQUAD_EXP 500
+TRAIN_SIZE=500
 
+for MODEL_NAME in "${models[@]}"
+do
+    for DATASET in "${datasets[@]}"
+    do
+        echo "Calibrating model: ${MODEL_NAME}, dataset: ${DATASET}"
+        echo "METHOD, ACC, AUC, MCE"
+#        CONF_RES=$(python ${BASE_PATH}/calibration/baseline/modelling.py  \
+#                --model_name ${MODEL_NAME}  \
+#                --method "attn"   \
+#                --train_size ${TRAIN_SIZE}   \
+#                --dataset ${DATASET}  \
+#                --do_maxprob 2>/dev/null | tail -1)
+#            echo 'Conf,' ${CONF_RES}
+
+        for EXP_METHOD in "${exp_methods[@]}"
+        do
+            EXP_RES=$(python ${BASE_PATH}/calibration/baseline/modelling.py  \
+                --model_name ${MODEL_NAME}  \
+                --method ${EXP_METHOD}   \
+                --train_size ${TRAIN_SIZE}   \
+                --dataset ${DATASET}  \
+                --arg_n_tree 500  \
+                --dense_features  \
+                --arg_max_depth 20 2>/dev/null | tail -1)
+            echo ${EXP_METHOD}',' ${EXP_RES}
+        done
+        echo "Finished calibrating for model: ${MODEL_NAME}, dataset: ${DATASET}"
+    done
+done

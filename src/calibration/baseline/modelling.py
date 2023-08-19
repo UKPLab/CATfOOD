@@ -3,13 +3,13 @@ import sys
 from collections import OrderedDict
 from itertools import islice
 
-sys.path.append('../..')
+# sys.path.append('../..')
 import argparse
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
-from common import IndexedFeature, FeatureVocab
-from utils import load_bin, dump_to_bin
+from src.calibration.baseline.common import IndexedFeature, FeatureVocab
+from src.calibration.baseline.utils import load_bin, dump_to_bin
 from itertools import chain
 import matplotlib.pyplot as plt
 import collections
@@ -66,10 +66,12 @@ def f1auc_score(score, f1):
 
 def _parse_args():
     parser = argparse.ArgumentParser()
+    parser.add_argument('--model_name', type=str, required=True)
     parser.add_argument('--dataset', type=str, required=True)
-    parser.add_argument('--method', type=str, default='shap')
+    parser.add_argument('--method', type=str, required=True)
     parser.add_argument('--seed', type=int, default=0)
     parser.add_argument('--do_baseline', default=False, action='store_true')
+    parser.add_argument('--dense_features', default=False, action='store_true')
     parser.add_argument('--do_maxprob', default=False, action='store_true')
     parser.add_argument('--do_bow', default=False, action='store_true')
     parser.add_argument('--rm_bow', default=False, action='store_true')
@@ -139,13 +141,17 @@ def feat_to_list(indexed_feat, vocab):
     return val_feat
 
 
-def make_np_dataset(indexed_data):
+def make_np_dataset(args, indexed_data):
     vocab = FeatureVocab()
     for k, v in indexed_data.items():
         feat = v['feature']
         for f in feat.data:
             # if f not in ["BOW_Q_XX", "BOW_A_XX"]:   #, "POS_NORMED_TOK_A_XX", "POS_NORMED_TOK_Q_XX"]:
-            vocab.add(f)
+            if not args.dense_features:
+                if not f.startswith("REPR_"):
+                    vocab.add(f)
+            else:
+                vocab.add(f)
     print('Total Num of Feature', len(vocab))
     print(vocab.get_names())
     y = np.array([v['label'] for v in indexed_data.values()])
@@ -659,115 +665,102 @@ def main():
     args = _parse_args()
     # print(args)
     np.random.seed(args.seed)
-    # data = load_bin('./calib_files/squad_addsent-dev_shap_calib_data.bin')
-    for model in ["llama", "gpt_neox", "flan_ul2"]:
-        data = load_bin(f'./src/data/hotpot_qa/calib_data_simple_grads_{model}_mod.bin')
-        def take(n, iterable):
-            """Return the first n items of the iterable as a list."""
-            return list(islice(iterable, n))
+    data = load_bin(f'./src/data/{args.dataset}/calib_data_{args.method}_{args.model_name}.bin')
+    def take(n, iterable):
+        """Return the first n items of the iterable as a list."""
+        return list(islice(iterable, n))
 
-        # data = take(1000, data.items())
-        data = proc_input_data(args, dict(data))
-        print("Total samples: ", len(data))
+    # data = take(1000, data.items())
+    data = proc_input_data(args, dict(data))
+    print("Total samples: ", len(data))
 
-        X, Y, F1, vocab = make_np_dataset(data)
-        # print(Y)
-        # print(np.sum(Y))
-        if args.quant_size > 0:
-            X, vocab = quantify_dataset(X, vocab, args.quant_size, args.quant_type)
-        # print(X.shape, Y.shape)
-        # print(np.sum(Y == 0)/ Y.size, np.sum(Y == 1)/ Y.size)
+    X, Y, F1, vocab = make_np_dataset(args, data)
+    # print(Y)
+    # print(np.sum(Y))
+    if args.quant_size > 0:
+        X, vocab = quantify_dataset(X, vocab, args.quant_size, args.quant_type)
+    # print(X.shape, Y.shape)
+    # print(np.sum(Y == 0)/ Y.size, np.sum(Y == 1)/ Y.size)
 
-        if args.dataset == 'squad':
-            # filter cf baseids
-            cf_baseids = [sample for sample in data if "-cf-" in sample]
-            cf_baseids_filtered = [sample.split('-')[0] for sample in cf_baseids if "turk" in sample]
-            print(len(cf_baseids_filtered))
-            data_without_cf = [sample for sample in data if sample not in cf_baseids]
-            print("Number of counterfactuals: ", len(cf_baseids))
-            baseids = [k.split('-')[0] for k in data_without_cf if args.dataset == 'squad' and "turk" in k]
+    if args.dataset == 'squad':
+        # filter cf baseids
+        cf_baseids = [sample for sample in data if "-cf-" in sample]
+        cf_baseids_filtered = [sample.split('-')[0] for sample in cf_baseids if "turk" in sample]
+        print(len(cf_baseids_filtered))
+        data_without_cf = [sample for sample in data if sample not in cf_baseids]
+        print("Number of counterfactuals: ", len(cf_baseids))
+        baseids = [k.split('-')[0] for k in data_without_cf if args.dataset == 'squad' and "turk" in k]
 
-        elif args.dataset == 'trivia':
-            # filter cf baseids
-            # cf_baseids = [sample for sample in data if "-cf-" in sample]
-            # print("Number of counterfactuals: ", len(cf_baseids))
-            cf_baseids_filtered = [sample.split('-')[0] for sample in data if '-cf-' in sample]
-            print("Number of filtered counterfactuals: ", len(cf_baseids_filtered))
-            data_without_cf = [sample for sample in data if '-cf-' not in sample]
-            # print(data_without_cf)
-            print("Number of original samples: ", len(data_without_cf))
-            baseids = [k for k in data_without_cf]
+    else:
+        # filter cf baseids
+        # cf_baseids = [sample for sample in data if "-cf-" in sample]
+        # print("Number of counterfactuals: ", len(cf_baseids))
+        cf_baseids_filtered = [sample.split('-')[0] for sample in data if '-cf-' in sample]
+        print("Number of filtered counterfactuals: ", len(cf_baseids_filtered))
+        data_without_cf = [sample for sample in data if '-cf-' not in sample]
+        # print(data_without_cf)
+        print("Number of original samples: ", len(data_without_cf))
+        baseids = [k for k in data_without_cf]
 
-        # print(len(baseids))
-        # print(baseids)
-        predefined_splits = gen_predefined_train_test_splits(baseids, args.n_run, args.train_size)
-        agg_results = []
-        for train_test_split in tqdm(predefined_splits, total=len(predefined_splits), desc='Running Exp...'):
-            if args.include_cf:
-                indices =[]
-                train_set = train_test_split[0]
-                test_set = train_test_split[1]
-                for i, b in enumerate(train_set):
-                    if baseids[b] in cf_baseids_filtered:
-                        indices.append(baseids[b])
+    predefined_splits = gen_predefined_train_test_splits(baseids, args.n_run, args.train_size)
+    agg_results = []
+    for train_test_split in tqdm(predefined_splits, total=len(predefined_splits), desc='Running Exp...'):
+        if args.include_cf:
+            indices =[]
+            train_set = train_test_split[0]
+            test_set = train_test_split[1]
+            for i, b in enumerate(train_set):
+                if baseids[b] in cf_baseids_filtered:
+                    indices.append(baseids[b])
 
-                cf_indices = []
-                for i, b in enumerate(data):
-                    # print(b)
-                    if "-cf-" in b and b.split("-")[0] in indices:
-                        cf_indices.append(i)
-                # print(cf_indices)
-                train_set.extend(cf_indices)
-
-            # print(train_set)
+            cf_indices = []
+            for i, b in enumerate(data):
+                # print(b)
+                if "-cf-" in b and b.split("-")[0] in indices:
+                    cf_indices.append(i)
             # print(cf_indices)
-            # print(len(cf_indices))
-            # c=0
-            # for i in train_set:
-            #     if i in cf_indices:
-            #         c+=1
-            # print(c)
-            # shuffle cf_indices
-                np.random.shuffle(train_set)
-                augmented_train_set = (train_set, test_set)
-                print(len(train_set), len(test_set))
-            else:
-                augmented_train_set = train_test_split
-            # print(len(augmented_train_set[0]), len(augmented_train_set[1]))
-            agg_results.append(one_pass_exp(args, X, Y, F1, vocab, augmented_train_set))
+            train_set.extend(cf_indices)
 
-        # print(agg_results)
-        agg_base_acc = np.array([x[0] for x in agg_results])
-        agg_train_acc = np.array([x[1] for x in agg_results])
-        agg_dev_acc = np.array([x[2] for x in agg_results])
-        agg_auc = np.array([x[3] for x in agg_results])
-        agg_f1_curve = np.array([x[4] for x in agg_results]).mean(axis=0)
-        agg_macro_ce = np.array([x[6] for x in agg_results]).mean()
-        print('AVG MACRO CE {:.3f}'.format(agg_macro_ce))
+            np.random.shuffle(train_set)
+            augmented_train_set = (train_set, test_set)
+            print(len(train_set), len(test_set))
+        else:
+            augmented_train_set = train_test_split
+        # print(len(augmented_train_set[0]), len(augmented_train_set[1]))
+        agg_results.append(one_pass_exp(args, X, Y, F1, vocab, augmented_train_set))
 
-        print('AVG MAJORITY ACC {:.3f}'.format(agg_base_acc.mean()))
-        print('AVG TRAIN ACC {:.3f}'.format(agg_train_acc.mean()))
-        print('AVG DEV ACC: {:.3f} +/- {:.3f}, AUC: {:.3f}, MAX: {:.3f}, MIN: {:.3f}'.format(agg_dev_acc.mean(),
-                                                                                             agg_dev_acc.std(),
-                                                                                             agg_auc.mean(),
-                                                                                             agg_dev_acc.max(),
-                                                                                             agg_dev_acc.min()))
+    # print(agg_results)
+    agg_base_acc = np.array([x[0] for x in agg_results])
+    agg_train_acc = np.array([x[1] for x in agg_results])
+    agg_dev_acc = np.array([x[2] for x in agg_results])
+    agg_auc = np.array([x[3] for x in agg_results])
+    agg_f1_curve = np.array([x[4] for x in agg_results]).mean(axis=0)
+    agg_macro_ce = np.array([x[6] for x in agg_results]).mean()
+    print('AVG MACRO CE {:.3f}'.format(agg_macro_ce))
 
-        # print numbers for copy paste
-        exp_numbers = [agg_base_acc.mean(), agg_dev_acc.mean(), agg_auc.mean()] + agg_f1_curve.tolist()
-        print(','.join(['{:.3f}'.format(x) for x in exp_numbers]))
-        exp_numbers = exp_numbers[1:]
-        print(','.join(['{:.1f}'.format(a * 100) for a in exp_numbers]))
-        if agg_results[0][5] is not None and args.show_imp:
-            agg_feat_imp = np.array([x[5] for x in agg_results])
-            # print(agg_feat_imp.shape)
-            agg_feat_imp = np.mean(agg_feat_imp, axis=0)
-            imp_idx = np.argsort(-np.abs(agg_feat_imp))
-            # pred_direction = prediction_direction_of_feat(X, Y, F1)
-            for rank, i in enumerate(imp_idx[:100]):
-                # print(imp_idx[i])
-                # print('Feat Rank:', rank, vocab.get_word(i), agg_feat_imp[i])
-                print(rank, vocab.get_word(i), agg_feat_imp[i])
+    print('AVG MAJORITY ACC {:.3f}'.format(agg_base_acc.mean()))
+    print('AVG TRAIN ACC {:.3f}'.format(agg_train_acc.mean()))
+    print('AVG DEV ACC: {:.3f} +/- {:.3f}, AUC: {:.3f}, MAX: {:.3f}, MIN: {:.3f}'.format(agg_dev_acc.mean(),
+                                                                                         agg_dev_acc.std(),
+                                                                                         agg_auc.mean(),
+                                                                                         agg_dev_acc.max(),
+                                                                                         agg_dev_acc.min()))
+
+    # print numbers for copy paste
+    exp_numbers = [agg_base_acc.mean(), agg_dev_acc.mean(), agg_auc.mean()] + [agg_macro_ce] # + agg_f1_curve.tolist()
+    print(','.join(['{:.3f}'.format(x) for x in exp_numbers]))
+    exp_numbers = exp_numbers[1:]
+    print(','.join(['{:.1f}'.format(a * 100) for a in exp_numbers]))
+    if agg_results[0][5] is not None and args.show_imp:
+        agg_feat_imp = np.array([x[5] for x in agg_results])
+        # print(agg_feat_imp.shape)
+        agg_feat_imp = np.mean(agg_feat_imp, axis=0)
+        imp_idx = np.argsort(-np.abs(agg_feat_imp))
+        # pred_direction = prediction_direction_of_feat(X, Y, F1)
+        for rank, i in enumerate(imp_idx[:100]):
+            # print(imp_idx[i])
+            # print('Feat Rank:', rank, vocab.get_word(i), agg_feat_imp[i])
+            print(rank, vocab.get_word(i), agg_feat_imp[i])
 
 
 if __name__ == "__main__":

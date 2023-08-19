@@ -26,7 +26,7 @@ class CreateFeatures:
         self.count = 0
         self.nlp = spacy.load("en_core_web_sm")
         self.model = model
-        self.dataset = dataset.split("_")[0]
+        self.dataset = dataset  # check the naming
         self.method = method
         # self.supar = Parser.load('crf-con-en')
 
@@ -35,44 +35,12 @@ class CreateFeatures:
             pos_file = "pos_info.bin"
         else:
             pos_file = "pos_info_wo_space.bin"
-        if self.model == "base":
-            self.tagger_info = utils.load_bin(f"{self.path}/{pos_file}")
-            self.attributions = self.build_file_dict(dataset=self.dataset, split="addsent-dev", method=self.method)
-            # self.attributions = utils.load_bin(f"{self.path}/attn_info_with_easy_0.75.bin")
-            self.states = utils.load_bin(f"{self.path}/dense_repr_pca_10_info_base.bin")
-            self.preds_info = utils.read_json(
-                f"{self.path}/nbest_predictions_roberta_squad_top20.json")
 
-        elif self.model == "rag":
-            self.tagger_info = utils.load_bin(f"{self.path}/{pos_file}")
-            self.attributions = self.build_file_dict(dataset=self.dataset, split="addsent-dev", method=self.method)
-            # self.attributions = utils.load_bin(f"{self.path}/attn_info_with_easy_0.75.bin")
-            self.states = utils.load_bin(f"{self.path}/dense_repr_pca_10_info_rag.bin")
-            self.preds_info = utils.read_json(
-                f"{self.path}/nbest_predictions_roberta-squad-t5-squad-cfs-seed-42.json")
-
-        elif self.model == "llama":
-            self.tagger_info = utils.load_bin(f"{self.path}/{pos_file}")
-            self.attributions = self.build_file_dict(dataset=self.dataset, split="addsent-dev", method=self.method)
-            # self.attributions = utils.load_bin(f"{self.path}/attn_info_with_easy_0.75.bin")
-            self.states = utils.load_bin(f"{self.path}/dense_repr_pca_10_info_llama.bin")
-            self.preds_info = utils.read_json(
-                f"{self.path}/nbest_predictions_roberta-squad-llama-context-rel-seed-42.json")
-
-        elif self.model == "gpt_neox":
-            self.tagger_info = utils.load_bin(f"{self.path}/{pos_file}")
-            self.attributions = self.build_file_dict(dataset=self.dataset, split="addsent-dev", method=self.method)
-            # self.attributions = utils.load_bin(f"{self.path}/attn_info_with_easy_0.75.bin")
-            self.states = utils.load_bin(f"{self.path}/dense_repr_pca_10_info_gpt_neox.bin")
-            self.preds_info = utils.read_json(
-                f"{self.path}/nbest_predictions_roberta-squad-gpt-neox-context-rel-seed-42.json")
-
-        elif self.model == "flan_ul2":
-            self.tagger_info = utils.load_bin(f"{self.path}/{pos_file}")
-            self.attributions = self.build_file_dict(dataset=self.dataset, split="addsent-dev", method=self.method)
-            # self.attributions = utils.load_bin(f"{self.path}/attn_info_with_easy_0.75.bin")
-            self.states = utils.load_bin(f"{self.path}/dense_repr_pca_10_info_flan_ul2.bin")
-            self.preds_info = utils.read_json(f"{self.path}/nbest_predictions_roberta-squad-flan-ul2-context-rel-noise-seed-42.json")
+        self.tagger_info = utils.load_bin(f"{self.path}/{pos_file}")
+        self.attributions = self.build_file_dict(dataset=self.dataset, split="addsent-dev", method=self.method)
+        self.states = utils.load_bin(f"{self.path}/dense_repr_pca_10_info_{self.model}.bin")
+        self.preds_info = utils.read_json(
+            f"{self.path}/nbest_predictions_{self.model}.json")
 
     def load_interp_info(self, file_dict, qas_id):
         return torch.load(file_dict[qas_id])
@@ -81,14 +49,16 @@ class CreateFeatures:
         # hard-coded path here: be careful
         # prefix = 'squad_sample-addsent_roberta-base'
         prefix = f'{dataset}/dev/roberta'
-        if self.model == "gpt_neox" or self.model == "llama":
-            exp_file_name = f"exp_roberta_{self.model}_context_rel"
-        elif self.model == "flan_ul2":
-            exp_file_name = f"exp_roberta_{self.model}_context_noise_rel"
-        elif self.model == "rag":
-            exp_file_name = f"exp_roberta_{self.model}"
-        elif self.model == "base":
-            exp_file_name = f"exp_roberta_{self.model}"
+        if self.model.__contains__("gpt-neox"):
+            exp_file_name = f"exp_roberta_gpt_neox_context_rel"
+        if self.model.__contains__("llama"):
+            exp_file_name = f"exp_roberta_llama_context_rel"
+        elif self.model.__contains__("flan-ul2"):
+            exp_file_name = f"exp_roberta_flan_ul2_context_noise_rel"
+        elif self.model.__contains__("t5"):
+            exp_file_name = f"exp_roberta_rag"
+        elif self.model == "roberta-squad":
+            exp_file_name = f"exp_roberta_base"
         fnames = os.listdir(os.path.join(exp_file_name, method, prefix))
         # print(fnames)
         qa_ids = [x.split('.')[0] for x in fnames]
@@ -122,7 +92,7 @@ class CreateFeatures:
             # if total_count==1:
             #     break
         print("Total instances not processed: ", c)
-        utils.dump_to_bin(processed_instances, f"{self.path}/calib_data_{method}_{model}_mod.bin")
+        utils.dump_to_bin(processed_instances, f"{self.path}/calib_data_{self.method}_{self.model}.bin")
 
     def lemmatize_pos_tag(self, token_tags):
         """
@@ -196,139 +166,6 @@ class CreateFeatures:
 
     def handle_zero_division(self, n, d):
         return n / d if d else 0
-
-
-    def pos_tags(self, tokens):
-        words = [x.lstrip() for x in tokens]
-        spaces = [False if i == len(tokens) - 1
-                  else tokens[i + 1][0] == ' ' for i in range(len(tokens))]
-
-        valid_idx = [i for i, w in enumerate(words) if len(w)]
-        words = [words[i] for i in valid_idx]
-        spaces = [spaces[i] for i in valid_idx]
-        doc = Doc(self.nlp.vocab, words=words, spaces=spaces)
-        processed_tokens = self.nlp(doc)
-        n_sent, n_token = 0, 0
-        for sent in processed_tokens.sents:
-            n_sent += 1
-            for token in sent:
-                n_token += 1
-
-        to_NoTag_C = 0
-        to_VeTag_C = 0
-        to_AjTag_C = 0
-        to_AvTag_C = 0
-        to_SuTag_C = 0
-        to_CoTag_C = 0
-        to_ContW_C = 0
-        to_FuncW_C = 0
-
-        for token in processed_tokens:
-            if token.pos_ == "NOUN" or token.pos_ == "VERB" or token.pos_ == "NUM" or token.pos_ == "ADJ" or token.pos_ == "ADV":
-                to_ContW_C += 1
-            else:
-                to_FuncW_C += 1
-
-            if token.pos_ == "NOUN":
-                to_NoTag_C += 1
-            if token.pos_ == "VERB":
-                to_VeTag_C += 1
-            if token.pos_ == "ADJ":
-                to_AjTag_C += 1
-            if token.pos_ == "ADV":
-                to_AvTag_C += 1
-            if token.pos_ == "SCONJ":
-                to_SuTag_C += 1
-            if token.pos_ == "CCONJ":
-                to_CoTag_C += 1
-
-        result = {
-            "to_NoTag_C": float(to_NoTag_C),
-            "as_NoTag_C": float(self.handle_zero_division(to_NoTag_C, n_sent)),
-            "at_NoTag_C": float(self.handle_zero_division(to_NoTag_C, n_token)),
-            "ra_NoAjT_C": float(self.handle_zero_division(to_NoTag_C, to_AjTag_C)),
-            "ra_NoVeT_C": float(self.handle_zero_division(to_NoTag_C, to_VeTag_C)),
-            "ra_NoAvT_C": float(self.handle_zero_division(to_NoTag_C, to_AvTag_C)),
-            "ra_NoSuT_C": float(self.handle_zero_division(to_NoTag_C, to_SuTag_C)),
-            "ra_NoCoT_C": float(self.handle_zero_division(to_NoTag_C, to_CoTag_C)),
-            "to_VeTag_C": float(to_VeTag_C),
-            "as_VeTag_C": float(self.handle_zero_division(to_VeTag_C, n_sent)),
-            "at_VeTag_C": float(self.handle_zero_division(to_VeTag_C, n_token)),
-            "ra_VeAjT_C": float(self.handle_zero_division(to_VeTag_C, to_AjTag_C)),
-            "ra_VeNoT_C": float(self.handle_zero_division(to_VeTag_C, to_NoTag_C)),
-            "ra_VeAvT_C": float(self.handle_zero_division(to_VeTag_C, to_AvTag_C)),
-            "ra_VeSuT_C": float(self.handle_zero_division(to_VeTag_C, to_SuTag_C)),
-            "ra_VeCoT_C": float(self.handle_zero_division(to_VeTag_C, to_CoTag_C)),
-            "to_AjTag_C": float(to_AjTag_C),
-            "as_AjTag_C": float(self.handle_zero_division(to_AjTag_C, n_sent)),
-            "at_AjTag_C": float(self.handle_zero_division(to_AjTag_C, n_token)),
-            "ra_AjNoT_C": float(self.handle_zero_division(to_AjTag_C, to_NoTag_C)),
-            "ra_AjVeT_C": float(self.handle_zero_division(to_AjTag_C, to_VeTag_C)),
-            "ra_AjAvT_C": float(self.handle_zero_division(to_AjTag_C, to_AvTag_C)),
-            "ra_AjSuT_C": float(self.handle_zero_division(to_AjTag_C, to_SuTag_C)),
-            "ra_AjCoT_C": float(self.handle_zero_division(to_AjTag_C, to_CoTag_C)),
-            "to_AvTag_C": float(to_AvTag_C),
-            "as_AvTag_C": float(self.handle_zero_division(to_AvTag_C, n_sent)),
-            "at_AvTag_C": float(self.handle_zero_division(to_AvTag_C, n_token)),
-            "ra_AvAjT_C": float(self.handle_zero_division(to_AvTag_C, to_AjTag_C)),
-            "ra_AvNoT_C": float(self.handle_zero_division(to_AvTag_C, to_NoTag_C)),
-            "ra_AvVeT_C": float(self.handle_zero_division(to_AvTag_C, to_VeTag_C)),
-            "ra_AvSuT_C": float(self.handle_zero_division(to_AvTag_C, to_SuTag_C)),
-            "ra_AvCoT_C": float(self.handle_zero_division(to_AvTag_C, to_CoTag_C)),
-            "to_SuTag_C": float(to_SuTag_C),
-            "as_SuTag_C": float(self.handle_zero_division(to_SuTag_C, n_sent)),
-            "at_SuTag_C": float(self.handle_zero_division(to_SuTag_C, n_token)),
-            "ra_SuAjT_C": float(self.handle_zero_division(to_SuTag_C, to_AjTag_C)),
-            "ra_SuNoT_C": float(self.handle_zero_division(to_SuTag_C, to_NoTag_C)),
-            "ra_SuVeT_C": float(self.handle_zero_division(to_SuTag_C, to_VeTag_C)),
-            "ra_SuAvT_C": float(self.handle_zero_division(to_SuTag_C, to_AvTag_C)),
-            "ra_SuCoT_C": float(self.handle_zero_division(to_SuTag_C, to_CoTag_C)),
-            "to_CoTag_C": float(to_CoTag_C),
-            "as_CoTag_C": float(self.handle_zero_division(to_CoTag_C, n_sent)),
-            "at_CoTag_C": float(self.handle_zero_division(to_CoTag_C, n_token)),
-            "ra_CoAjT_C": float(self.handle_zero_division(to_CoTag_C, to_AjTag_C)),
-            "ra_CoNoT_C": float(self.handle_zero_division(to_CoTag_C, to_NoTag_C)),
-            "ra_CoVeT_C": float(self.handle_zero_division(to_CoTag_C, to_VeTag_C)),
-            "ra_CoAvT_C": float(self.handle_zero_division(to_CoTag_C, to_AvTag_C)),
-            "ra_CoSuT_C": float(self.handle_zero_division(to_CoTag_C, to_SuTag_C)),
-            "to_ContW_C": float(to_ContW_C),
-            "as_ContW_C": float(self.handle_zero_division(to_ContW_C, n_sent)),
-            "at_ContW_C": float(self.handle_zero_division(to_ContW_C, n_token)),
-            "to_FuncW_C": float(to_FuncW_C),
-            "as_FuncW_C": float(self.handle_zero_division(to_FuncW_C, n_sent)),
-            "at_FuncW_C": float(self.handle_zero_division(to_FuncW_C, n_token)),
-            "ra_CoFuW_C": float(self.handle_zero_division(to_ContW_C, to_FuncW_C)),
-        }
-        return result
-
-    def extract_pos(self, tokens, ans_range):
-        feat = common.IndexedFeature()
-        context_start = tokens.index(self.sep_tokens[1])
-        question_tokens = tokens[1:context_start]
-        context_tokens = tokens[context_start + 2: -1]
-
-        q_ents = self.pos_tags(question_tokens)
-        c_ents = self.pos_tags(context_tokens)
-        for k,v in q_ents.items():
-            feat.add_new(f"_POS_{k}_Q", v)
-        for k,v in c_ents.items():
-            feat.add_new(f"_POS_{k}_C", v)
-        return feat
-
-    def extract_entity_features(self, tokens, ans_range):
-        feat = common.IndexedFeature()
-        context_start = tokens.index(self.sep_tokens[1])
-        question_tokens = tokens[1:context_start]
-        context_tokens = tokens[context_start + 2: -1]
-
-        q_ents = self.endf(question_tokens, source="Q")
-        c_ents = self.endf(context_tokens, source="C")
-        for f in q_ents:
-            feat.add_new(f[0], f[1])
-        for f in c_ents:
-            feat.add_new(f[0], f[1])
-        return feat
-
 
     def extract_bow_feature(self, words, tags, ans_range):
         feat = common.IndexedFeature()
@@ -469,13 +306,6 @@ class CreateFeatures:
     def extract_state_features(self, attr, tokens, ans_range, states):
         feat = common.IndexedFeature()
         context_start = tokens.index(self.sep_tokens[1])
-        # print(states.shape)
-        # rep = torch.mean(states, dim=-1)
-        # repr = rep.tolist()[0]
-        # question_repr = repr[1:context_start]
-        # context_repr = repr[context_start + 2: -1]
-        # print(torch.mean(states, dim=1).shape)
-        # mean_token_states = torch.mean(states, dim=1)
         start, end = ans_range
         ans_indices = list(range(start, end + 1))
         # print(ans_indices)
@@ -569,24 +399,6 @@ class CreateFeatures:
                     token_attribution,
                     ans_index))
 
-            # for entites TODO: change format later
-            # named_feat.add_set(self.extract_token_attr_feature_in_question(
-            #     words,
-            #     ents_for_tok,
-            #     token_attribution))
-            # named_feat.add_set(self.extract_token_attr_feature_in_context(
-            #     words,
-            #     ents_for_tok,
-            #     token_attribution))
-            # named_feat.add_set(
-            #     self.extract_token_attr_feature_in_input(
-            #         words,
-            #         ents_for_tok,
-            #         token_attribution,
-            #         ans_index))
-
-            # if link_attribution is not None:
-            #     named_feat.add_set(self.extract_link_attr_feature(tags_for_tok, link_attribution, ans_index))
         if include_stats:
             named_feat.add_set(self.extract_token_attr_stats_in_input(
                 words,
@@ -630,7 +442,7 @@ class CreateFeatures:
         )
         f1 = evaluate.get_score(metric="f1", pred_text=pred_text, gold_text=gold_text)
         calib_label = 1 if exact_match > 0 else 0
-        print(calib_label)
+        # print(calib_label)
 
         # baseline features
         named_feat = common.IndexedFeature()
@@ -665,11 +477,15 @@ class CreateFeatures:
 
 
 if __name__ == "__main__":
-    # base_model = "roberta-base"
-    # tokenizer = AutoTokenizer.from_pretrained(base_model)
-    model = "gpt_neox"
-    dataset = "hotpot_qa"
-    method = "shap"
-    data_path = f"./src/data/{dataset}"
-    feat = CreateFeatures(path=data_path, model=model, dataset=dataset, method=method)
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Passing arguments for model, tokenizer, and dataset.")
+
+    parser.add_argument("--model_name", type=str, required=False, help="Specify the model to use.")
+    parser.add_argument("--dataset", type=str, required=True, help="Specify the dataset to use.")
+    parser.add_argument("--method", type=str, default="shap", help="Specify the explanation method to use.")
+    args = parser.parse_args()
+
+    data_path = f"./src/data/{args.dataset}"
+    feat = CreateFeatures(path=data_path, model=args.model_name, dataset=args.dataset, method=args.method)
     feat.featurize()

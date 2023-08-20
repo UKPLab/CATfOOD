@@ -30,5 +30,4 @@ src/outputs/
 src/resources/
 src/results/
 src/shap_results/
-src/shortcuts/
 src/calibration/visualize/data/

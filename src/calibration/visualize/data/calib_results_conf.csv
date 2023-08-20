@@ -1,0 +1,16 @@
+model,dataset,acc,auc,mce
+Base,squad_adversarial,0.642,0.685,0.474
+Base,trivia,0.644,0.709,0.465
+Base,hotpot,0.656,0.716,0.467
+RAG,squad_adversarial,0.66,0.713,0.473
+RAG,trivia,0.666,0.749,0.454
+RAG,hotpot,0.601,0.583,0.539
+LLaMA,squad_adversarial,0.659,0.688,0.549
+LLaMA,trivia,0.669,0.748,0.507
+LLaMA,hotpot,0.678,0.745,0.507
+GPT-NeoxT,squad_adversarial,0.665,0.732,0.52
+GPT-NeoxT,trivia,0.611,0.74,0.502
+GPT-NeoxT,hotpot,0.635,0.793,0.495
+Flan-UL2,squad_adversarial,0.643,0.8,0.487
+Flan-UL2,trivia,0.63,0.8,0.482
+Flan-UL2,hotpot,0.651,0.816,0.488

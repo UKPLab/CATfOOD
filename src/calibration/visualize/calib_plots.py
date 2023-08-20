@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 from matplotlib import rc
 import seaborn as sns
 import pandas as pd
+from typing import List, Dict
 
 sns.set_theme()
 # sns.set_style("white")
@@ -27,105 +28,122 @@ matplotlib.rcParams.update({'text.usetex': True})
 matplotlib.rc('text.latex', preamble=r"\usepackage{xcolor}")
 
 # print([k for k in plt.rcParams.keys() if k.startswith('lines')])
+import csv
+
+import plotly.express as px
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+import plotly.io as pio
+pio.kaleido.scope.mathjax = None
+
+plt.tight_layout()
 
 
-def visualize_calibration(method="conf", dataset="squad_adversarial"):
+def save_results_conf(path):
+    data = {
+        "model": [],
+        "dataset": [],
+        "acc": [],
+        "auc": [],
+        "mce": []
+    }
 
+    # Add data to the dictionary
+    models = ["Base", "RAG", "LLaMA", "GPT-NeoxT", "Flan-UL2"]
+    datasets = ["squad_adversarial", "trivia", "hotpot"]
+    acc_values = [
+        [0.642, 0.644, 0.656, 0.660, 0.666],
+        [0.601, 0.659, 0.669, 0.678, 0.665],
+        [0.611, 0.635, 0.643, 0.630, 0.651]
+    ]
+    auc_values = [
+        [0.685, 0.709, 0.716, 0.713, 0.749],
+        [0.583, 0.688, 0.748, 0.745, 0.732],
+        [0.740, 0.793, 0.800, 0.800, 0.816]
+    ]
+
+    mce_values = [
+        [0.474, 0.465, 0.467, 0.473, 0.454],
+        [0.539, 0.549, 0.507, 0.507, 0.520],
+        [0.502, 0.495, 0.487, 0.482, 0.488]
+    ]
+
+    for model in models:
+        for i, dataset in enumerate(datasets):
+            data["model"].append(model)
+            data["dataset"].append(dataset)
+            data["acc"].extend(acc_values[i])
+            data["auc"].extend(auc_values[i])
+            data["mce"].extend(mce_values[i])
+
+    # Write data to CSV file
+    with open(path, "w", newline="") as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerow(["model", "dataset", "acc", "auc", "mce"])
+        for i in range(len(data["model"])):
+            writer.writerow([data["model"][i], data["dataset"][i], data["acc"][i], data["auc"][i], data["mce"][i]])
+
+    print("CSV file saved successfully.")
+
+
+def load_data(method, dataset):
     acc, auc, mce = [], [], []
-    if method=="conf" and dataset=="squad_adversarial":
+    if method == "conf" and dataset == "squad_adversarial":
         # conf squad
         acc = [0.642, 0.644, 0.656, 0.660, 0.666]
         auc = [0.685, 0.709, 0.716, 0.713, 0.749]
         mce = [0.474, 0.465, 0.467, 0.473, 0.454]
-    elif method == "conf" and dataset == "trivia":
+    elif method == "conf" and dataset == "trivia_qa":
         # conf trivia
         acc = [0.601, 0.659, 0.669, 0.678, 0.665]
         auc = [0.583, 0.688, 0.748, 0.745, 0.732]
         mce = [0.539, 0.549, 0.507, 0.507, 0.520]
-    elif method == "conf" and dataset == "hotpot":
+    elif method == "conf" and dataset == "hotpot_qa":
         # conf hotpot
         acc = [0.611, 0.635, 0.643, 0.630, 0.651]
         auc = [0.740, 0.793, 0.800, 0.800, 0.816]
         mce = [0.502, 0.495, 0.487, 0.482, 0.488]
     elif method == "shap" and dataset == "squad_adversarial":
-        # shap squad
-        # acc = [0.750, 0.736, 0.734, 0.776, 0.745, 0.784, 0.752, 0.789]
-        # auc = [0.843, 0.840, 0.840, 0.872, 0.847, 0.877, 0.854, 0.885]
-        # mce = [0.471, 0.469, 0.468, 0.459, 0.470, 0.459, 0.468, 0.460]
-
         acc = [0.750, 0.736, 0.734, 0.775, 0.745, 0.782, 0.752, 0.791]
         auc = [0.843, 0.840, 0.840, 0.871, 0.847, 0.875, 0.854, 0.884]
         mce = [0.471, 0.469, 0.468, 0.461, 0.470, 0.461, 0.468, 0.460]
-    elif method == "shap" and dataset == "trivia":
-        # shap trivia
-        # acc = [0.720, 0.707, 0.707, 0.707, 0.703, 0.702, 0.707, 0.708]
-        # auc = [0.718, 0.723, 0.761, 0.763, 0.755, 0.755, 0.753, 0.753]
-        # mce = [0.545, 0.527, 0.505, 0.507, 0.508, 0.510, 0.515, 0.520]
-
+    elif method == "shap" and dataset == "trivia_qa":
         acc = [0.720, 0.707, 0.707, 0.707, 0.703, 0.702, 0.707, 0.708]
         auc = [0.718, 0.723, 0.761, 0.764, 0.755, 0.756, 0.753, 0.753]
         mce = [0.545, 0.527, 0.505, 0.506, 0.508, 0.509, 0.515, 0.517]
-    elif method == "shap" and dataset == "hotpot":
-        # shap hotpot
-        # acc = [0.633, 0.646, 0.653, 0.654, 0.627, 0.628, 0.653, 0.653]
-        # auc = [0.755, 0.797, 0.800, 0.801, 0.796, 0.796, 0.811, 0.812]
-        # mce = [0.504, 0.490, 0.493, 0.494, 0.493, 0.493, 0.489, 0.490]
-
+    elif method == "shap" and dataset == "hotpot_qa":
         acc = [0.633, 0.646, 0.653, 0.655, 0.627, 0.630, 0.653, 0.654]
         auc = [0.755, 0.797, 0.800, 0.801, 0.796, 0.797, 0.811, 0.812]
         mce = [0.504, 0.490, 0.493, 0.494, 0.493, 0.493, 0.489, 0.490]
     elif method == "sc_attn" and dataset == "squad_adversarial":
-        # sc attn squad
-        # acc = [0.657, 0.661, 0.654, 0.723, 0.670, 0.737, 0.672, 0.739]
-        # auc = [0.781, 0.794, 0.781, 0.848, 0.790, 0.855, 0.791, 0.860]
-        # mce = [0.476, 0.469, 0.475, 0.463, 0.475, 0.462, 0.479, 0.465]
-
         acc = [0.657, 0.661, 0.654, 0.716, 0.670, 0.729, 0.672, 0.732]
         auc = [0.781, 0.794, 0.781, 0.845, 0.790, 0.849, 0.791, 0.858]
         mce = [0.476, 0.469, 0.475, 0.461, 0.475, 0.459, 0.479, 0.461]
-    elif method == "sc_attn" and dataset == "trivia":
-        # sc attn trivia
-        # acc = [0.735, 0.713, 0.705, 0.705, 0.699, 0.700, 0.707, 0.708]
-        # auc = [0.719, 0.722, 0.763, 0.765, 0.756, 0.757, 0.752, 0.753]
-        # mce = [0.558, 0.539, 0.510, 0.513, 0.511, 0.513, 0.520, 0.524]
-
+    elif method == "sc_attn" and dataset == "trivia_qa":
         acc = [0.735, 0.713, 0.705, 0.705, 0.699, 0.701, 0.707, 0.708]
         auc = [0.719, 0.722, 0.763, 0.766, 0.756, 0.758, 0.752, 0.756]
         mce = [0.558, 0.539, 0.510, 0.511, 0.511, 0.511, 0.520, 0.521]
-    elif method == "sc_attn" and dataset == "hotpot":
-        # sc attn hotpot
-        # acc = [0.631, 0.641, 0.640, 0.643, 0.625, 0.628, 0.642, 0.643]
-        # auc = [0.745, 0.789, 0.789, 0.792, 0.787, 0.790, 0.800, 0.802]
-        # mce = [0.509, 0.492, 0.493, 0.494, 0.492, 0.494, 0.491, 0.492]
+    elif method == "sc_attn" and dataset == "hotpot_qa":
         acc = [0.631, 0.641, 0.640, 0.642, 0.625, 0.626, 0.642, 0.643]
         auc = [0.745, 0.789, 0.789, 0.791, 0.787, 0.788, 0.800, 0.803]
         mce = [0.509, 0.492, 0.493, 0.494, 0.492, 0.494, 0.491, 0.491]
     elif method == "ig" and dataset == "squad_adversarial":
-        # ig squad
-        # acc = [0.655, 0.653, 0.665, 0.731, 0.666, 0.737, 0.687, 0.752]
-        # auc = [0.779, 0.779, 0.791, 0.848, 0.792, 0.854, 0.810, 0.862]
-        # mce = [0.476, 0.475, 0.474, 0.465, 0.474, 0.463, 0.475, 0.468]
         acc = [0.655, 0.653, 0.665, 0.724, 0.666, 0.730, 0.687, 0.746]
         auc = [0.779, 0.779, 0.791, 0.845, 0.792, 0.847, 0.810, 0.858]
         mce = [0.476, 0.475, 0.474, 0.464, 0.474, 0.462, 0.475, 0.464]
-    elif method == "ig" and dataset == "trivia":
-        # ig trivia
-        # acc = [0.729, 0.710, 0.705, 0.706, 0.702, 0.704, 0.706, 0.707]
-        # auc = [0.722, 0.724, 0.760, 0.762, 0.752, 0.754, 0.749, 0.750]
-        # mce = [0.554, 0.535, 0.508, 0.512, 0.511, 0.513, 0.521, 0.526]
+    elif method == "ig" and dataset == "trivia_qa":
         acc = [0.729, 0.710, 0.705, 0.706, 0.702, 0.702, 0.706, 0.708]
         auc = [0.722, 0.724, 0.760, 0.763, 0.752, 0.756, 0.749, 0.753]
         mce = [0.554, 0.535, 0.508, 0.510, 0.511, 0.511, 0.521, 0.524]
-    elif method == "ig" and dataset == "hotpot":
-        # ig hotpot
-        # acc = [0.629, 0.636, 0.641, 0.643, 0.620, 0.622, 0.642, 0.645]
-        # auc = [0.746, 0.784, 0.789, 0.791, 0.785, 0.787, 0.799, 0.803]
-        # mce = [0.507, 0.493, 0.493, 0.494, 0.493, 0.495, 0.492, 0.493]
+    elif method == "ig" and dataset == "hotpot_qa":
         acc = [0.629, 0.636, 0.641, 0.644, 0.620, 0.619, 0.642, 0.643]
         auc = [0.746, 0.784, 0.789, 0.791, 0.785, 0.783, 0.799, 0.804]
         mce = [0.507, 0.493, 0.493, 0.494, 0.493, 0.495, 0.492, 0.492]
+    return acc, auc, mce
 
+def visualize_calibration(method="conf", dataset="squad_adversarial"):
 
+    acc, auc, mce =load_data(method,dataset)
     mce_flip = [round(1-m, 3) for m in mce]
 
     if method == "conf":
@@ -220,9 +238,180 @@ def visualize_calibration(method="conf", dataset="squad_adversarial"):
     plt.gca().xaxis.set_tick_params(labelbottom=False)
 
     plt.savefig(f"{method}_{dataset}_1.pdf")
-    # plt.show()
-    # plt.savefig(f"{method}_{dataset}_1.svg", format="svg")
+
+
+def plot_bar_chart(methods: List, datasets: List):
+    """
+    plot the calibration results for models
+    """
+
+    metrics = ["Accuracy", "AUC", "1-MCE"]
+    complete_data: List = []
+    # Define consistent colors for models
+    model_colors = {
+        "Base": "#1f77b4",
+        "RAG": "#ff7f0e",
+        "LLaMA": "#2ca02c",
+        "LLaMA + F": "#8c564b",
+        "GPT-NeoxT": "#d62728",
+        "GPT-NeoxT + F": "#e377c2",
+        "Flan-UL2": "#9467bd",
+        "Flan-UL2 + F": "#17becf"
+    }
+
+    for i in range(len(methods)):
+        data: Dict = {}
+        data["Metric"] = metrics
+        if methods[i] == "conf":
+            models = ["Base", "RAG", "LLaMA", "GPT-NeoxT", "Flan-UL2"]
+        else:
+            models = ["Base", "RAG", "LLaMA", "LLaMA + F", "GPT-NeoxT", "GPT-NeoxT + F", "Flan-UL2", "Flan-UL2 + F"]
+        acc, auc, mce = load_data(methods[i], datasets[i])
+        mce_flip = [round(1 - m, 3) for m in mce]
+        df = pd.DataFrame({'Accuracy': acc, 'AUC': auc, '1-MCE': mce_flip})
+        for idx in df.index:
+            data[models[idx]] = df.loc[idx].tolist()
+        # print(data)
+        complete_data.append(data)
+
+    # Create subplots with n row and m columns
+    num_cols = 3
+    num_rows = len(methods)//num_cols
+    fig = make_subplots(
+        rows=num_rows,
+        cols=num_cols,
+        shared_yaxes=False,
+        subplot_titles=['SQuAD Adversarial', 'Trivia QA', 'Hotpot QA'],
+        horizontal_spacing=0.05,
+        vertical_spacing=0.075
+    )
+    showlegend = False
+    for i, _data in enumerate(complete_data):
+        if i+1 == 4:
+            showlegend = True
+        subplot = go.Figure()
+        if methods[i] == "conf":
+            models = ["Base", "RAG", "LLaMA", "GPT-NeoxT", "Flan-UL2"]
+        else:
+            models = ["Base", "RAG", "LLaMA", "LLaMA + F", "GPT-NeoxT", "GPT-NeoxT + F", "Flan-UL2", "Flan-UL2 + F"]
+        for j, model in enumerate(models):
+            subplot.add_trace(
+                go.Bar(
+                    x=_data["Metric"],
+                    y=_data[model],
+                    showlegend=showlegend,
+                    name=model,
+                    marker_color=model_colors[model],
+                )
+            )
+        showlegend = False
+        subplot.update_traces(marker=dict(line=dict(color='black', width=1)))  # Adjust color and width as needed
+        # Add subplot to the main figure
+        for trace in subplot.data:
+            row = i // 3 + 1
+            col = (i + 1) % 3 if (i + 1) % 3 != 0 else 3
+            fig.add_trace(trace, row=row, col=col)
+
+    # Apply layout to each subplot
+    fig.update_layout(
+        font=dict(family='Times New Roman', size=12, color='black'),
+        plot_bgcolor='white',  # Set plot background color
+        # showlegend=True,
+        legend=dict(
+            bgcolor='white',
+            bordercolor='black',
+            borderwidth=1
+        ),
+        xaxis=dict(title_font=dict(size=16, color='black'), ticks="outside", mirror=True, showline=True,
+                   linewidth=1.5,
+                   linecolor='black'),  # Optional: Move x-axis ticks outside
+        yaxis=dict(title_font=dict(size=16, color='black'), ticks="outside", mirror=True, showline=True,
+                   linewidth=1.5,
+                   linecolor='black', range=[0, 1]),  # Optional: Move y-axis ticks outside
+        xaxis2=dict(title_font=dict(size=16, color='black'), ticks="outside", mirror=True, showline=True,
+                   linewidth=1.5,
+                   linecolor='black'),  # Optional: Move x-axis ticks outside
+        yaxis2=dict(title_font=dict(size=16, color='black'), ticks="outside", mirror=True, showline=True,
+                   linewidth=1.5,
+                   linecolor='black', range=[0, 1]),  # Optional: Move y-axis ticks outside
+        xaxis3=dict(title_font=dict(size=16, color='black'), ticks="outside", mirror=True, showline=True,
+                   linewidth=1.5,
+                   linecolor='black'),  # Optional: Move x-axis ticks outside
+        yaxis3=dict(title_font=dict(size=16, color='black'), ticks="outside", mirror=True, showline=True,
+                   linewidth=1.5,
+                   linecolor='black', range=[0, 1]),  # Optional: Move y-axis ticks outside
+        xaxis4=dict(title_font=dict(size=16, color='black'), ticks="outside", mirror=True, showline=True,
+                    linewidth=1.5,
+                    linecolor='black'),  # Optional: Move x-axis ticks outside
+        yaxis4=dict(title_font=dict(size=16, color='black'), ticks="outside", mirror=True, showline=True,
+                    linewidth=1.5,
+                    linecolor='black', range=[0, 1]),  # Optional: Move y-axis ticks outside
+        xaxis5=dict(title_font=dict(size=16, color='black'), ticks="outside", mirror=True, showline=True,
+                    linewidth=1.5,
+                    linecolor='black'),  # Optional: Move x-axis ticks outside
+        yaxis5=dict(title_font=dict(size=16, color='black'), ticks="outside", mirror=True, showline=True,
+                    linewidth=1.5,
+                    linecolor='black', range=[0, 1]),  # Optional: Move y-axis ticks outside
+        xaxis6=dict(title_font=dict(size=16, color='black'), ticks="outside", mirror=True, showline=True,
+                    linewidth=1.5,
+                    linecolor='black'),  # Optional: Move x-axis ticks outside
+        yaxis6=dict(title_font=dict(size=16, color='black'), ticks="outside", mirror=True, showline=True,
+                    linewidth=1.5,
+                    linecolor='black', range=[0, 1]),  # Optional: Move y-axis ticks outside
+        xaxis7=dict(title_font=dict(size=16, color='black'), ticks="outside", mirror=True, showline=True,
+                    linewidth=1.5,
+                    linecolor='black'),  # Optional: Move x-axis ticks outside
+        yaxis7=dict(title_font=dict(size=16, color='black'), ticks="outside", mirror=True, showline=True,
+                    linewidth=1.5,
+                    linecolor='black', range=[0, 1]),  # Optional: Move y-axis ticks outside
+        xaxis8=dict(title_font=dict(size=16, color='black'), ticks="outside", mirror=True, showline=True,
+                    linewidth=1.5,
+                    linecolor='black'),  # Optional: Move x-axis ticks outside
+        yaxis8=dict(title_font=dict(size=16, color='black'), ticks="outside", mirror=True, showline=True,
+                    linewidth=1.5,
+                    linecolor='black', range=[0, 1]),  # Optional: Move y-axis ticks outside
+        xaxis9=dict(title_font=dict(size=16, color='black'), ticks="outside", mirror=True, showline=True,
+                    linewidth=1.5,
+                    linecolor='black'),  # Optional: Move x-axis ticks outside
+        yaxis9=dict(title_font=dict(size=16, color='black'), ticks="outside", mirror=True, showline=True,
+                    linewidth=1.5,
+                    linecolor='black', range=[0, 1]),  # Optional: Move y-axis ticks outside
+        xaxis10=dict(title_font=dict(size=16, color='black'), ticks="outside", mirror=True, showline=True,
+                    linewidth=1.5,
+                    linecolor='black'),  # Optional: Move x-axis ticks outside
+        yaxis10=dict(title_font=dict(size=16, color='black'), ticks="outside", mirror=True, showline=True,
+                    linewidth=1.5,
+                    linecolor='black', range=[0, 1]),  # Optional: Move y-axis ticks outside
+        xaxis11=dict(title_font=dict(size=16, color='black'), ticks="outside", mirror=True, showline=True,
+                    linewidth=1.5,
+                    linecolor='black'),  # Optional: Move x-axis ticks outside
+        yaxis11=dict(title_font=dict(size=16, color='black'), ticks="outside", mirror=True, showline=True,
+                    linewidth=1.5,
+                    linecolor='black', range=[0, 1]),  # Optional: Move y-axis ticks outside
+        xaxis12=dict(title_font=dict(size=16, color='black'), ticks="outside", mirror=True, showline=True,
+                    linewidth=1.5,
+                    linecolor='black'),  # Optional: Move x-axis ticks outside
+        yaxis12=dict(title_font=dict(size=16, color='black'), ticks="outside", mirror=True, showline=True,
+                    linewidth=1.5,
+                    linecolor='black', range=[0, 1]),  # Optional: Move y-axis ticks outside
+        yaxis_title="CONF<br>Scores",
+        yaxis4_title="SHAP<br>Scores",
+        yaxis7_title="SC. ATTN.<br>Scores",
+        yaxis10_title="IG<br>Scores",
+    )
+    # Move legend above subplot
+    fig.update_layout(legend=dict(orientation="h", yanchor="bottom", y=1.05, xanchor="center", x=0.5, font=dict(size=16)))
+    additional_y_ticks = [0, 0.25, 0.5, 0.75, 1]
+    fig.update_yaxes(tickvals=additional_y_ticks)
+    # fig.show()
+    fig.update_layout(width=1200, height=700)
+    pio.write_image(fig, 'calibration_plots_1.pdf')
 
 
 if __name__ == '__main__':
-    visualize_calibration(method="sc_attn", dataset="hotpot")
+    # visualize_calibration(method="sc_attn", dataset="hotpot")
+    # save_results_conf("./src/calibration/visualize/data/calib_results_exp.csv")
+    plot_bar_chart(
+        methods=["conf"]*3+["shap"]*3+["sc_attn"]*3+["ig"]*3,
+        datasets=["squad_adversarial", "trivia_qa", "hotpot_qa"]*4,
+    )

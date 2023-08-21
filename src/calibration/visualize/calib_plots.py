@@ -139,6 +139,56 @@ def load_data(method, dataset):
         acc = [0.629, 0.636, 0.641, 0.644, 0.620, 0.619, 0.642, 0.643]
         auc = [0.746, 0.784, 0.789, 0.791, 0.785, 0.783, 0.799, 0.804]
         mce = [0.507, 0.493, 0.493, 0.494, 0.493, 0.495, 0.492, 0.492]
+
+
+    if method == "conf" and dataset == "natural_questions":
+        acc = [0.686, 0.71, 0.727, 0.72, 0.706]
+        auc = [0.701, 0.78, 0.805, 0.813, 0.80]
+        mce = [0.531, 0.516, 0.49, 0.476, 0.494]
+    elif method == "conf" and dataset == "news_qa":
+        acc = [0.68, 0.678, 0.699, 0.703, 0.687]
+        auc = [0.713, 0.744, 0.751, 0.751, 0.767]
+        mce = [0.535, 0.536, 0.530, 0.534, 0.527]
+    elif method == "conf" and dataset == "bioasq":
+        acc = [0.633, 0.67, 0.668, 0.651, 0.675]
+        auc = [0.721, 0.754, 0.795, 0.802, 0.77]
+        mce = [0.499, 0.507, 0.477, 0.465, 0.494]
+    elif method == "shap" and dataset == "natural_questions":
+        acc = [0.769, 0.747, 0.738, 0.738, 0.73, 0.731, 0.739, 0.741]
+        auc = [0.779, 0.80, 0.803, 0.805, 0.81, 0.812, 0.814, 0.815]
+        mce = [0.520, 0.491, 0.484, 0.486, 0.478, 0.480, 0.493, 0.494]
+    elif method == "shap" and dataset == "news_qa":
+        acc = [0.709, 0.703, 0.70, 0.70, 0.698, 0.698, 0.711, 0.712]
+        auc = [0.752, 0.763, 0.753, 0.753, 0.74, 0.74, 0.774, 0.775]
+        mce = [0.517, 0.515, 0.517, 0.516, 0.518, 0.517, 0.514, 0.514]
+    elif method == "shap" and dataset == "bioasq":
+        acc = [0.699, 0.713, 0.721, 0.72, 0.71, 0.697, 0.732, 0.721]
+        auc = [0.768, 0.784, 0.822, 0.822, 0.824, 0.823, 0.81, 0.81]
+        mce = [0.504, 0.496, 0.493, 0.493, 0.485, 0.485, 0.497, 0.497]
+    elif method == "sc_attn" and dataset == "natural_questions":
+        acc = [0.766, 0.741, 0.74, 0.741, 0.727, 0.729, 0.745, 0.744]
+        auc = [0.777, 0.797, 0.804, 0.805, 0.809, 0.81, 0.813, 0.814]
+        mce = [0.526, 0.496, 0.489, 0.49, 0.481, 0.482, 0.495, 0.496]
+    elif method == "sc_attn" and dataset == "news_qa":
+        acc = [0.720, 0.707, 0.704, 0.705, 0.703, 0.702, 0.713, 0.716]
+        auc = [0.762, 0.77, 0.756, 0.758, 0.745, 0.748, 0.777, 0.781]
+        mce = [0.538, 0.533, 0.528, 0.529, 0.526, 0.526, 0.527, 0.528]
+    elif method == "sc_attn" and dataset == "bioasq":
+        acc = [0.717, 0.723, 0.727, 0.724, 0.729, 0.72, 0.737, 0.733]
+        auc = [0.781, 0.787, 0.825, 0.823, 0.834, 0.83, 0.810, 0.813]
+        mce = [0.509, 0.502, 0.494, 0.495, 0.486, 0.487, 0.502, 0.501]
+    elif method == "ig" and dataset == "natural_questions":
+        acc = [0.767, 0.745, 0.74, 0.74, 0.73, 0.730, 0.742, 0.743]
+        auc = [0.777, 0.797, 0.804, 0.805, 0.807, 0.808, 0.813, 0.814]
+        mce = [0.526, 0.497, 0.489, 0.490, 0.482, 0.483, 0.496, 0.497]
+    elif method == "ig" and dataset == "news_qa":
+        acc = [0.720, 0.706, 0.706, 0.705, 0.70, 0.702, 0.714, 0.717]
+        auc = [0.762, 0.767, 0.758, 0.76, 0.743, 0.746, 0.779, 0.783]
+        mce = [0.536, 0.528, 0.526, 0.527, 0.525, 0.524, 0.528, 0.529]
+    elif method == "ig" and dataset == "bioasq":
+        acc = [0.704, 0.713, 0.716, 0.72, 0.716, 0.703, 0.731, 0.73]
+        auc = [0.77, 0.777, 0.819, 0.822, 0.824, 0.825, 0.807, 0.809]
+        mce = [0.507, 0.502, 0.495, 0.495, 0.488, 0.487, 0.502, 0.501]
     return acc, auc, mce
 
 def visualize_calibration(method="conf", dataset="squad_adversarial"):
@@ -240,7 +290,7 @@ def visualize_calibration(method="conf", dataset="squad_adversarial"):
     plt.savefig(f"{method}_{dataset}_1.pdf")
 
 
-def plot_bar_chart(methods: List, datasets: List):
+def plot_bar_chart(methods: List, datasets: List, subplot_titles: List, show_legend: bool, save_path: str):
     """
     plot the calibration results for models
     """
@@ -248,15 +298,70 @@ def plot_bar_chart(methods: List, datasets: List):
     metrics = ["Accuracy", "AUC", "1-MCE"]
     complete_data: List = []
     # Define consistent colors for models
+    # model_colors = {
+    #     "Base": "#1f77b4",
+    #     "RAG": "#ff7f0e",
+    #     "LLaMA": "#2ca02c",
+    #     "LLaMA + F<sub>d": "#8c564b",
+    #     "GPT-NeoxT": "#d62728",
+    #     "GPT-NeoxT + F<sub>d": "#e377c2",
+    #     "Flan-UL2": "#9467bd",
+    #     "Flan-UL2 + F<sub>d": "#17becf"
+    # }
+
+    # model_colors = {
+    #     "Base": 'rgb(251,180,174)',
+    #     "RAG": 'rgb(179,205,227)',
+    #     "LLaMA": 'rgb(204,235,197)',
+    #     "LLaMA + F<sub>d": 'rgb(222,203,228)',
+    #     "GPT-NeoxT": 'rgb(254,217,166)',
+    #     "GPT-NeoxT + F<sub>d": 'rgb(255,255,204)',
+    #     "Flan-UL2": 'rgb(229,216,189)',
+    #     "Flan-UL2 + F<sub>d": 'rgb(253,218,236)'
+    # }
+
+    # model_colors = {
+    #     "Base": 'rgb(102, 197, 204)',
+    #     "RAG":  'rgb(246, 207, 113)',
+    #     "LLaMA":  'rgb(248, 156, 116)',
+    #     "LLaMA + F<sub>d": 'rgb(220, 176, 242)',
+    #     "GPT-NeoxT":  'rgb(135, 197, 95)',
+    #     "GPT-NeoxT + F<sub>d":  'rgb(158, 185, 243)',
+    #     "Flan-UL2":  'rgb(254, 136, 177)',
+    #     "Flan-UL2 + F<sub>d":  'rgb(201, 219, 116)'
+    # }
+    #nein
+    # model_colors = {
+    #     "Base": 'rgb(102,194,165)',
+    #     "RAG": 'rgb(252,141,98)',
+    #     "LLaMA":  'rgb(141,160,203)',
+    #     "LLaMA + F<sub>d":  'rgb(231,138,195)',
+    #     "GPT-NeoxT": 'rgb(166,216,84)',
+    #     "GPT-NeoxT + F<sub>d": 'rgb(255,217,47)',
+    #     "Flan-UL2": 'rgb(229,196,148)',
+    #     "Flan-UL2 + F<sub>d": 'rgb(179,179,179)'
+    # }
+
+    # model_colors = {
+    #     "Base": 'rgb(141,211,199)',
+    #     "RAG": 'rgb(255,255,179)',
+    #     "LLaMA":  'rgb(190,186,218)',
+    #     "LLaMA + F<sub>d": 'rgb(251,128,114)',
+    #     "GPT-NeoxT":   'rgb(128,177,211)',
+    #     "GPT-NeoxT + F<sub>d":  'rgb(253,180,98)',
+    #     "Flan-UL2": 'rgb(179,222,105)',
+    #     "Flan-UL2 + F<sub>d":  'rgb(252,205,229)'
+    # }
+
     model_colors = {
-        "Base": "#1f77b4",
-        "RAG": "#ff7f0e",
-        "LLaMA": "#2ca02c",
-        "LLaMA + F": "#8c564b",
-        "GPT-NeoxT": "#d62728",
-        "GPT-NeoxT + F": "#e377c2",
-        "Flan-UL2": "#9467bd",
-        "Flan-UL2 + F": "#17becf"
+        "Base": "#636EFA",
+        "RAG": "#EF553B",
+        "LLaMA": "#00CC96",
+        "LLaMA + F<sub>d": "#B6E880",
+        "GPT-NeoxT": "#FFA15A",
+        "GPT-NeoxT + F<sub>d": "#FECB52",
+        "Flan-UL2": "#FF6692",
+        "Flan-UL2 + F<sub>d": "#FF97FF"
     }
 
     for i in range(len(methods)):
@@ -265,7 +370,7 @@ def plot_bar_chart(methods: List, datasets: List):
         if methods[i] == "conf":
             models = ["Base", "RAG", "LLaMA", "GPT-NeoxT", "Flan-UL2"]
         else:
-            models = ["Base", "RAG", "LLaMA", "LLaMA + F", "GPT-NeoxT", "GPT-NeoxT + F", "Flan-UL2", "Flan-UL2 + F"]
+            models = ["Base", "RAG", "LLaMA", "LLaMA + F<sub>d", "GPT-NeoxT", "GPT-NeoxT + F<sub>d", "Flan-UL2", "Flan-UL2 + F<sub>d"]
         acc, auc, mce = load_data(methods[i], datasets[i])
         mce_flip = [round(1 - m, 3) for m in mce]
         df = pd.DataFrame({'Accuracy': acc, 'AUC': auc, '1-MCE': mce_flip})
@@ -281,31 +386,37 @@ def plot_bar_chart(methods: List, datasets: List):
         rows=num_rows,
         cols=num_cols,
         shared_yaxes=False,
-        subplot_titles=['SQuAD Adversarial', 'Trivia QA', 'Hotpot QA'],
+        subplot_titles=  subplot_titles, #  ["NQ", "News QA", "BioASQ"]
         horizontal_spacing=0.05,
         vertical_spacing=0.075
     )
-    showlegend = False
+
     for i, _data in enumerate(complete_data):
-        if i+1 == 4:
-            showlegend = True
+        if show_legend:
+            if i+1 in [1, 4]:
+                showlegend = True
+            else:
+                showlegend = False
+        else:
+            showlegend = False
         subplot = go.Figure()
         if methods[i] == "conf":
             models = ["Base", "RAG", "LLaMA", "GPT-NeoxT", "Flan-UL2"]
+            legend_models = models
         else:
-            models = ["Base", "RAG", "LLaMA", "LLaMA + F", "GPT-NeoxT", "GPT-NeoxT + F", "Flan-UL2", "Flan-UL2 + F"]
+            models = ["Base", "RAG", "LLaMA + F<sub>d", "GPT-NeoxT + F<sub>d", "Flan-UL2 + F<sub>d"]
+            legend_models = [ "LLaMA + F<sub>d", "GPT-NeoxT + F<sub>d", "Flan-UL2 + F<sub>d"]
         for j, model in enumerate(models):
             subplot.add_trace(
                 go.Bar(
                     x=_data["Metric"],
                     y=_data[model],
-                    showlegend=showlegend,
+                    showlegend=showlegend and model in legend_models,
                     name=model,
                     marker_color=model_colors[model],
                 )
             )
-        showlegend = False
-        subplot.update_traces(marker=dict(line=dict(color='black', width=1)))  # Adjust color and width as needed
+        # subplot.update_traces(marker=dict(line=dict(color='black', width=1)))  # Adjust color and width as needed
         # Add subplot to the main figure
         for trace in subplot.data:
             row = i // 3 + 1
@@ -404,8 +515,8 @@ def plot_bar_chart(methods: List, datasets: List):
     additional_y_ticks = [0, 0.25, 0.5, 0.75, 1]
     fig.update_yaxes(tickvals=additional_y_ticks)
     # fig.show()
-    fig.update_layout(width=1200, height=700)
-    pio.write_image(fig, 'calibration_plots_1.pdf')
+    fig.update_layout(width=1200, height=700, template="ggplot2", margin=dict(t=10,),)
+    pio.write_image(fig, save_path)
 
 
 if __name__ == '__main__':
@@ -413,5 +524,11 @@ if __name__ == '__main__':
     # save_results_conf("./src/calibration/visualize/data/calib_results_exp.csv")
     plot_bar_chart(
         methods=["conf"]*3+["shap"]*3+["sc_attn"]*3+["ig"]*3,
-        datasets=["squad_adversarial", "trivia_qa", "hotpot_qa"]*4,
+        # datasets=["natural_questions", "news_qa", "bioasq"]*4,
+        # subplot_titles=["NQ", "News QA", "BioASQ"],
+        datasets=["squad_adversarial", "trivia_qa", "hotpot_qa"] * 4,
+        subplot_titles =  ['SQuAD Adversarial', 'Trivia QA', 'Hotpot QA'],
+        show_legend=True,
+        save_path='calibration_plots_3.pdf',
     )
+    # print(px.colors.qualitative.Plotly)

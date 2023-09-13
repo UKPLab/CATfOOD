@@ -65,6 +65,12 @@ class SemanticSimilarity:
         sentences1 = [example["question"] for example in data]
         sentences2 = [squad_data_map.get(example["id"].split("_")[0], "") for example in data]
         idx = [example["id"].split("_")[0] for example in data]
+
+        # num_random_instances = len(self.squad_data)
+        # data = [random.choice(self.squad_data) for _ in range(num_random_instances)]
+        # sentences1 = [example["question"] for example in data]
+        # sentences2 = [sample["question"] for sample in self.squad_data]
+        # idx = [example["id"].split("_")[0] for example in self.squad_data]
         return idx, sentences1, sentences2
 
     def compute_entailment(self):
@@ -159,7 +165,7 @@ class SemanticSimilarity:
 if __name__ == '__main__':
     sim = SemanticSimilarity(
         data_path="t5_squad_counterfactuals/rag_counterfactuals_complete_noise_min_filtered_final_dedup_1.jsonl",
-        save_path="semantic_uncertainty_rag_ent_neu.jsonl",
+        save_path="", #"semantic_uncertainty_rag_ent_neu.jsonl",
         batch_size=32,
     )
     sim.compute_entailment()

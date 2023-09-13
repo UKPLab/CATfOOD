@@ -12,6 +12,8 @@ from datasets import load_dataset
 from tqdm import tqdm
 import jsonlines
 import statistics
+import random
+random.seed(42)
 
 from src.cf_generation.llm_generation.utils import save_to_disk
 
@@ -51,8 +53,32 @@ class Diversity:
         points = list(itertools.combinations(range(len(included)), 2))
         # print(points)
         for i, j in points:
-            scores.append(sentence_bleu([data_points[i]], data_points[j] ))
+            scores.append(sentence_bleu([data_points[i]], data_points[j]))
+        # print(Munch(bleu4=np.mean(scores)))
         return Munch(bleu4=np.mean(scores))
+
+    def normalized_levenshtein_distance(self, sentence1, sentence2):
+        """
+        calculate levenshtein distance between sentences
+        """
+        def levenshtein_distance(s1, s2):
+            if len(s1) < len(s2):
+                s1, s2 = s2, s1
+
+            distances = range(len(s1) + 1)
+            for i2, c2 in enumerate(s2):
+                distances_ = [i2 + 1]
+                for i1, c1 in enumerate(s1):
+                    if c1 == c2:
+                        distances_.append(distances[i1])
+                    else:
+                        distances_.append(1 + min((distances[i1], distances[i1 + 1], distances_[-1])))
+                distances = distances_
+            return distances[-1]
+
+        distance = levenshtein_distance(sentence1, sentence2)
+        max_length = max(len(sentence1), len(sentence2))
+        return distance / max_length
 
     def calculate_semantic_similarity(self, sentence1, sentence2):
         model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
@@ -145,13 +171,47 @@ class Diversity:
         # print(similarity_scores)
         return statistics.mean(similarity_scores)
 
+    def compute_upper_bound(self):
+        results = []
+        c = 0
+        # Create a list for random instances from SQuAD
+        num_random_instances = len(self.squad_data)  # Adjust the number of random instances as needed
+        random_instances = [random.choice(self.squad_data) for _ in range(num_random_instances)]
+        sentences1, sentences2 = [], []
+        for i in tqdm(range(len(self.squad_data))):
+            sentences1.append(self.squad_data[i]["question"])
+            sentences2.append(random_instances[i]["question"])
+
+        similarity_scores = []
+        # Calculate semantic similarity in batches
+        if self.metric == "sbert_sim":
+            similarity_scores = self.calculate_semantic_similarity_batched(sentences1, sentences2)
+        elif self.metric == "self_bleu":
+            for i in tqdm(range(len(sentences1))):
+                similarity_scores.append(self.calculate_self_bleu([sentences1[i]], sentences2[i])["bleu4"])
+        elif self.metric == "levenshtein":
+            for i in tqdm(range(len(sentences1))):
+                similarity_scores.append(self.normalized_levenshtein_distance([sentences1[i]], sentences2[i]))
+        for i, (sentence1, sentence2, sim_score) in enumerate(zip(sentences1, sentences2, similarity_scores)):
+            cf_question = sentence1
+            orig_question = sentence2
+            results.append(
+                {"sentence1": orig_question, "sentence2": cf_question, "similarity_score": float(sim_score)})
+
+        if self.save_path:
+            with jsonlines.open(os.path.join(f"{BASE_PATH}src/data/squad/", self.save_path), mode="w") as writer:
+                for result in results:
+                    writer.write(result)
+        # print(similarity_scores)
+        return statistics.mean(similarity_scores)
+
 if __name__ == '__main__':
     diverse = Diversity(
         data_path="llama_collated_data_with_answers_processed_context_relevance.jsonl",
-        metric="sbert_sim",
+        metric="levenshtein",
         save_path = "" #"flan_ul2_sbert_sim_batched.jsonl"
     )
-    score = diverse.compute_scores_batched()
+    score = diverse.compute_upper_bound()
     print(score)
 
     # self_blue = []

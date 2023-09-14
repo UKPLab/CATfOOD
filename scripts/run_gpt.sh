@@ -18,4 +18,4 @@ fi
 
 BASE_PATH="/storage/ukp/work/sachdeva/research_projects/exp_calibration/src"
 
-CUDA_LAUNCH_BLOCKING=1 python3 ${BASE_PATH}/few_shot/prompt_injection.py
+CUDA_LAUNCH_BLOCKING=1 python3 ${BASE_PATH}/cf_generation/llm_generation/prompt_injection.py

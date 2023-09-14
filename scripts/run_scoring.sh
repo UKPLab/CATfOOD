@@ -12,13 +12,13 @@
 ##SBATCH --gres=gpu:1
 ##SBATCH --constraint="gpu_mem:32gb"
 #
-#if [ -f .env ]; then
-#  export $(echo $(cat .env | sed 's/#.*//g'| xargs) | envsubst)
-#fi
+if [ -f .env ]; then
+  export $(echo $(cat .env | sed 's/#.*//g'| xargs) | envsubst)
+fi
 
 BASE_PATH="/storage/ukp/work/sachdeva/research_projects/exp_calibration/src"
 
-MODEL="t5-squad-cfs-hard"
+MODEL="flan-ul2-context-rel-noise"
 
 # List of dataset names
 datasets=(

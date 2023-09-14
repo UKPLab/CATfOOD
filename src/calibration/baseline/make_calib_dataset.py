@@ -9,11 +9,13 @@ import math
 import re
 import spacy
 from spacy.tokens import Doc
+
 # from supar import Parser
 
 from src.calibration.baseline import common, evaluate, utils
 
 import warnings
+
 # ignore warning
 warnings.filterwarnings("ignore")
 
@@ -31,9 +33,11 @@ class CreateFeatures:
 
         self.tagger_info = utils.load_bin(f"{self.path}/pos_info.bin")
         # self.attributions = utils.load_bin(f"{self.path}/ig_info_with_cf.bin")
-        self.attributions = self.build_file_dict(dataset="squad", split="addsent-dev", method="shap")
+        self.attributions = self.build_file_dict(
+            dataset="squad", split="addsent-dev", method="shap"
+        )
         pred_df = pd.read_csv(f"{self.path}/outputs.csv")
-        self.preds_info = pred_df.set_index('id').T.to_dict('dict')
+        self.preds_info = pred_df.set_index("id").T.to_dict("dict")
         # self.preds_info = utils.read_json('outputs/addsent-dev_squad_predictions.json')
 
     def load_interp_info(self, file_dict, qas_id):
@@ -42,18 +46,20 @@ class CreateFeatures:
     def build_file_dict(self, dataset, split, method):
         # hard-coded path here: be careful
         # prefix = 'squad_sample-addsent_roberta-base'
-        prefix = '{}_{}_roberta'.format(dataset, split)
-        fnames = os.listdir(os.path.join('explanations', method, prefix))
-        qa_ids = [x.split('-', 1)[1].split('.')[0] for x in fnames]
-        fullnames = [os.path.join('explanations', method, prefix, x) for x in fnames]
+        prefix = "{}_{}_roberta".format(dataset, split)
+        fnames = os.listdir(os.path.join("explanations", method, prefix))
+        qa_ids = [x.split("-", 1)[1].split(".")[0] for x in fnames]
+        fullnames = [os.path.join("explanations", method, prefix, x) for x in fnames]
         return dict(zip(qa_ids, fullnames))
 
     def featurize(self):
         self._load_data()
         processed_instances = OrderedDict()
-        c=0
+        c = 0
         # print(self.attributions)
-        for q_id in tqdm(self.tagger_info, total=len(self.tagger_info), desc='transforming...'):
+        for q_id in tqdm(
+            self.tagger_info, total=len(self.tagger_info), desc="transforming..."
+        ):
             # print(q_id)
             tags = self.tagger_info[q_id]
             # print(tags)
@@ -70,8 +76,10 @@ class CreateFeatures:
             # print(len(ast.literal_eval(attributions)))
             # print(attributions)
             # print(ast.literal_eval(preds["pred_text"])[0])
-            processed_instances[q_id] = self.extract_feature_for_instance(interp, tags, preds)
-            c+=1
+            processed_instances[q_id] = self.extract_feature_for_instance(
+                interp, tags, preds
+            )
+            c += 1
             # if c==2:
             #     break
             # print(self.count)
@@ -85,22 +93,22 @@ class CreateFeatures:
         :return:
         """
         tok, pos, tag = token_tags
-        if tag == 'NNS':
-            tag = 'NN'
-        if tag == 'NNPS':
-            tag = 'NNP'
-        if tag.startswith('JJ'):
-            tag = 'JJ'
-        if tag.startswith('RB'):
-            tag = 'RB'
-        if tag.startswith('W'):
-            tag = 'W'
-        if tag.startswith('PRP'):
-            tag = 'PRP'
-        if tag.startswith('VB'):
-            tag = 'VB'
-        if pos == 'PUNCT':  #or tag in [":"]:
-            tag = 'PUNCT'
+        if tag == "NNS":
+            tag = "NN"
+        if tag == "NNPS":
+            tag = "NNP"
+        if tag.startswith("JJ"):
+            tag = "JJ"
+        if tag.startswith("RB"):
+            tag = "RB"
+        if tag.startswith("W"):
+            tag = "W"
+        if tag.startswith("PRP"):
+            tag = "PRP"
+        if tag.startswith("VB"):
+            tag = "VB"
+        if pos == "PUNCT":  # or tag in [":"]:
+            tag = "PUNCT"
         # if tag == '$':
         #     tag = 'SYM'
         # if tag == "``" or tag == "''":
@@ -114,31 +122,31 @@ class CreateFeatures:
         feat = common.IndexedFeature()
         # base features
         for rank, p in enumerate(predictions[:5]):
-            feat.add(f'BASELINE_PROB_{rank}', p['score'])
-        feat.add('BASELINE_CONTEXT_LENGTH', len(preds['context']))
-        feat.add('BASELINE_PRED_ANS_LENGTH', len(predictions[0]['answer']))
+            feat.add(f"BASELINE_PROB_{rank}", p["score"])
+        feat.add("BASELINE_CONTEXT_LENGTH", len(preds["context"]))
+        feat.add("BASELINE_PRED_ANS_LENGTH", len(predictions[0]["answer"]))
 
-        top_pred = predictions[0]['answer']
+        top_pred = predictions[0]["answer"]
         first_distinct_prob = 0
         for i, p in enumerate(predictions[1:]):
-            overlapping = evaluate.f1_score(p['answer'], top_pred)
+            overlapping = evaluate.f1_score(p["answer"], top_pred)
             if overlapping > 0:
                 continue
-            first_distinct_prob = p['score']
+            first_distinct_prob = p["score"]
             # print(i+1, top_pred, p['answer'], first_distinct_prob)
-        feat.add('FIRST_DISTINCT_PROB', first_distinct_prob)
+        feat.add("FIRST_DISTINCT_PROB", first_distinct_prob)
 
         return feat
 
     def source_of_token(self, idx, tok, context_start, ans_range):
         if tok in self.cls_tokens or tok in self.sep_tokens:
-            return 'S'
+            return "S"
         if idx >= 1 and idx < context_start:
-            return 'Q'
+            return "Q"
         if idx >= ans_range[0] and idx <= ans_range[1]:
             # print(tok)
-            return 'A'
-        return 'C'
+            return "A"
+        return "C"
 
     def nan_check(self, result):
         for i, (key, value) in enumerate(result):
@@ -148,8 +156,8 @@ class CreateFeatures:
 
     def count_syllables(self, word: str):
         return len(
-            re.findall('(?!e$)[aeiouy]+', word, re.I) +
-            re.findall('^[^aeiouy]*e$', word, re.I)
+            re.findall("(?!e$)[aeiouy]+", word, re.I)
+            + re.findall("^[^aeiouy]*e$", word, re.I)
         )
 
     def handle_zero_division(self, n, d):
@@ -157,8 +165,10 @@ class CreateFeatures:
 
     def worF(self, tokens):
         words = [x.lstrip() for x in tokens]
-        spaces = [False if i == len(tokens) - 1
-                  else tokens[i + 1][0] == ' ' for i in range(len(tokens))]
+        spaces = [
+            False if i == len(tokens) - 1 else tokens[i + 1][0] == " "
+            for i in range(len(tokens))
+        ]
 
         valid_idx = [i for i, w in enumerate(words) if len(w)]
         words = [words[i] for i in valid_idx]
@@ -182,13 +192,15 @@ class CreateFeatures:
         to_SbSBC_C = 0
         to_SbL1C_C = 0
 
-        DB = pd.read_csv('./src/resources/SUBTLEXus.csv')
-        DB.set_index('Word_lowercased', inplace=True, drop=True)
+        DB = pd.read_csv("./src/resources/SUBTLEXus.csv")
+        DB.set_index("Word_lowercased", inplace=True, drop=True)
         for token in token_list:
             if token in DB.index:
                 scores_for_this_token = list(DB.loc[token, :])
                 for i, score in enumerate(scores_for_this_token):
-                    scores_for_this_token[i] = 0 if str(score) == 'none' else scores_for_this_token[i]
+                    scores_for_this_token[i] = (
+                        0 if str(score) == "none" else scores_for_this_token[i]
+                    )
                 to_SbFrQ_C += float(scores_for_this_token[1])
                 to_SbCDC_C += float(scores_for_this_token[2])
                 to_SbFrL_C += float(scores_for_this_token[3])
@@ -230,7 +242,7 @@ class CreateFeatures:
         feat = common.IndexedFeature()
         context_start = tokens.index(self.sep_tokens[1])
         question_tokens = tokens[1:context_start]
-        context_tokens = tokens[context_start + 2: -1]
+        context_tokens = tokens[context_start + 2 : -1]
 
         q_ents = self.worF(question_tokens)
         c_ents = self.worF(context_tokens)
@@ -242,11 +254,12 @@ class CreateFeatures:
             feat.add_new(f"WOR_{k}_C", v)
         return feat
 
-
     def ttrF(self, tokens):
         words = [x.lstrip() for x in tokens]
-        spaces = [False if i == len(tokens) - 1
-                  else tokens[i + 1][0] == ' ' for i in range(len(tokens))]
+        spaces = [
+            False if i == len(tokens) - 1 else tokens[i + 1][0] == " "
+            for i in range(len(tokens))
+        ]
 
         valid_idx = [i for i, w in enumerate(words) if len(w)]
         words = [words[i] for i in valid_idx]
@@ -274,8 +287,12 @@ class CreateFeatures:
             "SimpTTR_S": float(n_utoken / n_token),
             "CorrTTR_S": float(n_utoken / math.sqrt(2 * n_token)),
             "BiLoTTR_S": float(math.log(n_utoken) / math.log(n_token)),
-            "UberTTR_S": float(self.handle_zero_division(((math.log(n_utoken)) ** 2), (math.log(n_token / n_utoken)))),
-            "MTLDTTR_S": float(MTLD_count)
+            "UberTTR_S": float(
+                self.handle_zero_division(
+                    ((math.log(n_utoken)) ** 2), (math.log(n_token / n_utoken))
+                )
+            ),
+            "MTLDTTR_S": float(MTLD_count),
         }
         return result
 
@@ -283,7 +300,7 @@ class CreateFeatures:
         feat = common.IndexedFeature()
         context_start = tokens.index(self.sep_tokens[1])
         question_tokens = tokens[1:context_start]
-        context_tokens = tokens[context_start + 2: -1]
+        context_tokens = tokens[context_start + 2 : -1]
 
         q_ents = self.ttrF(question_tokens)
         c_ents = self.ttrF(context_tokens)
@@ -295,12 +312,13 @@ class CreateFeatures:
             feat.add_new(f"TTR_{k}_C", v)
         return feat
 
-
     def varF(self, tokens):
 
         words = [x.lstrip() for x in tokens]
-        spaces = [False if i == len(tokens) - 1
-                  else tokens[i + 1][0] == ' ' for i in range(len(tokens))]
+        spaces = [
+            False if i == len(tokens) - 1 else tokens[i + 1][0] == " "
+            for i in range(len(tokens))
+        ]
 
         valid_idx = [i for i, w in enumerate(words) if len(w)]
         words = [words[i] for i in valid_idx]
@@ -346,17 +364,33 @@ class CreateFeatures:
 
         result = {
             "SimpNoV_S": float(self.handle_zero_division(n_unoun, (len(noun_list)))),
-            "SquaNoV_S": float(self.handle_zero_division((n_unoun) ** 2, (len(noun_list)))),
-            "CorrNoV_S": float(self.handle_zero_division(n_unoun, (math.sqrt(2 * len(noun_list))))),
+            "SquaNoV_S": float(
+                self.handle_zero_division((n_unoun) ** 2, (len(noun_list)))
+            ),
+            "CorrNoV_S": float(
+                self.handle_zero_division(n_unoun, (math.sqrt(2 * len(noun_list))))
+            ),
             "SimpVeV_S": float(self.handle_zero_division(n_uverb, (len(verb_list)))),
-            "SquaVeV_S": float(self.handle_zero_division((n_uverb) ** 2, (len(verb_list)))),
-            "CorrVeV_S": float(self.handle_zero_division(n_uverb, (math.sqrt(2 * len(verb_list))))),
+            "SquaVeV_S": float(
+                self.handle_zero_division((n_uverb) ** 2, (len(verb_list)))
+            ),
+            "CorrVeV_S": float(
+                self.handle_zero_division(n_uverb, (math.sqrt(2 * len(verb_list))))
+            ),
             "SimpAjV_S": float(self.handle_zero_division(n_uadje, (len(adje_list)))),
-            "SquaAjV_S": float(self.handle_zero_division((n_uadje) ** 2, (len(adje_list)))),
-            "CorrAjV_S": float(self.handle_zero_division(n_uadje, (math.sqrt(2 * len(adje_list))))),
+            "SquaAjV_S": float(
+                self.handle_zero_division((n_uadje) ** 2, (len(adje_list)))
+            ),
+            "CorrAjV_S": float(
+                self.handle_zero_division(n_uadje, (math.sqrt(2 * len(adje_list))))
+            ),
             "SimpAvV_S": float(self.handle_zero_division(n_uadve, (len(adve_list)))),
-            "SquaAvV_S": float(self.handle_zero_division((n_uadve) ** 2, (len(adve_list)))),
-            "CorrAvV_S": float(self.handle_zero_division(n_uadve, (math.sqrt(2 * len(adve_list))))),
+            "SquaAvV_S": float(
+                self.handle_zero_division((n_uadve) ** 2, (len(adve_list)))
+            ),
+            "CorrAvV_S": float(
+                self.handle_zero_division(n_uadve, (math.sqrt(2 * len(adve_list))))
+            ),
         }
 
         return result
@@ -365,22 +399,24 @@ class CreateFeatures:
         feat = common.IndexedFeature()
         context_start = tokens.index(self.sep_tokens[1])
         question_tokens = tokens[1:context_start]
-        context_tokens = tokens[context_start + 2: -1]
+        context_tokens = tokens[context_start + 2 : -1]
 
         q_ents = self.varF(question_tokens)
         c_ents = self.varF(context_tokens)
         # print(q_ents)
         # print(c_ents)
-        for k,v in q_ents.items():
+        for k, v in q_ents.items():
             feat.add_new(f"VAR_{k}_Q", v)
-        for k,v in c_ents.items():
+        for k, v in c_ents.items():
             feat.add_new(f"VAR_{k}_C", v)
         return feat
 
     def pos_tags(self, tokens):
         words = [x.lstrip() for x in tokens]
-        spaces = [False if i == len(tokens) - 1
-                  else tokens[i + 1][0] == ' ' for i in range(len(tokens))]
+        spaces = [
+            False if i == len(tokens) - 1 else tokens[i + 1][0] == " "
+            for i in range(len(tokens))
+        ]
 
         valid_idx = [i for i, w in enumerate(words) if len(w)]
         words = [words[i] for i in valid_idx]
@@ -403,7 +439,13 @@ class CreateFeatures:
         to_FuncW_C = 0
 
         for token in processed_tokens:
-            if token.pos_ == "NOUN" or token.pos_ == "VERB" or token.pos_ == "NUM" or token.pos_ == "ADJ" or token.pos_ == "ADV":
+            if (
+                token.pos_ == "NOUN"
+                or token.pos_ == "VERB"
+                or token.pos_ == "NUM"
+                or token.pos_ == "ADJ"
+                or token.pos_ == "ADV"
+            ):
                 to_ContW_C += 1
             else:
                 to_FuncW_C += 1
@@ -484,22 +526,24 @@ class CreateFeatures:
         feat = common.IndexedFeature()
         context_start = tokens.index(self.sep_tokens[1])
         question_tokens = tokens[1:context_start]
-        context_tokens = tokens[context_start + 2: -1]
+        context_tokens = tokens[context_start + 2 : -1]
 
         q_ents = self.pos_tags(question_tokens)
         c_ents = self.pos_tags(context_tokens)
         # print(q_ents)
         # print(c_ents)
-        for k,v in q_ents.items():
+        for k, v in q_ents.items():
             feat.add_new(f"_POS_{k}_Q", v)
-        for k,v in c_ents.items():
+        for k, v in c_ents.items():
             feat.add_new(f"_POS_{k}_C", v)
         return feat
 
     def shaf(self, tokens, source):
         words = [x.lstrip() for x in tokens]
-        spaces = [False if i == len(tokens) - 1
-                  else tokens[i + 1][0] == ' ' for i in range(len(tokens))]
+        spaces = [
+            False if i == len(tokens) - 1 else tokens[i + 1][0] == " "
+            for i in range(len(tokens))
+        ]
 
         valid_idx = [i for i, w in enumerate(words) if len(w)]
         words = [words[i] for i in valid_idx]
@@ -520,20 +564,34 @@ class CreateFeatures:
         result = [
             (f"SHA_TokSenM_S_{source}", float(n_token * n_sent)),
             (f"SHA_TokSenS_S_{source}", float(math.sqrt(n_token * n_sent))),
-            (f"SHA_TokSenL_S_{source}", float(self.handle_zero_division(math.log(n_token), math.log(n_sent)))),
-            (f"SHA_as_Token_C_{source}", float(self.handle_zero_division(total_count_tokn, n_sent))),
-            (f"SHA_as_Sylla_C_{source}", float(self.handle_zero_division(total_count_syll, n_sent))),
+            (
+                f"SHA_TokSenL_S_{source}",
+                float(self.handle_zero_division(math.log(n_token), math.log(n_sent))),
+            ),
+            (
+                f"SHA_as_Token_C_{source}",
+                float(self.handle_zero_division(total_count_tokn, n_sent)),
+            ),
+            (
+                f"SHA_as_Sylla_C_{source}",
+                float(self.handle_zero_division(total_count_syll, n_sent)),
+            ),
             (f"SHA_at_Sylla_C_{source}", float(total_count_syll / n_token)),
-            (f"SHA_as_Chara_C_{source}", float(self.handle_zero_division(total_count_char, n_sent))),
-            (f"SHA_at_Chara_C_{source}", float(total_count_char / n_token))
+            (
+                f"SHA_as_Chara_C_{source}",
+                float(self.handle_zero_division(total_count_char, n_sent)),
+            ),
+            (f"SHA_at_Chara_C_{source}", float(total_count_char / n_token)),
         ]
         # result = self.nan_check(result)
         return result
 
     def psyF(self, tokens, source):
         words = [x.lstrip() for x in tokens]
-        spaces = [False if i == len(tokens) - 1
-                  else tokens[i + 1][0] == ' ' for i in range(len(tokens))]
+        spaces = [
+            False if i == len(tokens) - 1 else tokens[i + 1][0] == " "
+            for i in range(len(tokens))
+        ]
 
         valid_idx = [i for i, w in enumerate(words) if len(w)]
         words = [words[i] for i in valid_idx]
@@ -552,13 +610,15 @@ class CreateFeatures:
         to_AABrL_C = 0
         to_AACoL_C = 0
 
-        DB = pd.read_csv('./src/resources/AoAKuperman.csv')
-        DB.set_index('Word', inplace=True, drop=True)
+        DB = pd.read_csv("./src/resources/AoAKuperman.csv")
+        DB.set_index("Word", inplace=True, drop=True)
         for token in words:
             if token in DB.index:
                 scores_for_this_token = list(DB.loc[token, :])
                 for i, score in enumerate(scores_for_this_token):
-                    scores_for_this_token[i] = 0 if str(score) == 'none' else scores_for_this_token[i]
+                    scores_for_this_token[i] = (
+                        0 if str(score) == "none" else scores_for_this_token[i]
+                    )
                 to_AAKuW_C += float(scores_for_this_token[7])
                 to_AAKuL_C += float(scores_for_this_token[9])
                 to_AABiL_C += float(scores_for_this_token[11])
@@ -584,12 +644,13 @@ class CreateFeatures:
         ]
         return result
 
-
     def endf(self, tokens, source):
 
         words = [x.lstrip() for x in tokens]
-        spaces = [False if i == len(tokens) - 1
-                  else tokens[i + 1][0] == ' ' for i in range(len(tokens))]
+        spaces = [
+            False if i == len(tokens) - 1 else tokens[i + 1][0] == " "
+            for i in range(len(tokens))
+        ]
 
         valid_idx = [i for i, w in enumerate(words) if len(w)]
         words = [words[i] for i in valid_idx]
@@ -626,7 +687,7 @@ class CreateFeatures:
             # unique ents...
             (f"ENT_to_UEnti_{source}", to_UEnti_C),
             (f"ENT_as_UEnti_{source}", to_UEnti_C / n_sent),
-            (f"ENT_at_UEnti_{source}", to_UEnti_C / n_token)
+            (f"ENT_at_UEnti_{source}", to_UEnti_C / n_token),
         ]
 
         return result
@@ -635,7 +696,7 @@ class CreateFeatures:
         feat = common.IndexedFeature()
         context_start = tokens.index(self.sep_tokens[1])
         question_tokens = tokens[1:context_start]
-        context_tokens = tokens[context_start + 2: -1]
+        context_tokens = tokens[context_start + 2 : -1]
 
         q_ents = self.endf(question_tokens, source="Q")
         c_ents = self.endf(context_tokens, source="C")
@@ -651,7 +712,7 @@ class CreateFeatures:
         feat = common.IndexedFeature()
         context_start = tokens.index(self.sep_tokens[1])
         question_tokens = tokens[1:context_start]
-        context_tokens = tokens[context_start + 2: -1]
+        context_tokens = tokens[context_start + 2 : -1]
 
         q_ents = self.shaf(question_tokens, source="Q")
         c_ents = self.shaf(context_tokens, source="C")
@@ -667,7 +728,7 @@ class CreateFeatures:
         feat = common.IndexedFeature()
         context_start = tokens.index(self.sep_tokens[1])
         question_tokens = tokens[1:context_start]
-        context_tokens = tokens[context_start + 2: -1]
+        context_tokens = tokens[context_start + 2 : -1]
 
         q_ents = self.psyF(question_tokens, source="Q")
         c_ents = self.psyF(context_tokens, source="C")
@@ -679,7 +740,6 @@ class CreateFeatures:
             feat.add_new(f[0], f[1])
         return feat
 
-
     def extract_bow_feature(self, words, tags, ans_range):
         feat = common.IndexedFeature()
         context_start = words.index(self.sep_tokens[1])
@@ -690,10 +750,10 @@ class CreateFeatures:
         # print(ans_range)
         for i, (i_token, i_pos, i_tag) in enumerate(tags):
             i_src = self.source_of_token(i, i_token, context_start, ans_range)
-            if i_src == 'Q' or i_src == 'A' or i_src == 'C':
+            if i_src == "Q" or i_src == "A" or i_src == "C":
                 # print('BOW_{}_{}'.format(i_src, i_tag))
-                feat.add('BOW_{}_{}'.format(i_src, i_tag))
-                feat.add('BOW_IN_{}'.format(i_tag))
+                feat.add("BOW_{}_{}".format(i_src, i_tag))
+                feat.add("BOW_IN_{}".format(i_tag))
 
         return feat
 
@@ -711,18 +771,20 @@ class CreateFeatures:
         # attri = [i[1] for i in attr["attributions"]]
         # print(attri)
         # attribution_val = np.array(attr["attributions"])
-        attribution_val = attr['attribution'].numpy().copy()
-        if polarity == 'POS':
+        attribution_val = attr["attribution"].numpy().copy()
+        if polarity == "POS":
             attribution_val[attribution_val < 0] = 0
-        elif polarity == 'NEG':
+        elif polarity == "NEG":
             attribution_val[attribution_val > 0] = 0
-        elif polarity == 'NEU':
+        elif polarity == "NEU":
             pass
         else:
-            raise RuntimeError('Invalid polarity')
+            raise RuntimeError("Invalid polarity")
 
-        attribution_val = self.merge_attribution_by_segments(attribution_val, tags['segments'])
-        assert attribution_val.shape[0] == len(tags['segments'])
+        attribution_val = self.merge_attribution_by_segments(
+            attribution_val, tags["segments"]
+        )
+        assert attribution_val.shape[0] == len(tags["segments"])
         # normalize
         attribution_val = attribution_val / np.sum(attribution_val)
         # print(attribution_val)
@@ -731,19 +793,21 @@ class CreateFeatures:
     def normalize_token_attr(self, feat, attributions, norm_method=None):
         if norm_method is None:
             return feat
-        if norm_method == 'all':
+        if norm_method == "all":
             sum_v = np.sum(attributions)
             for k in feat.data:
                 feat.data[k] = feat.data[k] / sum_v if sum_v != 0 else 0
             return feat
-        if norm_method == 'counted':
+        if norm_method == "counted":
             sum_v = sum(feat.data.values())
             for k in feat.data:
                 feat.data[k] = feat.data[k] / sum_v if sum_v != 0 else 0
             return feat
         raise RuntimeError(norm_method)
 
-    def extract_token_attr_feature_in_question(self, words, tags, attributions, include_punct=False):
+    def extract_token_attr_feature_in_question(
+        self, words, tags, attributions, include_punct=False
+    ):
         context_start = words.index(self.sep_tokens[1])
         tags = tags[1:context_start]
         attributions = attributions[1:context_start]
@@ -754,21 +818,23 @@ class CreateFeatures:
         for i, (token, pos, tag) in enumerate(tags):
             if tag:
                 v = attributions[i]
-                if pos == 'PUNCT' and not include_punct:
+                if pos == "PUNCT" and not include_punct:
                     continue
-                feat.add('NORMED_TOK_Q_' + tag, v)
-                unnorm.add('UNNORM_TOK_Q_' + tag, v)
+                feat.add("NORMED_TOK_Q_" + tag, v)
+                unnorm.add("UNNORM_TOK_Q_" + tag, v)
                 sum_v += v
 
         feat = self.normalize_token_attr(feat, attributions)
         feat.add_set(unnorm)
-        feat.add('SUM_TOK_Q', sum_v)
+        feat.add("SUM_TOK_Q", sum_v)
         return feat
 
-    def extract_token_attr_feature_in_context(self, words, tags, attributions, include_punct=False):
+    def extract_token_attr_feature_in_context(
+        self, words, tags, attributions, include_punct=False
+    ):
         context_start = words.index(self.sep_tokens[1])
-        tags = tags[context_start + 2: -1]
-        attributions = attributions[context_start + 2: -1]
+        tags = tags[context_start + 2 : -1]
+        attributions = attributions[context_start + 2 : -1]
 
         feat = common.IndexedFeature()
         unnorm = common.IndexedFeature()
@@ -776,18 +842,20 @@ class CreateFeatures:
         for i, (token, pos, tag) in enumerate(tags):
             if tag:
                 v = attributions[i]
-                if pos == 'PUNCT' and not include_punct:
+                if pos == "PUNCT" and not include_punct:
                     continue
-                feat.add('NORMED_TOK_C_' + tag, v)
-                feat.add('UNNORM_TOK_C_' + tag, v)
+                feat.add("NORMED_TOK_C_" + tag, v)
+                feat.add("UNNORM_TOK_C_" + tag, v)
                 sum_v += v
 
         feat = self.normalize_token_attr(feat, attributions)
         feat.add_set(unnorm)
-        feat.add('SUM_TOK_C', sum_v)
+        feat.add("SUM_TOK_C", sum_v)
         return feat
 
-    def extract_token_attr_feature_in_input(self, words, tags, attributions, ans_range, include_punct=False):
+    def extract_token_attr_feature_in_input(
+        self, words, tags, attributions, ans_range, include_punct=False
+    ):
         feat = common.IndexedFeature()
         context_start = words.index(self.sep_tokens[1])
         normed_a_feat = common.IndexedFeature()
@@ -795,34 +863,43 @@ class CreateFeatures:
         for i, (token, pos, tag) in enumerate(tags):
             if tag:
                 v = attributions[i]
-                if pos == 'PUNCT' and not include_punct:
+                if pos == "PUNCT" and not include_punct:
                     continue
-                feat.add('TOK_IN_' + tag, v)
+                feat.add("TOK_IN_" + tag, v)
 
                 if i >= ans_range[0] and i <= ans_range[1]:
-                    unnormed_a_feat.add('UNNORM_TOK_A_' + tag, v)
-                    normed_a_feat.add('NORMED_TOK_A_' + tag, v)
+                    unnormed_a_feat.add("UNNORM_TOK_A_" + tag, v)
+                    normed_a_feat.add("NORMED_TOK_A_" + tag, v)
 
-        feat.add_set(self.normalize_token_attr(normed_a_feat, [], 'counted'))
+        feat.add_set(self.normalize_token_attr(normed_a_feat, [], "counted"))
         feat.add_set(unnormed_a_feat)
         return feat
 
     def extract_token_attr_stats_in_input(self, words, tags, attributions, part):
         feat = common.IndexedFeature()
         context_start = words.index(self.sep_tokens[1])
-        if part == 'Q':
+        if part == "Q":
             tags = tags[1:context_start]
             attributions = attributions[1:context_start]
-        if part == 'C':
-            tags = tags[context_start + 2: -1]
-            attributions = attributions[context_start + 2: -1]
+        if part == "C":
+            tags = tags[context_start + 2 : -1]
+            attributions = attributions[context_start + 2 : -1]
 
-        feat.add('STAT_MEAN_' + part, attributions.mean())
-        feat.add('STAT_STD_' + part, attributions.std())
+        feat.add("STAT_MEAN_" + part, attributions.mean())
+        feat.add("STAT_STD_" + part, attributions.std())
         return feat
 
-    def extract_polarity_feature(self, attr, tags, words, tags_for_tok, ans_index, polarity, include_basic=True,
-                                 include_stats=False):
+    def extract_polarity_feature(
+        self,
+        attr,
+        tags,
+        words,
+        tags_for_tok,
+        ans_index,
+        polarity,
+        include_basic=True,
+        include_stats=False,
+    ):
         named_feat = common.IndexedFeature()
         token_attribution = self.aggregate_token_attribution(attr, tags, polarity)
         # link_attribution = None
@@ -840,20 +917,21 @@ class CreateFeatures:
         # if link_attribution is not None:
         #     assert link_attribution.shape == (len(words), len(words))
         if include_basic:
-            named_feat.add_set(self.extract_token_attr_feature_in_question(
-                words,
-                tags_for_tok,
-                token_attribution))
-            named_feat.add_set(self.extract_token_attr_feature_in_context(
-                words,
-                tags_for_tok,
-                token_attribution))
+            named_feat.add_set(
+                self.extract_token_attr_feature_in_question(
+                    words, tags_for_tok, token_attribution
+                )
+            )
+            named_feat.add_set(
+                self.extract_token_attr_feature_in_context(
+                    words, tags_for_tok, token_attribution
+                )
+            )
             named_feat.add_set(
                 self.extract_token_attr_feature_in_input(
-                    words,
-                    tags_for_tok,
-                    token_attribution,
-                    ans_index))
+                    words, tags_for_tok, token_attribution, ans_index
+                )
+            )
 
             # for entites TODO: change format later
             # named_feat.add_set(self.extract_token_attr_feature_in_question(
@@ -874,22 +952,22 @@ class CreateFeatures:
             # if link_attribution is not None:
             #     named_feat.add_set(self.extract_link_attr_feature(tags_for_tok, link_attribution, ans_index))
         if include_stats:
-            named_feat.add_set(self.extract_token_attr_stats_in_input(
-                words,
-                tags_for_tok,
-                token_attribution,
-                'Q'))
-            named_feat.add_set(self.extract_token_attr_stats_in_input(
-                words,
-                tags_for_tok,
-                token_attribution,
-                'C'))
-            named_feat.add_set(self.extract_token_attr_stats_in_input(
-                words,
-                tags_for_tok,
-                token_attribution,
-                'IN'))
-        named_feat.add_prefix(polarity + '_')
+            named_feat.add_set(
+                self.extract_token_attr_stats_in_input(
+                    words, tags_for_tok, token_attribution, "Q"
+                )
+            )
+            named_feat.add_set(
+                self.extract_token_attr_stats_in_input(
+                    words, tags_for_tok, token_attribution, "C"
+                )
+            )
+            named_feat.add_set(
+                self.extract_token_attr_stats_in_input(
+                    words, tags_for_tok, token_attribution, "IN"
+                )
+            )
+        named_feat.add_prefix(polarity + "_")
         return named_feat
 
     def extract_feature_for_instance(self, attr, tags, preds):
@@ -898,15 +976,13 @@ class CreateFeatures:
         predictions = ast.literal_eval(preds["pred_text"])[0]
         # print(predictions)
         # create labels
-        pred_text = predictions[0]['answer']
+        pred_text = predictions[0]["answer"]
         # print(pred_text)
-        gold_text = ast.literal_eval(preds['gold_text'])  # preds['gold_text']
+        gold_text = ast.literal_eval(preds["gold_text"])  # preds['gold_text']
         # print(gold_text)
 
         exact_match = evaluate.get_score(
-            metric="exact_match",
-            pred_text=pred_text,
-            gold_text=gold_text
+            metric="exact_match", pred_text=pred_text, gold_text=gold_text
         )
         f1 = evaluate.get_score(metric="f1", pred_text=pred_text, gold_text=gold_text)
         calib_label = 1 if exact_match > 0 else 0
@@ -916,8 +992,10 @@ class CreateFeatures:
         named_feat = common.IndexedFeature()
         named_feat.add_set(self.extract_baseline_feature(preds))
 
-        start_index, end_index = ast.literal_eval(preds["answer_start"])[0],\
-                                 ast.literal_eval(preds["answer_end"])[0]
+        start_index, end_index = (
+            ast.literal_eval(preds["answer_start"])[0],
+            ast.literal_eval(preds["answer_end"])[0],
+        )
         segments = tags["segments"]
         transformed_start_idx = 0
         while segments[transformed_start_idx + 1][0] <= start_index:
@@ -927,7 +1005,7 @@ class CreateFeatures:
             transformed_end_idx += 1
         ans_range = (transformed_start_idx, transformed_end_idx)
         # syntactic features
-        words, tags_for_tok = tags['words'], tags['tags']
+        words, tags_for_tok = tags["words"], tags["tags"]
         # words = [w for w in words if w != " "]
         tags_for_tok = [self.lemmatize_pos_tag(x) for x in tags_for_tok]
 
@@ -938,9 +1016,13 @@ class CreateFeatures:
         # named_feat.add_set(self.extract_ttrf_features(words, ans_range))
         # named_feat.add_set(self.extract_worf_features(words, ans_range))
         named_feat.add_set(self.extract_bow_feature(words, tags_for_tok, ans_range))
-        named_feat.add_set(self.extract_polarity_feature(attr, tags, words, tags_for_tok, ans_range, 'POS'))
+        named_feat.add_set(
+            self.extract_polarity_feature(
+                attr, tags, words, tags_for_tok, ans_range, "POS"
+            )
+        )
         # print({'feature': named_feat, 'label': calib_label, 'f1_score': f1})
-        return {'feature': named_feat, 'label': calib_label, 'f1_score': f1}
+        return {"feature": named_feat, "label": calib_label, "f1_score": f1}
 
 
 if __name__ == "__main__":

@@ -24,21 +24,23 @@ from nltk.corpus import stopwords
 
 
 BASE_PATH = "/storage/ukp/work/sachdeva/research_projects/exp_calibration/"
-nltk.download('stopwords', download_dir="/ukp-storage-1/sachdeva/miniconda3/envs/llm/nltk_data")
+nltk.download(
+    "stopwords", download_dir="/ukp-storage-1/sachdeva/miniconda3/envs/llm/nltk_data"
+)
 
 
 def remove_punctuations(txt, punct=string.punctuation):
     """
     This function will remove punctuations from the input text
     """
-    return ''.join([c for c in txt if c not in punct])
+    return "".join([c for c in txt if c not in punct])
 
 
-def remove_stopwords(txt, sw=list(stopwords.words('english'))):
+def remove_stopwords(txt, sw=list(stopwords.words("english"))):
     """
     This function will remove the stopwords from the input txt
     """
-    return ' '.join([w for w in txt.split() if w.lower() not in sw])
+    return " ".join([w for w in txt.split() if w.lower() not in sw])
 
 
 def clean_text(txt):
@@ -47,7 +49,7 @@ def clean_text(txt):
     like '\n', '\r', and '\'
     """
 
-    txt = txt.replace('\n', ' ').replace('\r', ' ').replace('\'', '')
+    txt = txt.replace("\n", " ").replace("\r", " ").replace("'", "")
     txt = remove_punctuations(txt)
     txt = remove_stopwords(txt)
     return txt.lower()
@@ -63,9 +65,12 @@ def save_to_disk(data, file_name):
             writer.write(example)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     examples = []
-    with jsonlines.open(BASE_PATH + "src/data/squad/t5_squad_counterfactuals/rag_counterfactuals_complete.jsonl") as reader:
+    with jsonlines.open(
+        BASE_PATH
+        + "src/data/squad/t5_squad_counterfactuals/rag_counterfactuals_complete.jsonl"
+    ) as reader:
         for example in tqdm(reader):
             # get all samples for a particular id
             idx = example["id"].split("_")[0]
@@ -73,4 +78,8 @@ if __name__ == '__main__':
             predicted_question = example["predicted_question"]
             example["similarity"] = similarity(original_question, predicted_question)
             examples.append(example)
-    save_to_disk(examples, BASE_PATH + "src/data/squad/t5_squad_counterfactuals/rag_counterfactuals_complete_mf.jsonl")
+    save_to_disk(
+        examples,
+        BASE_PATH
+        + "src/data/squad/t5_squad_counterfactuals/rag_counterfactuals_complete_mf.jsonl",
+    )

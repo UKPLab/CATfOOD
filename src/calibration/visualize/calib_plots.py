@@ -7,13 +7,13 @@ from typing import List, Dict
 
 sns.set_theme()
 # sns.set_style("white")
-sns.set_context('talk')
-plt.style.use('seaborn-deep')
-rc('font', **{'family': 'serif', 'serif': ['Computer Modern']})
-sns.set_context('paper')
+sns.set_context("talk")
+plt.style.use("seaborn-deep")
+rc("font", **{"family": "serif", "serif": ["Computer Modern"]})
+sns.set_context("paper")
 # from matplotlib import rc
 # rc('font', family='serif')
-plt.rcParams['text.color'] = 'black'
+plt.rcParams["text.color"] = "black"
 # rc('text', usetex=True)
 
 # matplotlib.use("pgf")
@@ -24,8 +24,8 @@ plt.rcParams['text.color'] = 'black'
 #     'pgf.rcfonts': False,
 # })
 
-matplotlib.rcParams.update({'text.usetex': True})
-matplotlib.rc('text.latex', preamble=r"\usepackage{xcolor}")
+matplotlib.rcParams.update({"text.usetex": True})
+matplotlib.rc("text.latex", preamble=r"\usepackage{xcolor}")
 
 # print([k for k in plt.rcParams.keys() if k.startswith('lines')])
 import csv
@@ -34,19 +34,14 @@ import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import plotly.io as pio
+
 pio.kaleido.scope.mathjax = None
 
 plt.tight_layout()
 
 
 def save_results_conf(path):
-    data = {
-        "model": [],
-        "dataset": [],
-        "acc": [],
-        "auc": [],
-        "mce": []
-    }
+    data = {"model": [], "dataset": [], "acc": [], "auc": [], "mce": []}
 
     # Add data to the dictionary
     models = ["Base", "RGF", "LLaMA", "GPT-NeoxT", "Flan-UL2"]
@@ -54,18 +49,18 @@ def save_results_conf(path):
     acc_values = [
         [0.642, 0.644, 0.656, 0.660, 0.666],
         [0.601, 0.659, 0.669, 0.678, 0.665],
-        [0.611, 0.635, 0.643, 0.630, 0.651]
+        [0.611, 0.635, 0.643, 0.630, 0.651],
     ]
     auc_values = [
         [0.685, 0.709, 0.716, 0.713, 0.749],
         [0.583, 0.688, 0.748, 0.745, 0.732],
-        [0.740, 0.793, 0.800, 0.800, 0.816]
+        [0.740, 0.793, 0.800, 0.800, 0.816],
     ]
 
     mce_values = [
         [0.474, 0.465, 0.467, 0.473, 0.454],
         [0.539, 0.549, 0.507, 0.507, 0.520],
-        [0.502, 0.495, 0.487, 0.482, 0.488]
+        [0.502, 0.495, 0.487, 0.482, 0.488],
     ]
 
     for model in models:
@@ -81,7 +76,15 @@ def save_results_conf(path):
         writer = csv.writer(csvfile)
         writer.writerow(["model", "dataset", "acc", "auc", "mce"])
         for i in range(len(data["model"])):
-            writer.writerow([data["model"][i], data["dataset"][i], data["acc"][i], data["auc"][i], data["mce"][i]])
+            writer.writerow(
+                [
+                    data["model"][i],
+                    data["dataset"][i],
+                    data["acc"][i],
+                    data["auc"][i],
+                    data["mce"][i],
+                ]
+            )
 
     print("CSV file saved successfully.")
 
@@ -140,7 +143,6 @@ def load_data(method, dataset):
         auc = [0.746, 0.784, 0.789, 0.791, 0.785, 0.783, 0.799, 0.804]
         mce = [0.507, 0.493, 0.493, 0.494, 0.493, 0.495, 0.492, 0.492]
 
-
     if method == "conf" and dataset == "natural_questions":
         acc = [0.686, 0.71, 0.727, 0.72, 0.706]
         auc = [0.701, 0.78, 0.805, 0.813, 0.80]
@@ -192,18 +194,20 @@ def load_data(method, dataset):
     return acc, auc, mce
 
 
-def calculate_calibration_gain(method="conf", dataset=["squad_adversarial"], metric="auc"):
+def calculate_calibration_gain(
+    method="conf", dataset=["squad_adversarial"], metric="auc"
+):
     all_scores = []
     for set in dataset:
         acc, auc, mce = load_data(method, set)
-        if metric=="acc":
+        if metric == "acc":
             score = [round(element * 100, 2) for element in acc]
-        elif metric=="auc":
+        elif metric == "auc":
             score = [round(element * 100, 2) for element in auc]
 
         result = []
         for s in score[1:]:
-            result.append(round(s-score[0], 2))
+            result.append(round(s - score[0], 2))
         # print(result)
         all_scores.append(result)
 
@@ -218,30 +222,49 @@ def calculate_calibration_gain(method="conf", dataset=["squad_adversarial"], met
 
 def visualize_calibration(method="conf", dataset="squad_adversarial"):
 
-    acc, auc, mce =load_data(method,dataset)
-    mce_flip = [round(1-m, 3) for m in mce]
+    acc, auc, mce = load_data(method, dataset)
+    mce_flip = [round(1 - m, 3) for m in mce]
 
     if method == "conf":
         header = ["Base", "RGF", "LLaMA", "GPT-NeoxT", "Flan-UL2"]
-        colors = ['#1f77b4', '#ff7f0e', '#d62728', '#9467bd', '#2ca02c']
+        colors = ["#1f77b4", "#ff7f0e", "#d62728", "#9467bd", "#2ca02c"]
         # marker_sym = ['D', 's', '*', '^', 'o']
-        dashes = ["solid", "dashed", (0, (3,2,1,2)), "dotted", "dashdot"]
+        dashes = ["solid", "dashed", (0, (3, 2, 1, 2)), "dotted", "dashdot"]
 
     else:
-        header = ["Base", "RGF", "LLaMA", "LLaMA + F", "GPT-NeoxT", "GPT-NeoxT + F", "Flan-UL2", "Flan-UL2 + F"]
-        colors = ['#1f77b4', '#ff7f0e',  '#d62728', '#8c564b', '#9467bd', '#e377c2','#2ca02c', '#008080']
-        dashes = ["solid",
-                  "dashed",
-                  (0, (3,2,1,2)),  # small line dashdot
-                  (0, (5, 1)),
-                  "dotted",
-                  (0, (3, 1, 1, 1)),  # longer dashed
-                  "dashdot",
-                  (0, (4, 3, 1, 2, 1, 3))  # double dot line
-                  ]
+        header = [
+            "Base",
+            "RGF",
+            "LLaMA",
+            "LLaMA + F",
+            "GPT-NeoxT",
+            "GPT-NeoxT + F",
+            "Flan-UL2",
+            "Flan-UL2 + F",
+        ]
+        colors = [
+            "#1f77b4",
+            "#ff7f0e",
+            "#d62728",
+            "#8c564b",
+            "#9467bd",
+            "#e377c2",
+            "#2ca02c",
+            "#008080",
+        ]
+        dashes = [
+            "solid",
+            "dashed",
+            (0, (3, 2, 1, 2)),  # small line dashdot
+            (0, (5, 1)),
+            "dotted",
+            (0, (3, 1, 1, 1)),  # longer dashed
+            "dashdot",
+            (0, (4, 3, 1, 2, 1, 3)),  # double dot line
+        ]
         # marker_sym = ['D', 's', '*', 'P', '^', 'X', 'o', 'H']
 
-    data = pd.DataFrame({'Accuracy': acc, 'AUC': auc, '1-MCE': mce_flip})
+    data = pd.DataFrame({"Accuracy": acc, "AUC": auc, "1-MCE": mce_flip})
     data = data.transpose()
     data.columns = header
     # print(data.head())
@@ -252,7 +275,7 @@ def visualize_calibration(method="conf", dataset="squad_adversarial"):
     plt.ylim(0.4, 0.90)
     # plt.yticks([0.4, 0.5, 0.6, 0.7, 0.8, 0.9])
 
-    ax = sns.lineplot(data=data, marker='o', palette=colors)
+    ax = sns.lineplot(data=data, marker="o", palette=colors)
     # Set marker patterns for each model
     # Set marker patterns for each line
     from itertools import cycle
@@ -291,12 +314,11 @@ def visualize_calibration(method="conf", dataset="squad_adversarial"):
     # plt.setp(legend.get_frame(), width=0.2)  # Set the width of the legend box
 
     # Set tick color and text color to black
-    plt.tick_params(colors='black')
-    plt.rc('xtick', color='black')
-    plt.rc('ytick', color='black')
+    plt.tick_params(colors="black")
+    plt.rc("xtick", color="black")
+    plt.rc("ytick", color="black")
 
     # Set the font size of x-tick labels and y-tick labels
-
 
     # plt.xlabel("metrics", fontsize=12, color="r")
     # plt.ylabel("scores", fontsize=12, color="r")
@@ -307,7 +329,7 @@ def visualize_calibration(method="conf", dataset="squad_adversarial"):
     # plt.tick_params(axis='x', which='both', bottom=False, top=False, labelbottom=False)
 
     # Show both x and y gridlines
-    plt.grid(True, which='both')
+    plt.grid(True, which="both")
     # plt.xticks(fontsize=12)
     plt.yticks(fontsize=12)
     plt.gca().xaxis.set_tick_params(labelbottom=False)
@@ -315,7 +337,13 @@ def visualize_calibration(method="conf", dataset="squad_adversarial"):
     plt.savefig(f"{method}_{dataset}_1.pdf")
 
 
-def plot_bar_chart(methods: List, datasets: List, subplot_titles: List, show_legend: bool, save_path: str):
+def plot_bar_chart(
+    methods: List,
+    datasets: List,
+    subplot_titles: List,
+    show_legend: bool,
+    save_path: str,
+):
     """
     plot the calibration results for models
     """
@@ -355,7 +383,7 @@ def plot_bar_chart(methods: List, datasets: List, subplot_titles: List, show_leg
     #     "Flan-UL2":  'rgb(254, 136, 177)',
     #     "Flan-UL2 + F<sub>d":  'rgb(201, 219, 116)'
     # }
-    #nein
+    # nein
     # model_colors = {
     #     "Base": 'rgb(102,194,165)',
     #     "RGF": 'rgb(252,141,98)',
@@ -386,7 +414,7 @@ def plot_bar_chart(methods: List, datasets: List, subplot_titles: List, show_leg
         "GPT-NeoxT": "#FFA15A",
         "GPT-NeoxT + F<sub>d": "#FECB52",
         "Flan-UL2": "#FF6692",
-        "Flan-UL2 + F<sub>d": "#FF97FF"
+        "Flan-UL2 + F<sub>d": "#FF97FF",
     }
 
     for i in range(len(methods)):
@@ -395,10 +423,19 @@ def plot_bar_chart(methods: List, datasets: List, subplot_titles: List, show_leg
         if methods[i] == "conf":
             models = ["Base", "RGF", "LLaMA", "GPT-NeoxT", "Flan-UL2"]
         else:
-            models = ["Base", "RGF", "LLaMA", "LLaMA + F<sub>d", "GPT-NeoxT", "GPT-NeoxT + F<sub>d", "Flan-UL2", "Flan-UL2 + F<sub>d"]
+            models = [
+                "Base",
+                "RGF",
+                "LLaMA",
+                "LLaMA + F<sub>d",
+                "GPT-NeoxT",
+                "GPT-NeoxT + F<sub>d",
+                "Flan-UL2",
+                "Flan-UL2 + F<sub>d",
+            ]
         acc, auc, mce = load_data(methods[i], datasets[i])
         mce_flip = [round(1 - m, 3) for m in mce]
-        df = pd.DataFrame({'Accuracy': acc, 'AUC': auc, '1-MCE': mce_flip})
+        df = pd.DataFrame({"Accuracy": acc, "AUC": auc, "1-MCE": mce_flip})
         for idx in df.index:
             data[models[idx]] = df.loc[idx].tolist()
         # print(data)
@@ -406,19 +443,19 @@ def plot_bar_chart(methods: List, datasets: List, subplot_titles: List, show_leg
 
     # Create subplots with n row and m columns
     num_cols = 3
-    num_rows = len(methods)//num_cols
+    num_rows = len(methods) // num_cols
     fig = make_subplots(
         rows=num_rows,
         cols=num_cols,
         shared_yaxes=False,
-        subplot_titles=  subplot_titles, #  ["NQ", "News QA", "BioASQ"]
+        subplot_titles=subplot_titles,  #  ["NQ", "News QA", "BioASQ"]
         horizontal_spacing=0.05,
-        vertical_spacing=0.075
+        vertical_spacing=0.075,
     )
 
     for i, _data in enumerate(complete_data):
         if show_legend:
-            if i+1 in [1, 4]:
+            if i + 1 in [1, 4]:
                 showlegend = True
             else:
                 showlegend = False
@@ -429,8 +466,18 @@ def plot_bar_chart(methods: List, datasets: List, subplot_titles: List, show_leg
             models = ["Base", "RGF", "LLaMA", "GPT-NeoxT", "Flan-UL2"]
             legend_models = models
         else:
-            models = ["Base", "RGF", "LLaMA + F<sub>d", "GPT-NeoxT + F<sub>d", "Flan-UL2 + F<sub>d"]
-            legend_models = [ "LLaMA + F<sub>d", "GPT-NeoxT + F<sub>d", "Flan-UL2 + F<sub>d"]
+            models = [
+                "Base",
+                "RGF",
+                "LLaMA + F<sub>d",
+                "GPT-NeoxT + F<sub>d",
+                "Flan-UL2 + F<sub>d",
+            ]
+            legend_models = [
+                "LLaMA + F<sub>d",
+                "GPT-NeoxT + F<sub>d",
+                "Flan-UL2 + F<sub>d",
+            ]
         for j, model in enumerate(models):
             subplot.add_trace(
                 go.Bar(
@@ -450,111 +497,250 @@ def plot_bar_chart(methods: List, datasets: List, subplot_titles: List, show_leg
 
     # Apply layout to each subplot
     fig.update_layout(
-        font=dict(family='Times New Roman', size=12, color='black'),
-        plot_bgcolor='white',  # Set plot background color
+        font=dict(family="Times New Roman", size=12, color="black"),
+        plot_bgcolor="white",  # Set plot background color
         # showlegend=True,
-        legend=dict(
-            bgcolor='white',
-            bordercolor='black',
-            borderwidth=1
-        ),
-        xaxis=dict(title_font=dict(size=16, color='black'), ticks="outside", mirror=True, showline=True,
-                   linewidth=1.5,
-                   linecolor='black'),  # Optional: Move x-axis ticks outside
-        yaxis=dict(title_font=dict(size=16, color='black'), ticks="outside", mirror=True, showline=True,
-                   linewidth=1.5,
-                   linecolor='black', range=[0, 1]),  # Optional: Move y-axis ticks outside
-        xaxis2=dict(title_font=dict(size=16, color='black'), ticks="outside", mirror=True, showline=True,
-                   linewidth=1.5,
-                   linecolor='black'),  # Optional: Move x-axis ticks outside
-        yaxis2=dict(title_font=dict(size=16, color='black'), ticks="outside", mirror=True, showline=True,
-                   linewidth=1.5,
-                   linecolor='black', range=[0, 1]),  # Optional: Move y-axis ticks outside
-        xaxis3=dict(title_font=dict(size=16, color='black'), ticks="outside", mirror=True, showline=True,
-                   linewidth=1.5,
-                   linecolor='black'),  # Optional: Move x-axis ticks outside
-        yaxis3=dict(title_font=dict(size=16, color='black'), ticks="outside", mirror=True, showline=True,
-                   linewidth=1.5,
-                   linecolor='black', range=[0, 1]),  # Optional: Move y-axis ticks outside
-        xaxis4=dict(title_font=dict(size=16, color='black'), ticks="outside", mirror=True, showline=True,
-                    linewidth=1.5,
-                    linecolor='black'),  # Optional: Move x-axis ticks outside
-        yaxis4=dict(title_font=dict(size=16, color='black'), ticks="outside", mirror=True, showline=True,
-                    linewidth=1.5,
-                    linecolor='black', range=[0, 1]),  # Optional: Move y-axis ticks outside
-        xaxis5=dict(title_font=dict(size=16, color='black'), ticks="outside", mirror=True, showline=True,
-                    linewidth=1.5,
-                    linecolor='black'),  # Optional: Move x-axis ticks outside
-        yaxis5=dict(title_font=dict(size=16, color='black'), ticks="outside", mirror=True, showline=True,
-                    linewidth=1.5,
-                    linecolor='black', range=[0, 1]),  # Optional: Move y-axis ticks outside
-        xaxis6=dict(title_font=dict(size=16, color='black'), ticks="outside", mirror=True, showline=True,
-                    linewidth=1.5,
-                    linecolor='black'),  # Optional: Move x-axis ticks outside
-        yaxis6=dict(title_font=dict(size=16, color='black'), ticks="outside", mirror=True, showline=True,
-                    linewidth=1.5,
-                    linecolor='black', range=[0, 1]),  # Optional: Move y-axis ticks outside
-        xaxis7=dict(title_font=dict(size=16, color='black'), ticks="outside", mirror=True, showline=True,
-                    linewidth=1.5,
-                    linecolor='black'),  # Optional: Move x-axis ticks outside
-        yaxis7=dict(title_font=dict(size=16, color='black'), ticks="outside", mirror=True, showline=True,
-                    linewidth=1.5,
-                    linecolor='black', range=[0, 1]),  # Optional: Move y-axis ticks outside
-        xaxis8=dict(title_font=dict(size=16, color='black'), ticks="outside", mirror=True, showline=True,
-                    linewidth=1.5,
-                    linecolor='black'),  # Optional: Move x-axis ticks outside
-        yaxis8=dict(title_font=dict(size=16, color='black'), ticks="outside", mirror=True, showline=True,
-                    linewidth=1.5,
-                    linecolor='black', range=[0, 1]),  # Optional: Move y-axis ticks outside
-        xaxis9=dict(title_font=dict(size=16, color='black'), ticks="outside", mirror=True, showline=True,
-                    linewidth=1.5,
-                    linecolor='black'),  # Optional: Move x-axis ticks outside
-        yaxis9=dict(title_font=dict(size=16, color='black'), ticks="outside", mirror=True, showline=True,
-                    linewidth=1.5,
-                    linecolor='black', range=[0, 1]),  # Optional: Move y-axis ticks outside
-        xaxis10=dict(title_font=dict(size=16, color='black'), ticks="outside", mirror=True, showline=True,
-                    linewidth=1.5,
-                    linecolor='black'),  # Optional: Move x-axis ticks outside
-        yaxis10=dict(title_font=dict(size=16, color='black'), ticks="outside", mirror=True, showline=True,
-                    linewidth=1.5,
-                    linecolor='black', range=[0, 1]),  # Optional: Move y-axis ticks outside
-        xaxis11=dict(title_font=dict(size=16, color='black'), ticks="outside", mirror=True, showline=True,
-                    linewidth=1.5,
-                    linecolor='black'),  # Optional: Move x-axis ticks outside
-        yaxis11=dict(title_font=dict(size=16, color='black'), ticks="outside", mirror=True, showline=True,
-                    linewidth=1.5,
-                    linecolor='black', range=[0, 1]),  # Optional: Move y-axis ticks outside
-        xaxis12=dict(title_font=dict(size=16, color='black'), ticks="outside", mirror=True, showline=True,
-                    linewidth=1.5,
-                    linecolor='black'),  # Optional: Move x-axis ticks outside
-        yaxis12=dict(title_font=dict(size=16, color='black'), ticks="outside", mirror=True, showline=True,
-                    linewidth=1.5,
-                    linecolor='black', range=[0, 1]),  # Optional: Move y-axis ticks outside
+        legend=dict(bgcolor="white", bordercolor="black", borderwidth=1),
+        xaxis=dict(
+            title_font=dict(size=16, color="black"),
+            ticks="outside",
+            mirror=True,
+            showline=True,
+            linewidth=1.5,
+            linecolor="black",
+        ),  # Optional: Move x-axis ticks outside
+        yaxis=dict(
+            title_font=dict(size=16, color="black"),
+            ticks="outside",
+            mirror=True,
+            showline=True,
+            linewidth=1.5,
+            linecolor="black",
+            range=[0, 1],
+        ),  # Optional: Move y-axis ticks outside
+        xaxis2=dict(
+            title_font=dict(size=16, color="black"),
+            ticks="outside",
+            mirror=True,
+            showline=True,
+            linewidth=1.5,
+            linecolor="black",
+        ),  # Optional: Move x-axis ticks outside
+        yaxis2=dict(
+            title_font=dict(size=16, color="black"),
+            ticks="outside",
+            mirror=True,
+            showline=True,
+            linewidth=1.5,
+            linecolor="black",
+            range=[0, 1],
+        ),  # Optional: Move y-axis ticks outside
+        xaxis3=dict(
+            title_font=dict(size=16, color="black"),
+            ticks="outside",
+            mirror=True,
+            showline=True,
+            linewidth=1.5,
+            linecolor="black",
+        ),  # Optional: Move x-axis ticks outside
+        yaxis3=dict(
+            title_font=dict(size=16, color="black"),
+            ticks="outside",
+            mirror=True,
+            showline=True,
+            linewidth=1.5,
+            linecolor="black",
+            range=[0, 1],
+        ),  # Optional: Move y-axis ticks outside
+        xaxis4=dict(
+            title_font=dict(size=16, color="black"),
+            ticks="outside",
+            mirror=True,
+            showline=True,
+            linewidth=1.5,
+            linecolor="black",
+        ),  # Optional: Move x-axis ticks outside
+        yaxis4=dict(
+            title_font=dict(size=16, color="black"),
+            ticks="outside",
+            mirror=True,
+            showline=True,
+            linewidth=1.5,
+            linecolor="black",
+            range=[0, 1],
+        ),  # Optional: Move y-axis ticks outside
+        xaxis5=dict(
+            title_font=dict(size=16, color="black"),
+            ticks="outside",
+            mirror=True,
+            showline=True,
+            linewidth=1.5,
+            linecolor="black",
+        ),  # Optional: Move x-axis ticks outside
+        yaxis5=dict(
+            title_font=dict(size=16, color="black"),
+            ticks="outside",
+            mirror=True,
+            showline=True,
+            linewidth=1.5,
+            linecolor="black",
+            range=[0, 1],
+        ),  # Optional: Move y-axis ticks outside
+        xaxis6=dict(
+            title_font=dict(size=16, color="black"),
+            ticks="outside",
+            mirror=True,
+            showline=True,
+            linewidth=1.5,
+            linecolor="black",
+        ),  # Optional: Move x-axis ticks outside
+        yaxis6=dict(
+            title_font=dict(size=16, color="black"),
+            ticks="outside",
+            mirror=True,
+            showline=True,
+            linewidth=1.5,
+            linecolor="black",
+            range=[0, 1],
+        ),  # Optional: Move y-axis ticks outside
+        xaxis7=dict(
+            title_font=dict(size=16, color="black"),
+            ticks="outside",
+            mirror=True,
+            showline=True,
+            linewidth=1.5,
+            linecolor="black",
+        ),  # Optional: Move x-axis ticks outside
+        yaxis7=dict(
+            title_font=dict(size=16, color="black"),
+            ticks="outside",
+            mirror=True,
+            showline=True,
+            linewidth=1.5,
+            linecolor="black",
+            range=[0, 1],
+        ),  # Optional: Move y-axis ticks outside
+        xaxis8=dict(
+            title_font=dict(size=16, color="black"),
+            ticks="outside",
+            mirror=True,
+            showline=True,
+            linewidth=1.5,
+            linecolor="black",
+        ),  # Optional: Move x-axis ticks outside
+        yaxis8=dict(
+            title_font=dict(size=16, color="black"),
+            ticks="outside",
+            mirror=True,
+            showline=True,
+            linewidth=1.5,
+            linecolor="black",
+            range=[0, 1],
+        ),  # Optional: Move y-axis ticks outside
+        xaxis9=dict(
+            title_font=dict(size=16, color="black"),
+            ticks="outside",
+            mirror=True,
+            showline=True,
+            linewidth=1.5,
+            linecolor="black",
+        ),  # Optional: Move x-axis ticks outside
+        yaxis9=dict(
+            title_font=dict(size=16, color="black"),
+            ticks="outside",
+            mirror=True,
+            showline=True,
+            linewidth=1.5,
+            linecolor="black",
+            range=[0, 1],
+        ),  # Optional: Move y-axis ticks outside
+        xaxis10=dict(
+            title_font=dict(size=16, color="black"),
+            ticks="outside",
+            mirror=True,
+            showline=True,
+            linewidth=1.5,
+            linecolor="black",
+        ),  # Optional: Move x-axis ticks outside
+        yaxis10=dict(
+            title_font=dict(size=16, color="black"),
+            ticks="outside",
+            mirror=True,
+            showline=True,
+            linewidth=1.5,
+            linecolor="black",
+            range=[0, 1],
+        ),  # Optional: Move y-axis ticks outside
+        xaxis11=dict(
+            title_font=dict(size=16, color="black"),
+            ticks="outside",
+            mirror=True,
+            showline=True,
+            linewidth=1.5,
+            linecolor="black",
+        ),  # Optional: Move x-axis ticks outside
+        yaxis11=dict(
+            title_font=dict(size=16, color="black"),
+            ticks="outside",
+            mirror=True,
+            showline=True,
+            linewidth=1.5,
+            linecolor="black",
+            range=[0, 1],
+        ),  # Optional: Move y-axis ticks outside
+        xaxis12=dict(
+            title_font=dict(size=16, color="black"),
+            ticks="outside",
+            mirror=True,
+            showline=True,
+            linewidth=1.5,
+            linecolor="black",
+        ),  # Optional: Move x-axis ticks outside
+        yaxis12=dict(
+            title_font=dict(size=16, color="black"),
+            ticks="outside",
+            mirror=True,
+            showline=True,
+            linewidth=1.5,
+            linecolor="black",
+            range=[0, 1],
+        ),  # Optional: Move y-axis ticks outside
         yaxis_title="CONF<br>Scores",
         yaxis4_title="SHAP<br>Scores",
         yaxis7_title="SC. ATTN.<br>Scores",
         yaxis10_title="IG<br>Scores",
     )
     # Move legend above subplot
-    fig.update_layout(legend=dict(orientation="h", yanchor="bottom", y=1.05, xanchor="center", x=0.5, font=dict(size=16)))
+    fig.update_layout(
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.05,
+            xanchor="center",
+            x=0.5,
+            font=dict(size=16),
+        )
+    )
     additional_y_ticks = [0, 0.25, 0.5, 0.75, 1]
     fig.update_yaxes(tickvals=additional_y_ticks)
     # fig.show()
-    fig.update_layout(width=1200, height=700, template="ggplot2", margin=dict(t=10,),)
+    fig.update_layout(
+        width=1200, height=700, template="ggplot2", margin=dict(t=10,),
+    )
     pio.write_image(fig, save_path)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # visualize_calibration(method="sc_attn", dataset="hotpot")
     # save_results_conf("./src/calibration/visualize/data/calib_results_exp.csv")
     plot_bar_chart(
-        methods=["conf"]*3+["shap"]*3+["sc_attn"]*3+["ig"]*3,
-        datasets=["natural_questions", "news_qa", "bioasq"]*4,
+        methods=["conf"] * 3 + ["shap"] * 3 + ["sc_attn"] * 3 + ["ig"] * 3,
+        datasets=["natural_questions", "news_qa", "bioasq"] * 4,
         subplot_titles=["NQ", "News QA", "BioASQ"],
         # datasets=["squad_adversarial", "trivia_qa", "hotpot_qa"] * 4,
         # subplot_titles =  ['SQuAD Adversarial', 'Trivia QA', 'Hotpot QA'],
         show_legend=True,
-        save_path='calibration_plots_5.pdf',
+        save_path="calibration_plots_5.pdf",
     )
     # print(px.colors.qualitative.Plotly)
     # calculate_calibration_gain(

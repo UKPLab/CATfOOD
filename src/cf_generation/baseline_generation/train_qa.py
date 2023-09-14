@@ -21,21 +21,22 @@ logger = logging.getLogger(__name__)
 
 BASE_PATH = "/storage/ukp/work/sachdeva/research_projects/exp_calibration/"
 
+
 class RobertaSquad:
     def __init__(
-            self,
-            dataset_name: str,
-            dataset_config: str,
-            cf_path: str,
-            max_src_len: int,
-            stride: int,
-            do_train: bool,
-            do_eval: bool,
-            model_name: str,
-            cache_dir: str=None,
-            max_train_samples: int=None,
-            max_val_samples: int=None,
-            save_results: bool=False
+        self,
+        dataset_name: str,
+        dataset_config: str,
+        cf_path: str,
+        max_src_len: int,
+        stride: int,
+        do_train: bool,
+        do_eval: bool,
+        model_name: str,
+        cache_dir: str = None,
+        max_train_samples: int = None,
+        max_val_samples: int = None,
+        save_results: bool = False,
     ):
         self.dataset_name = dataset_name
         self.dataset_config = dataset_config
@@ -72,26 +73,19 @@ class RobertaSquad:
         Load model, tokenizer and data
         """
 
-        config = AutoConfig.from_pretrained(
-            self.model_name,
-            cache_dir=self.cache_dir,
-        )
+        config = AutoConfig.from_pretrained(self.model_name, cache_dir=self.cache_dir,)
         self.tokenizer = AutoTokenizer.from_pretrained(
-            self.model_name,
-            cache_dir=self.cache_dir,
-            use_fast=True,
+            self.model_name, cache_dir=self.cache_dir, use_fast=True,
         )
         self.model = AutoModelForQuestionAnswering.from_pretrained(
-            self.model_name,
-            config=config,
-            cache_dir=self.cache_dir,
+            self.model_name, config=config, cache_dir=self.cache_dir,
         )
         dataloader = PreprocessData(
             self.dataset_name,
             self.dataset_config,
             cf_path=os.path.join(BASE_PATH, self.cf_path),
             save_data=False,
-            save_path=""
+            save_path="",
         )
         self.train_set, self.val_set = dataloader.processed_train_val_set()
 
@@ -133,7 +127,10 @@ class RobertaSquad:
             context_end = idx - 1
 
             # If the answer is not fully inside the context, label is (0, 0)
-            if offset[context_start][0] > start_char or offset[context_end][1] < end_char:
+            if (
+                offset[context_start][0] > start_char
+                or offset[context_end][1] < end_char
+            ):
                 start_positions.append(0)
                 end_positions.append(0)
             else:
@@ -243,23 +240,56 @@ class RobertaSquad:
 
         wandb.finish()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
 
     import argparse
-    parser = argparse.ArgumentParser(description="Passing arguments for model, tokenizer, and dataset.")
+
+    parser = argparse.ArgumentParser(
+        description="Passing arguments for model, tokenizer, and dataset."
+    )
     parser.add_argument(
         "--model_name",
         default="roberta-base",
-        type=str, required=False, help="Specify the model to use.")
-    parser.add_argument("--tokenizer", default="roberta-base", type=str, required=False,
-                        help="Specify the tokenizer to use.")
-    parser.add_argument("--output_dir", type=str, required=True, help="Specify the output directory.")
-    parser.add_argument("--seed", default=42, type=int, required=False, help="Specify the seed for reproducibility.")
-    parser.add_argument("--cf_path", type=str, required=True, help="Specify the path to counterfactuals.")
-    parser.add_argument("--epochs", default=5, type=int, required=False, help="Epochs to train.")
-    parser.add_argument("--batch_size", default=64, type=int, required=False, help="Train batch size.")
-    parser.add_argument("--lr", default=1.0e-5, type=float, required=False, help="Learning rate.")
-    parser.add_argument("--warmup_ratio", default=0.06, type=float, required=False, help="Warmup ratio.")
+        type=str,
+        required=False,
+        help="Specify the model to use.",
+    )
+    parser.add_argument(
+        "--tokenizer",
+        default="roberta-base",
+        type=str,
+        required=False,
+        help="Specify the tokenizer to use.",
+    )
+    parser.add_argument(
+        "--output_dir", type=str, required=True, help="Specify the output directory."
+    )
+    parser.add_argument(
+        "--seed",
+        default=42,
+        type=int,
+        required=False,
+        help="Specify the seed for reproducibility.",
+    )
+    parser.add_argument(
+        "--cf_path",
+        type=str,
+        required=True,
+        help="Specify the path to counterfactuals.",
+    )
+    parser.add_argument(
+        "--epochs", default=5, type=int, required=False, help="Epochs to train."
+    )
+    parser.add_argument(
+        "--batch_size", default=64, type=int, required=False, help="Train batch size."
+    )
+    parser.add_argument(
+        "--lr", default=1.0e-5, type=float, required=False, help="Learning rate."
+    )
+    parser.add_argument(
+        "--warmup_ratio", default=0.06, type=float, required=False, help="Warmup ratio."
+    )
 
     args = parser.parse_args()
 
@@ -284,17 +314,22 @@ if __name__ == '__main__':
 
     WANDB_RUN_NAME = OUTPUT_DIR
 
-    wandb.init(config={
-        "lr": LEARNING_RATE, "warmup_ratio": WARMUP_RATIO,
-        "epochs": MAX_EPOCHS,
-        "model": args.model_name, "batch_size": BATCH_SIZE, "output_dir": OUTPUT_DIR,
-    })
+    wandb.init(
+        config={
+            "lr": LEARNING_RATE,
+            "warmup_ratio": WARMUP_RATIO,
+            "epochs": MAX_EPOCHS,
+            "model": args.model_name,
+            "batch_size": BATCH_SIZE,
+            "output_dir": OUTPUT_DIR,
+        }
+    )
     wandb.run.name = WANDB_RUN_NAME
 
     trainer = RobertaSquad(
         dataset_name="squad",
         dataset_config="plain_text",
-        cf_path=args.cf_path, #"src/data/squad/counterfactual_data_gpt_neox_20b_v2_qg_pipeline_all_data_cleaned.jsonl",
+        cf_path=args.cf_path,  # "src/data/squad/counterfactual_data_gpt_neox_20b_v2_qg_pipeline_all_data_cleaned.jsonl",
         max_src_len=384,
         stride=128,
         do_train=DO_TRAIN,
@@ -302,6 +337,6 @@ if __name__ == '__main__':
         model_name=args.model_name,
         max_train_samples=MAX_TRAIN_SAMPLES,
         max_val_samples=MAX_VAL_SAMPLES,
-        save_results=True
+        save_results=True,
     )
     trainer.train()

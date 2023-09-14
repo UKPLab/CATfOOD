@@ -17,6 +17,7 @@ from transformers import GenerationConfig, LlamaForCausalLM, LlamaTokenizer
 
 BASE_PATH = "/storage/ukp/work/sachdeva/research_projects/exp_calibration/"
 
+
 def save_to_disk(data, file_name):
     with jsonlines.open(file_name, "a") as writer:
         for example in tqdm(data, total=len(data), desc="Saving samples ... "):
@@ -25,21 +26,21 @@ def save_to_disk(data, file_name):
 
 class LLMClient:
     def __init__(
-            self,
-            template,
-            model_name_or_path: str=None,
-            tokenizer_name_or_path: Optional[str]=None,
-            data_path: str=None,
-            threshold: float=0.5,
-            task: str="qg",
-            max_new_tokens: int=50,
-            temperature: float=0.01,
-            top_p: float=1,
-            top_k: int=40,
-            repetition_penalty:float=1.0,
-            save_results: bool=True,
-            max_samples: int=None,
-            stop: str="\n"
+        self,
+        template,
+        model_name_or_path: str = None,
+        tokenizer_name_or_path: Optional[str] = None,
+        data_path: str = None,
+        threshold: float = 0.5,
+        task: str = "qg",
+        max_new_tokens: int = 50,
+        temperature: float = 0.01,
+        top_p: float = 1,
+        top_k: int = 40,
+        repetition_penalty: float = 1.0,
+        save_results: bool = True,
+        max_samples: int = None,
+        stop: str = "\n",
     ):
         self.base_model = model_name_or_path
         self.tokenizer = tokenizer_name_or_path
@@ -57,7 +58,6 @@ class LLMClient:
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.lora_weights = f"{BASE_PATH}alpaca-cot-13b"
 
-
     def _load_model(self):
         tokenizer = LlamaTokenizer.from_pretrained(self.base_model)
         model = LlamaForCausalLM.from_pretrained(
@@ -67,9 +67,7 @@ class LLMClient:
             device_map="auto",
         )
         model = PeftModel.from_pretrained(
-            model,
-            self.lora_weights,
-            torch_dtype=torch.float16,
+            model, self.lora_weights, torch_dtype=torch.float16,
         )
         model.to(self.device)
         # unwind broken decapoda-research config
@@ -78,11 +76,9 @@ class LLMClient:
         model.config.eos_token_id = 2
         return model, tokenizer
 
-
     def _create_zero_shot_prompt(self, context, question, answer):
         prompt = qg_template.format(context=context, question=question, answer=answer)
         return prompt
-
 
     def generate(self):
         c = 0
@@ -91,15 +87,22 @@ class LLMClient:
         model, tokenizer = self._load_model()
 
         model_identifier = self.base_model.split("/")[-1]
-        save_path = BASE_PATH + f"src/data/squad/{model_identifier}_{self.task}_pipeline_temp_0.7"
+        save_path = (
+            BASE_PATH
+            + f"src/data/squad/{model_identifier}_{self.task}_pipeline_temp_0.7"
+        )
         if not os.path.exists(save_path):
             os.makedirs(save_path)
 
         # load squad data
         dataset = load_dataset("squad", "plain_text")
         train_data = dataset["train"]
-        squad_data = [sample for sample in tqdm(
-            train_data, total=len(train_data), desc="Loading SQuAD data ... ")]
+        squad_data = [
+            sample
+            for sample in tqdm(
+                train_data, total=len(train_data), desc="Loading SQuAD data ... "
+            )
+        ]
 
         current_files = []
         file_names = []
@@ -113,7 +116,9 @@ class LLMClient:
                     try:
                         id = example["id"].split("_")[0]
                         context = example["context"]
-                        orig_example = [sample for sample in squad_data if sample["id"] == id][0]
+                        orig_example = [
+                            sample for sample in squad_data if sample["id"] == id
+                        ][0]
                         # print(orig_example)
                         orig_context = orig_example["context"]
                         orig_question = orig_example["question"]
@@ -125,7 +130,9 @@ class LLMClient:
                                 break
 
                         prompt = self._create_zero_shot_prompt(
-                            context=orig_context, question=orig_question, answer=orig_answer["text"][0],
+                            context=orig_context,
+                            question=orig_question,
+                            answer=orig_answer["text"][0],
                         )
                         # print(prompt)
 
@@ -141,17 +148,13 @@ class LLMClient:
                             do_sample=True,
                             # num_return_sequences=1,
                             early_stopping=True,
-                            pad_token_id=tokenizer.eos_token_id
+                            pad_token_id=tokenizer.eos_token_id,
                         )
                         output = tokenizer.decode(outputs[0], skip_special_tokens=True)
                         # remove the context from the output
-                        output = output[len(prompt):]
+                        output = output[len(prompt) :]
 
-                        result = {
-                            "id": example["id"],
-                            "context": context
-                        }
-
+                        result = {"id": example["id"], "context": context}
 
                         print("Context:", orig_context)
                         print("Question:", orig_question)
@@ -173,7 +176,7 @@ class LLMClient:
                         print(f"Skipped instance {c} due to error: {e}.")
                         continue
 
-                    if c==5:
+                    if c == 5:
                         break
 
             # save the remaining examples
@@ -216,7 +219,7 @@ Rationale: Let's think step by step,
         top_k=40,
         repetition_penalty=1.0,
         save_results=True,
-        max_samples=None
+        max_samples=None,
     )
 
     client.generate()

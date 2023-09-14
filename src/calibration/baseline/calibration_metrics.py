@@ -9,20 +9,21 @@ import src.calibration.baseline.dataloader as dataloader
 # BASE_PATH = "/home/sachdeva/projects/ukp/exp_calibration/"
 BASE_PATH = "/storage/ukp/work/sachdeva/research_projects/exp_calibration/"
 
+
 def normalize_answer(s):
     """
     Lower text and remove punctuation, articles and extra whitespace.
     """
 
     def remove_articles(text):
-        return re.sub(r'\b(a|an|the)\b', ' ', text)
+        return re.sub(r"\b(a|an|the)\b", " ", text)
 
     def white_space_fix(text):
-        return ' '.join(text.split())
+        return " ".join(text.split())
 
     def remove_punc(text):
         exclude = set(string.punctuation)
-        return ''.join(ch for ch in text if ch not in exclude)
+        return "".join(ch for ch in text if ch not in exclude)
 
     def lower(text):
         return text.lower()
@@ -82,9 +83,7 @@ def get_score(metric, pred_text, gold_text):
     if isinstance(gold_text, str):
         gold_text = [gold_text]
     if metric == "exact_match":
-        score = metric_max_over_ground_truths(exact_match_score,
-                                              pred_text,
-                                              gold_text)
+        score = metric_max_over_ground_truths(exact_match_score, pred_text, gold_text)
     elif metric == "f1":
         score = metric_max_over_ground_truths(f1_score, pred_text, gold_text)
     return score
@@ -112,14 +111,24 @@ def macro_ce(preds, golds, metric):
     return macro_ce
 
 
-if __name__ == '__main__':
-    pred_df = pd.read_json(
-        BASE_PATH + "src/data/squad_adv_new/nbest_predictions_roberta_amb_0.75_top20.json").T.rename_axis(
-        "id").reset_index()
+if __name__ == "__main__":
+    pred_df = (
+        pd.read_json(
+            BASE_PATH
+            + "src/data/squad_adv_new/nbest_predictions_roberta_amb_0.75_top20.json"
+        )
+        .T.rename_axis("id")
+        .reset_index()
+    )
     answers = [f"answer_{i}" for i in range(20)]
     pred_df.columns = ["id"] + answers
-    squad_data = dataloader.PreprocessData("squad_adversarial", "AddSent", save_data=False, save_path="../../../../")
-    gold_text = [(sample["id"], sample["answers"]["text"]) for sample in squad_data.processed_val_set()]
+    squad_data = dataloader.PreprocessData(
+        "squad_adversarial", "AddSent", save_data=False, save_path="../../../../"
+    )
+    gold_text = [
+        (sample["id"], sample["answers"]["text"])
+        for sample in squad_data.processed_val_set()
+    ]
     gold_df = pd.DataFrame(gold_text, columns=["id", "gold_answers"])
     data = pd.merge(pred_df, gold_df, on="id")
     pred_data = data.answer_0.values

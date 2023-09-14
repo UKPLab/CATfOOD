@@ -20,8 +20,15 @@ def postprocess_question(question):
         return None
     # question corrector
     # Define a dictionary to map misspelled words to correct words
-    corrections = {'ho': 'who', 'hat': 'what', 'hich': 'which', 'ow': 'how', 'ich': 'which',
-                   'here': 'where', 'hen': 'when'}
+    corrections = {
+        "ho": "who",
+        "hat": "what",
+        "hich": "which",
+        "ow": "how",
+        "ich": "which",
+        "here": "where",
+        "hen": "when",
+    }
     # if question starts with a misspelled word, replace it with the correct word
     # print("Question before correction: ", ques.split())0])
     if ques.split()[0].lower() in list(corrections.keys()):
@@ -65,14 +72,24 @@ def postprocess_pipeline(data_path, save_path, model_name):
 
     # step 1: collate all the data from the jsonl files
     from src.cf_generation.llm_generation.utils import collate_jsonl_files
-    collate_jsonl_files(data_path, os.path.join(save_path, f"{model_name}_collated_data.jsonl"))
-    print("Collated data saved to: ", os.path.join(save_path, f"{model_name}_collated_data.jsonl"))
+
+    collate_jsonl_files(
+        data_path, os.path.join(save_path, f"{model_name}_collated_data.jsonl")
+    )
+    print(
+        "Collated data saved to: ",
+        os.path.join(save_path, f"{model_name}_collated_data.jsonl"),
+    )
 
     seen_examples = set()
     total = 0
     # filter out samples with same ids
-    with jsonlines.open(os.path.join(save_path, f"{model_name}_collated_data_cleaned.jsonl"), "w") as writer:
-        with jsonlines.open(os.path.join(save_path, f"{model_name}_collated_data.jsonl")) as reader:
+    with jsonlines.open(
+        os.path.join(save_path, f"{model_name}_collated_data_cleaned.jsonl"), "w"
+    ) as writer:
+        with jsonlines.open(
+            os.path.join(save_path, f"{model_name}_collated_data.jsonl")
+        ) as reader:
             for example in tqdm(reader):
                 id = example["id"].split("_")[0]
                 total += 1
@@ -82,7 +99,6 @@ def postprocess_pipeline(data_path, save_path, model_name):
     print("Total samples before cleaning: ", total)
     print("Total samples after cleaning: ", len(seen_examples))
 
-
     # step 2: get the answer indices
     from src.cf_generation.llm_generation.utils import get_answer_start, save_to_disk
 
@@ -91,12 +107,23 @@ def postprocess_pipeline(data_path, save_path, model_name):
         # load squad data
         dataset = load_dataset("squad", "plain_text")
         train_data = dataset["train"]
-        data = [sample for sample in tqdm(train_data, total=len(train_data), desc="Loading SQuAD data ... ")]
+        data = [
+            sample
+            for sample in tqdm(
+                train_data, total=len(train_data), desc="Loading SQuAD data ... "
+            )
+        ]
     elif data_type == "counterfactuals":
         # read in counterfactual data from jsonl file
         with jsonlines.open(
-                os.path.join(save_path, f"{model_name}_collated_data_cleaned.jsonl")) as reader:
-            data = [sample for sample in tqdm(reader, desc="Loading Counterfactual data for answer gen. ... ")]
+            os.path.join(save_path, f"{model_name}_collated_data_cleaned.jsonl")
+        ) as reader:
+            data = [
+                sample
+                for sample in tqdm(
+                    reader, desc="Loading Counterfactual data for answer gen. ... "
+                )
+            ]
 
             # assert if data length is equal to the number of unique samples via the id
             assert len(data) == len(set([sample["id"] for sample in data]))
@@ -106,7 +133,7 @@ def postprocess_pipeline(data_path, save_path, model_name):
     samples = []
     for example in tqdm(data):
         try:
-            c+=1
+            c += 1
 
             # print("question: ", example["question"])
             # print("context: ", example["context"])
@@ -114,7 +141,8 @@ def postprocess_pipeline(data_path, save_path, model_name):
             # print("-" * 100)
 
             answer_start = get_answer_start(
-                example["question"], example["context"], example["answer"])
+                example["question"], example["context"], example["answer"]
+            )
             if answer_start == -1:
                 no_answer_found += 1
                 continue
@@ -126,8 +154,8 @@ def postprocess_pipeline(data_path, save_path, model_name):
                     "answers": {
                         "text": [example["answer"]],
                         "answer_start": [answer_start],
-                        "answer_end": [answer_start + len(example["answer"])]
-                    }
+                        "answer_end": [answer_start + len(example["answer"])],
+                    },
                 },
             )
             # if c == 20:
@@ -136,12 +164,19 @@ def postprocess_pipeline(data_path, save_path, model_name):
             print("Error in example: ", example)
 
     print("No answer found: ", no_answer_found)
-    save_to_disk(samples, os.path.join(save_path, f"{model_name}_collated_data_with_answers.jsonl"))
+    save_to_disk(
+        samples,
+        os.path.join(save_path, f"{model_name}_collated_data_with_answers.jsonl"),
+    )
 
     # step 3: postprocess data
     with jsonlines.open(
-            os.path.join(save_path, f"{model_name}_collated_data_with_answers.jsonl")) as reader:
-        data = [sample for sample in tqdm(reader, desc="Loading data for postprocessing... ")]
+        os.path.join(save_path, f"{model_name}_collated_data_with_answers.jsonl")
+    ) as reader:
+        data = [
+            sample
+            for sample in tqdm(reader, desc="Loading data for postprocessing... ")
+        ]
 
         # Load SQuAD dataset
         squad_dataset = load_dataset("squad")
@@ -153,8 +188,11 @@ def postprocess_pipeline(data_path, save_path, model_name):
 
         c = 0
         with jsonlines.open(
-                os.path.join(save_path, f"{model_name}_collated_data_with_answers_processed.jsonl"),
-                "a") as writer:
+            os.path.join(
+                save_path, f"{model_name}_collated_data_with_answers_processed.jsonl"
+            ),
+            "a",
+        ) as writer:
             seen_examples = set()
             for example in tqdm(data, total=len(data), desc="Saving samples ... "):
                 question = postprocess_question(example["question"])
@@ -177,8 +215,7 @@ def postprocess_pipeline(data_path, save_path, model_name):
         print("Final sample count: ", c)
 
 
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     data_path = BASE_PATH + "src/data/squad/few_shot_flan-ul2_thinking/"
     save_path = BASE_PATH + "src/data/squad/"
     model_name = "flan-ul2_thinking"

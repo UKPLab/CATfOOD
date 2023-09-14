@@ -20,7 +20,9 @@ def add_additional_documents(openqa, additional_documents_path):
     tokenizer = openqa.retriever.tokenizer
 
     # docs
-    retriever.block_records = np.concatenate((retriever.block_records, documents), axis=0)
+    retriever.block_records = np.concatenate(
+        (retriever.block_records, documents), axis=0
+    )
 
     # embeds
     documents = [doc.decode() for doc in documents]
@@ -37,24 +39,20 @@ def get_openqa_tf_finetuned(args, config=None):
     if config is None:
         config = RealmConfig(hidden_act="gelu_new")
 
-    tokenizer = RealmTokenizerFast.from_pretrained("google/realm-cc-news-pretrained-embedder", do_lower_case=True)
+    tokenizer = RealmTokenizerFast.from_pretrained(
+        "google/realm-cc-news-pretrained-embedder", do_lower_case=True
+    )
 
-    block_records = convert_tfrecord_to_np(args.block_records_path, config.num_block_records)
+    block_records = convert_tfrecord_to_np(
+        args.block_records_path, config.num_block_records
+    )
     retriever = RealmRetriever(block_records, tokenizer)
 
     openqa = RealmForOpenQA(config, retriever)
 
-    openqa = load_tf_weights_in_realm(
-        openqa,
-        config,
-        args.checkpoint_path,
-    )
+    openqa = load_tf_weights_in_realm(openqa, config, args.checkpoint_path,)
 
-    openqa = load_tf_weights_in_realm(
-        openqa,
-        config,
-        args.block_emb_path,
-    )
+    openqa = load_tf_weights_in_realm(openqa, config, args.block_emb_path,)
 
     openqa.eval()
 
@@ -65,30 +63,22 @@ def get_openqa_tf_pretrained(args, config=None):
     if config is None:
         config = RealmConfig(hidden_act="gelu_new")
 
-    tokenizer = RealmTokenizerFast.from_pretrained("google/realm-cc-news-pretrained-embedder", do_lower_case=True)
+    tokenizer = RealmTokenizerFast.from_pretrained(
+        "google/realm-cc-news-pretrained-embedder", do_lower_case=True
+    )
 
-    block_records = convert_tfrecord_to_np(args.block_records_path, config.num_block_records)
+    block_records = convert_tfrecord_to_np(
+        args.block_records_path, config.num_block_records
+    )
     retriever = RealmRetriever(block_records, tokenizer)
 
     openqa = RealmForOpenQA(config, retriever)
 
-    openqa = load_tf_weights_in_realm(
-        openqa,
-        config,
-        args.bert_path,
-    )
+    openqa = load_tf_weights_in_realm(openqa, config, args.bert_path,)
 
-    openqa = load_tf_weights_in_realm(
-        openqa,
-        config,
-        args.embedder_path,
-    )
+    openqa = load_tf_weights_in_realm(openqa, config, args.embedder_path,)
 
-    openqa = load_tf_weights_in_realm(
-        openqa,
-        config,
-        args.block_emb_path,
-    )
+    openqa = load_tf_weights_in_realm(openqa, config, args.block_emb_path,)
 
     openqa.eval()
 
@@ -102,9 +92,7 @@ def get_openqa(args, config=None):
     retriever = RealmRetriever.from_pretrained(args.checkpoint_pretrained_name)
 
     openqa = RealmForOpenQA.from_pretrained(
-        args.checkpoint_pretrained_name,
-        retriever=retriever,
-        config=config,
+        args.checkpoint_pretrained_name, retriever=retriever, config=config,
     )
     openqa.eval()
 
@@ -117,28 +105,20 @@ def get_scorer_reader_tokenizer_tf(args, config=None):
     scorer = RealmScorer(config, args.block_records_path)
 
     # Load retriever weights
-    scorer = load_tf_weights_in_realm(
-        scorer,
-        config,
-        args.retriever_path,
-    )
+    scorer = load_tf_weights_in_realm(scorer, config, args.retriever_path,)
 
     # Load block_emb weights
-    scorer = load_tf_weights_in_realm(
-        scorer,
-        config,
-        args.block_emb_path,
-    )
+    scorer = load_tf_weights_in_realm(scorer, config, args.block_emb_path,)
     scorer.eval()
 
     reader = RealmReader.from_pretrained(
-        args.checkpoint_path,
-        config=config,
-        from_tf=True,
+        args.checkpoint_path, config=config, from_tf=True,
     )
     reader.eval()
 
-    tokenizer = RealmTokenizerFast.from_pretrained("google/realm-cc-news-pretrained-embedder", do_lower_case=True)
+    tokenizer = RealmTokenizerFast.from_pretrained(
+        "google/realm-cc-news-pretrained-embedder", do_lower_case=True
+    )
 
     return scorer, reader, tokenizer
 
@@ -146,20 +126,20 @@ def get_scorer_reader_tokenizer_tf(args, config=None):
 def get_scorer_reader_tokenizer_pt_pretrained(args, config=None):
     if config is None:
         config = RealmConfig(hidden_act="gelu_new")
-    scorer = RealmScorer.from_pretrained(args.retriever_pretrained_name, args.block_records_path, config=config)
+    scorer = RealmScorer.from_pretrained(
+        args.retriever_pretrained_name, args.block_records_path, config=config
+    )
 
     # Load block_emb weights
-    scorer = load_tf_weights_in_realm(
-        scorer,
-        config,
-        args.block_emb_path,
-    )
+    scorer = load_tf_weights_in_realm(scorer, config, args.block_emb_path,)
     scorer.eval()
 
     reader = RealmReader.from_pretrained(args.checkpoint_pretrained_name, config=config)
     reader.eval()
 
-    tokenizer = RealmTokenizerFast.from_pretrained("google/realm-cc-news-pretrained-embedder", do_lower_case=True)
+    tokenizer = RealmTokenizerFast.from_pretrained(
+        "google/realm-cc-news-pretrained-embedder", do_lower_case=True
+    )
 
     return scorer, reader, tokenizer
 
@@ -167,13 +147,17 @@ def get_scorer_reader_tokenizer_pt_pretrained(args, config=None):
 def get_scorer_reader_tokenizer_pt_finetuned(args, config=None):
     if config is None:
         config = RealmConfig(hidden_act="gelu_new")
-    scorer = RealmScorer.from_pretrained(args.retriever_pretrained_name, args.block_records_path, config=config)
+    scorer = RealmScorer.from_pretrained(
+        args.retriever_pretrained_name, args.block_records_path, config=config
+    )
     scorer.eval()
 
     reader = RealmReader.from_pretrained(args.checkpoint_pretrained_name, config=config)
     reader.eval()
 
-    tokenizer = RealmTokenizerFast.from_pretrained("google/realm-cc-news-pretrained-embedder", do_lower_case=True)
+    tokenizer = RealmTokenizerFast.from_pretrained(
+        "google/realm-cc-news-pretrained-embedder", do_lower_case=True
+    )
 
     return scorer, reader, tokenizer
 
@@ -184,6 +168,8 @@ def get_scorer_reader_tokenizer(args, config=None):
 
     scorer = RealmScorer(config, args.block_records_path)
     reader = RealmReader(config)
-    tokenizer = RealmTokenizerFast.from_pretrained("google/realm-cc-news-pretrained-embedder", do_lower_case=True)
+    tokenizer = RealmTokenizerFast.from_pretrained(
+        "google/realm-cc-news-pretrained-embedder", do_lower_case=True
+    )
 
     return scorer, reader, tokenizer

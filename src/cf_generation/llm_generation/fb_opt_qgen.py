@@ -10,17 +10,21 @@ from datasets import load_dataset
 
 from src.few_shot.utils import save_to_disk
 
-BASE_PATH="/storage/ukp/work/sachdeva/research_projects/exp_calibration/"
+BASE_PATH = "/storage/ukp/work/sachdeva/research_projects/exp_calibration/"
 # BASE_PATH = "/home/sachdeva/projects/ukp/exp_calibration/"
 
 
-
-if __name__ == '__main__':
+if __name__ == "__main__":
 
     # load squad data
     dataset = load_dataset("squad", "plain_text")
     train_data = dataset["train"]
-    squad_data = [sample for sample in tqdm(train_data, total=len(train_data), desc="Loading SQuAD data ... ")]
+    squad_data = [
+        sample
+        for sample in tqdm(
+            train_data, total=len(train_data), desc="Loading SQuAD data ... "
+        )
+    ]
 
     c = 0
     examples = []
@@ -37,8 +41,10 @@ if __name__ == '__main__':
     # prompt = "From the provided context, create a question that can be accurately answered by extracting " \
     #          "information directly from the context."
     # prompt = "Construct a question that can be answered by selecting a key piece of information from the given context."
-    prompt = "Generate a fluent and answerable question from the given context. Ensure that the answer " \
-             "is a span in the context and is less than 10 words."
+    prompt = (
+        "Generate a fluent and answerable question from the given context. Ensure that the answer "
+        "is a span in the context and is less than 10 words."
+    )
 
     model_name = "facebook/opt-13b"
     model_identifier = model_name.split("/")[-1]
@@ -46,10 +52,15 @@ if __name__ == '__main__':
     if not os.path.exists(save_path):
         os.makedirs(save_path)
 
-    model = AutoModelForCausalLM.from_pretrained(model_name, torch_dtype=torch.float16).cuda()
+    model = AutoModelForCausalLM.from_pretrained(
+        model_name, torch_dtype=torch.float16
+    ).cuda()
     tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=False)
 
-    with jsonlines.open(BASE_PATH + "src/data/squad/squad_counterfactuals_noise_min_filtered_final_2.jsonl") as reader:
+    with jsonlines.open(
+        BASE_PATH
+        + "src/data/squad/squad_counterfactuals_noise_min_filtered_final_2.jsonl"
+    ) as reader:
         for example in tqdm(reader):
             c += 1
             id = example["id"].split("_")[0]
@@ -72,7 +83,7 @@ if __name__ == '__main__':
             generated_ids = model.generate(
                 inputs.input_ids,
                 attention_mask=inputs.attention_mask,
-                max_new_tokens=50
+                max_new_tokens=50,
             )
             outputs = tokenizer.decode(generated_ids[0], skip_special_tokens=True)
             print(outputs)

@@ -9,20 +9,21 @@ import src.calibration.baseline.dataloader as dataloader
 # BASE_PATH = "/storage/ukp/work/sachdeva/research_projects/exp_calibration/"
 BASE_PATH = "//"
 
+
 def normalize_answer(s):
     """
     Lower text and remove punctuation, articles and extra whitespace.
     """
 
     def remove_articles(text):
-        return re.sub(r'\b(a|an|the)\b', ' ', text)
+        return re.sub(r"\b(a|an|the)\b", " ", text)
 
     def white_space_fix(text):
-        return ' '.join(text.split())
+        return " ".join(text.split())
 
     def remove_punc(text):
         exclude = set(string.punctuation)
-        return ''.join(ch for ch in text if ch not in exclude)
+        return "".join(ch for ch in text if ch not in exclude)
 
     def lower(text):
         return text.lower()
@@ -82,22 +83,31 @@ def get_score(metric, pred_text, gold_text):
     if isinstance(gold_text, str):
         gold_text = [gold_text]
     if metric == "exact_match":
-        score = metric_max_over_ground_truths(exact_match_score,
-                                              pred_text,
-                                              gold_text)
+        score = metric_max_over_ground_truths(exact_match_score, pred_text, gold_text)
     elif metric == "f1":
         score = metric_max_over_ground_truths(f1_score, pred_text, gold_text)
     return score
 
 
-if __name__ == '__main__':
-    pred_df = pd.read_json(BASE_PATH+"src/data/squad_adv_new/nbest_predictions_roberta_top20.json").T.rename_axis("id").reset_index()
+if __name__ == "__main__":
+    pred_df = (
+        pd.read_json(
+            BASE_PATH + "src/data/squad_adv_new/nbest_predictions_roberta_top20.json"
+        )
+        .T.rename_axis("id")
+        .reset_index()
+    )
     answers = [f"answer_{i}" for i in range(20)]
     pred_df.columns = ["id"] + answers
-    squad_data = dataloader.PreprocessData("squad_adversarial", "AddSent", save_data=False, save_path="../../../")
+    squad_data = dataloader.PreprocessData(
+        "squad_adversarial", "AddSent", save_data=False, save_path="../../../"
+    )
     # trivia_data = Dataset.from_generator(dataloader.get_dev_examples_hf)
     # print(trivia_data)
-    gold_text = [(sample["id"], sample["answers"]["text"]) for sample in squad_data.processed_val_set()]
+    gold_text = [
+        (sample["id"], sample["answers"]["text"])
+        for sample in squad_data.processed_val_set()
+    ]
     # gold_text = [(sample["id"], sample["answers"]) for sample in tqdm(trivia_data)]
     # print(gold_text)
     gold_df = pd.DataFrame(gold_text, columns=["id", "gold_answers"])
@@ -107,6 +117,7 @@ if __name__ == '__main__':
     for metric in metrics:
         scores = []
         for i in range(len(data)):
-            scores.append(get_score(metric, data["answer_0"][i]["text"],
-                                    data["gold_answers"][i]))
-        print(metric, sum(scores)/len(scores)*100)
+            scores.append(
+                get_score(metric, data["answer_0"][i]["text"], data["gold_answers"][i])
+            )
+        print(metric, sum(scores) / len(scores) * 100)

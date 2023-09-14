@@ -103,9 +103,7 @@ def get_context_and_ans(example, assertion=False):
 
     cols = ["start_token", "end_token"]
     print("ans", answer)
-    answer.update(
-        {k: answer[k] for k in cols}
-    )  # e.g. [10] == 10
+    answer.update({k: answer[k] for k in cols})  # e.g. [10] == 10
 
     # doc = example["document"]["tokens"]
     start_token = answer["start_token"]
@@ -124,10 +122,10 @@ def get_context_and_ans(example, assertion=False):
     new = " ".join(example["document_text"].split(" ")[start_token:end_token])
     print(new)
 
-    CLEANR = re.compile('<.*?>')
+    CLEANR = re.compile("<.*?>")
 
     def cleanhtml(raw_html):
-        cleantext = re.sub(CLEANR, '', raw_html)
+        cleantext = re.sub(CLEANR, "", raw_html)
         return cleantext
 
     # checking above code
@@ -169,11 +167,7 @@ def get_strided_contexts_and_ans(
         return {
             "example_id": example["id"],
             "input_ids": [[-1]],
-            "labels": {
-                "start_token": [-1],
-                "end_token": [-1],
-                "category": ["null"],
-            },
+            "labels": {"start_token": [-1], "end_token": [-1], "category": ["null"],},
         }
 
     input_ids = tokenizer(example["question_text"], out["context"]).input_ids
@@ -290,11 +284,13 @@ def get_strided_contexts_and_ans(
     print(inputs)
     print(len(inputs))
     print(len(inputs[0]))
-    print({
+    print(
+        {
             "start_token": answers_start_token,
             "end_token": answers_end_token,
             "category": answers_category,
-        })
+        }
+    )
 
     return {
         "example_id": example["example_id"],
@@ -307,9 +303,7 @@ def get_strided_contexts_and_ans(
     }
 
 
-def prepare_inputs(
-    example, tokenizer, doc_stride=256, max_length=512, assertion=False
-):
+def prepare_inputs(example, tokenizer, doc_stride=256, max_length=512, assertion=False):
     example = get_strided_contexts_and_ans(
         example,
         tokenizer,

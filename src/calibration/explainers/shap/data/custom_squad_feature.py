@@ -24,16 +24,21 @@ if is_torch_available():
     import torch
     from torch.utils.data import TensorDataset
 
-def _improve_answer_span(doc_tokens, input_start, input_end, tokenizer, orig_answer_text):
+
+def _improve_answer_span(
+    doc_tokens, input_start, input_end, tokenizer, orig_answer_text
+):
     """Returns tokenized answer spans that better match the annotated answer."""
 
     candidate_cleaned_forms = []
     candidate_cleaned_forms.append(" ".join(tokenizer.tokenize(orig_answer_text)))
     if tokenizer.__class__.__name__ in [
-            "RobertaTokenizer",
-            "BartTokenizer",
-        ]:
-        candidate_cleaned_forms.append(" ".join(tokenizer.tokenize(orig_answer_text, add_prefix_space=True)))
+        "RobertaTokenizer",
+        "BartTokenizer",
+    ]:
+        candidate_cleaned_forms.append(
+            " ".join(tokenizer.tokenize(orig_answer_text, add_prefix_space=True))
+        )
 
     for new_start in range(input_start, input_end + 1):
         for new_end in range(input_end, new_start - 1, -1):
@@ -91,9 +96,11 @@ def _is_whitespace(c):
         return True
     return False
 
+
 def custom_squad_convert_example_to_features_init(tokenizer_for_convert):
     global tokenizer
     tokenizer = tokenizer_for_convert
+
 
 def custom_squad_convert_examples_to_features(
     examples,
@@ -105,7 +112,7 @@ def custom_squad_convert_examples_to_features(
     return_dataset=False,
     threads=1,
     tqdm_enabled=True,
-    dataset='hpqa,'
+    dataset="hpqa,",
 ):
     """
     Converts a list of examples into a list of features that can be directly given as input to a model.
@@ -144,7 +151,11 @@ def custom_squad_convert_examples_to_features(
     # Defining helper methods
     features = []
     threads = min(threads, cpu_count())
-    with Pool(threads, initializer=custom_squad_convert_example_to_features_init, initargs=(tokenizer,)) as p:
+    with Pool(
+        threads,
+        initializer=custom_squad_convert_example_to_features_init,
+        initargs=(tokenizer,),
+    ) as p:
         annotate_ = partial(
             custom_squad_convert_example_to_features,
             max_seq_length=max_seq_length,
@@ -166,7 +177,10 @@ def custom_squad_convert_examples_to_features(
     unique_id = 1000000000
     example_index = 0
     for example_features in tqdm(
-        features, total=len(features), desc="add example index and unique id", disable=not tqdm_enabled
+        features,
+        total=len(features),
+        desc="add example index and unique id",
+        disable=not tqdm_enabled,
     ):
         if not example_features:
             continue
@@ -184,20 +198,35 @@ def custom_squad_convert_examples_to_features(
 
         # Convert to Tensors and build dataset
         all_input_ids = torch.tensor([f.input_ids for f in features], dtype=torch.long)
-        all_attention_masks = torch.tensor([f.attention_mask for f in features], dtype=torch.long)
-        all_token_type_ids = torch.tensor([f.token_type_ids for f in features], dtype=torch.long)
+        all_attention_masks = torch.tensor(
+            [f.attention_mask for f in features], dtype=torch.long
+        )
+        all_token_type_ids = torch.tensor(
+            [f.token_type_ids for f in features], dtype=torch.long
+        )
         all_cls_index = torch.tensor([f.cls_index for f in features], dtype=torch.long)
         all_p_mask = torch.tensor([f.p_mask for f in features], dtype=torch.float)
-        all_is_impossible = torch.tensor([f.is_impossible for f in features], dtype=torch.float)
+        all_is_impossible = torch.tensor(
+            [f.is_impossible for f in features], dtype=torch.float
+        )
 
         if not is_training:
             all_feature_index = torch.arange(all_input_ids.size(0), dtype=torch.long)
             dataset = TensorDataset(
-                all_input_ids, all_attention_masks, all_token_type_ids, all_feature_index, all_cls_index, all_p_mask
+                all_input_ids,
+                all_attention_masks,
+                all_token_type_ids,
+                all_feature_index,
+                all_cls_index,
+                all_p_mask,
             )
         else:
-            all_start_positions = torch.tensor([f.start_position for f in features], dtype=torch.long)
-            all_end_positions = torch.tensor([f.end_position for f in features], dtype=torch.long)
+            all_start_positions = torch.tensor(
+                [f.start_position for f in features], dtype=torch.long
+            )
+            all_end_positions = torch.tensor(
+                [f.end_position for f in features], dtype=torch.long
+            )
             dataset = TensorDataset(
                 all_input_ids,
                 all_attention_masks,
@@ -212,6 +241,7 @@ def custom_squad_convert_examples_to_features(
         return features, dataset
     else:
         return features
+
 
 def custom_squad_convert_example_to_features(
     example, max_seq_length, max_query_length, padding_strategy, is_training, dataset
@@ -228,7 +258,6 @@ def custom_squad_convert_example_to_features(
     ex_end_position = example.end_position + len(prefix_tokens)
     # transform context by prepending athings
     # insert tokens for special purpose
-    
 
     for (i, token) in enumerate(augmented_doc_tokens):
         orig_to_tok_index.append(len(all_doc_tokens))
@@ -262,11 +291,18 @@ def custom_squad_convert_example_to_features(
                 tok_end_position = len(all_doc_tokens) - 1
 
             (tok_start_position, tok_end_position) = _improve_answer_span(
-                all_doc_tokens, tok_start_position, tok_end_position, tokenizer, example.answer_text
+                all_doc_tokens,
+                tok_start_position,
+                tok_end_position,
+                tokenizer,
+                example.answer_text,
             )
 
     truncated_query = tokenizer.encode(
-        example.question_text, add_special_tokens=False, truncation=True, max_length=max_query_length
+        example.question_text,
+        add_special_tokens=False,
+        truncation=True,
+        max_length=max_query_length,
     )
 
     # Tokenizers who insert 2 SEP tokens in-between <context> & <question> need to have special handling
@@ -277,10 +313,12 @@ def custom_squad_convert_example_to_features(
         if tokenizer_type in MULTI_SEP_TOKENS_TOKENIZERS_SET
         else tokenizer.model_max_length - tokenizer.max_len_single_sentence
     )
-    sequence_pair_added_tokens = tokenizer.model_max_length - tokenizer.max_len_sentences_pair
+    sequence_pair_added_tokens = (
+        tokenizer.model_max_length - tokenizer.max_len_sentences_pair
+    )
 
     span_doc_tokens = all_doc_tokens
-    
+
     # Define the side we want to truncate / pad and the text/pair sorting
     if tokenizer.padding_side == "right":
         texts = truncated_query
@@ -308,10 +346,14 @@ def custom_squad_convert_example_to_features(
 
     if tokenizer.pad_token_id in encoded_dict["input_ids"]:
         if tokenizer.padding_side == "right":
-            non_padded_ids = encoded_dict["input_ids"][: encoded_dict["input_ids"].index(tokenizer.pad_token_id)]
+            non_padded_ids = encoded_dict["input_ids"][
+                : encoded_dict["input_ids"].index(tokenizer.pad_token_id)
+            ]
         else:
             last_padding_id_position = (
-                len(encoded_dict["input_ids"]) - 1 - encoded_dict["input_ids"][::-1].index(tokenizer.pad_token_id)
+                len(encoded_dict["input_ids"])
+                - 1
+                - encoded_dict["input_ids"][::-1].index(tokenizer.pad_token_id)
             )
             non_padded_ids = encoded_dict["input_ids"][last_padding_id_position + 1 :]
 
@@ -322,13 +364,19 @@ def custom_squad_convert_example_to_features(
 
     token_to_orig_map = {}
     for i in range(paragraph_len):
-        index = len(truncated_query) + sequence_added_tokens + i if tokenizer.padding_side == "right" else i
+        index = (
+            len(truncated_query) + sequence_added_tokens + i
+            if tokenizer.padding_side == "right"
+            else i
+        )
         token_to_orig_map[index] = tok_to_orig_index[i]
 
     encoded_dict["paragraph_len"] = paragraph_len
     encoded_dict["tokens"] = tokens
     encoded_dict["token_to_orig_map"] = token_to_orig_map
-    encoded_dict["truncated_query_with_special_tokens_length"] = len(truncated_query) + sequence_added_tokens
+    encoded_dict["truncated_query_with_special_tokens_length"] = (
+        len(truncated_query) + sequence_added_tokens
+    )
     encoded_dict["token_is_max_context"] = {}
     encoded_dict["start"] = 0
     encoded_dict["length"] = paragraph_len
@@ -357,11 +405,15 @@ def custom_squad_convert_example_to_features(
     if tokenizer.padding_side == "right":
         p_mask[len(truncated_query) + sequence_added_tokens :] = 0
     else:
-        p_mask[-len(span["tokens"]) : -(len(truncated_query) + sequence_added_tokens)] = 0
+        p_mask[
+            -len(span["tokens"]) : -(len(truncated_query) + sequence_added_tokens)
+        ] = 0
 
     pad_token_indices = np.where(span["input_ids"] == tokenizer.pad_token_id)
     special_token_indices = np.asarray(
-        tokenizer.get_special_tokens_mask(span["input_ids"], already_has_special_tokens=True)
+        tokenizer.get_special_tokens_mask(
+            span["input_ids"], already_has_special_tokens=True
+        )
     ).nonzero()
 
     p_mask[pad_token_indices] = 1
@@ -424,7 +476,6 @@ class SquadProcessor(DataProcessor):
     Overriden by SquadV1Processor and SquadV2Processor, used by the version 1.1 and version 2.0 of SQuAD, respectively.
     """
 
-
     def get_train_examples(self, data_dir, filename=None):
         """
         Returns the training examples from the data directory.
@@ -436,9 +487,7 @@ class SquadProcessor(DataProcessor):
         if data_dir is None:
             data_dir = ""
 
-        with open(
-            os.path.join(data_dir, filename), "r", encoding="utf-8"
-        ) as reader:
+        with open(os.path.join(data_dir, filename), "r", encoding="utf-8") as reader:
             input_data = json.load(reader)["data"]
         return self._create_examples(input_data, "train")
 
@@ -453,9 +502,7 @@ class SquadProcessor(DataProcessor):
         if data_dir is None:
             data_dir = ""
 
-        with open(
-            os.path.join(data_dir, filename), "r", encoding="utf-8"
-        ) as reader:
+        with open(os.path.join(data_dir, filename), "r", encoding="utf-8") as reader:
             input_data = json.load(reader)["data"]
         return self._create_examples(input_data, "dev")
 
@@ -473,8 +520,8 @@ class SquadProcessor(DataProcessor):
                     start_position_character = None
                     answer_text = None
                     answers = []
-                    question_type = qa.get('question_type','none')
-                    is_yesno = qa.get('is_yesno', False)
+                    question_type = qa.get("question_type", "none")
+                    is_yesno = qa.get("is_yesno", False)
                     is_impossible = qa.get("is_impossible", False)
                     if not is_impossible:
                         if is_training:
@@ -565,8 +612,12 @@ class SquadExample:
             if start_position_character is not None and not is_impossible:
                 self.start_position = char_to_word_offset[start_position_character]
                 self.end_position = char_to_word_offset[
-                    min(start_position_character + len(answer_text) - 1, len(char_to_word_offset) - 1)
+                    min(
+                        start_position_character + len(answer_text) - 1,
+                        len(char_to_word_offset) - 1,
+                    )
                 ]
+
 
 class SquadFeatures:
     """
@@ -638,7 +689,15 @@ class SquadResult:
         end_logits: The logits corresponding to the end of the answer
     """
 
-    def __init__(self, unique_id, start_logits, end_logits, start_top_index=None, end_top_index=None, cls_logits=None):
+    def __init__(
+        self,
+        unique_id,
+        start_logits,
+        end_logits,
+        start_top_index=None,
+        end_top_index=None,
+        cls_logits=None,
+    ):
         self.start_logits = start_logits
         self.end_logits = end_logits
         self.unique_id = unique_id

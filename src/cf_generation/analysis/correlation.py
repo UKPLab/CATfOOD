@@ -12,7 +12,7 @@ def calculate_correlation(x: List, y: List):
     return corr, p_value
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # sbert_sim  = [0.55, 0.48, 0.50, 0.50, 0.45, 0.41, 0.41]
     # semantic_eq = [0.52, 0.46, 0.51, 0.55, 0.46, 0.41, 0.40]
     # leven_dist = [0.61, 0.67, 0.65, 0.67, 0.68, 0.71, 0.71]
@@ -21,7 +21,7 @@ if __name__ == '__main__':
     sbert_sim = [0.55, 0.50, 0.45, 0.41]
     semantic_eq = [0.52, 0.51, 0.46, 0.40]
     leven_dist = [0.61, 0.65, 0.68, 0.71]
-    self_bleu = [0.30,  0.28, 0.24, 0.19]
+    self_bleu = [0.30, 0.28, 0.24, 0.19]
 
     ood_gain = [1.24, 3.02, 3.45, 1.27, 3.61, 2.36, 3.48]
     calib_conf_gain = [5.42, 7.87, 8.02, 8.18]
@@ -38,10 +38,10 @@ if __name__ == '__main__':
     sbert_corr = -calculate_correlation(sbert_sim, calib_ig_gain_f)[0]
     semantic_corr = -calculate_correlation(semantic_eq, calib_ig_gain_f)[0]
 
-    avg_corr = (bleu_corr + leven_corr + sbert_corr + semantic_corr)/4
+    avg_corr = (bleu_corr + leven_corr + sbert_corr + semantic_corr) / 4
     print(round(avg_corr, 2))
 
     print("self bleu: ", bleu_corr)
-    print("levensh dist: ",leven_corr)
+    print("levensh dist: ", leven_corr)
     print("sbert sim: ", sbert_corr)
     print("semantic eq: ", semantic_corr)

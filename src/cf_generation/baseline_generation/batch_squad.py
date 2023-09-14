@@ -14,12 +14,13 @@ SEED = 42
 
 BASE_PATH = "/storage/ukp/work/sachdeva/research_projects/exp_calibration/"
 
+
 def _add_eos_examples(example):
     pass
 
 
 def get_strided_contexts_and_ans(
-        example, tokenizer, doc_stride=256, max_length=512, assertion=True
+    example, tokenizer, doc_stride=256, max_length=512, assertion=True
 ):
     # overlap will be of doc_stride - q_len
 
@@ -49,14 +50,12 @@ def get_strided_contexts_and_ans(
     # print(complete_end_token)
     answer["start_token"] = len(
         tokenizer(
-            " ".join(splitted_context[: start_token]),
-            add_special_tokens=True,
+            " ".join(splitted_context[:start_token]), add_special_tokens=True,
         ).input_ids
     )
     answer["end_token"] = len(
         tokenizer(
-            " ".join(splitted_context[: end_token]),
-            add_special_tokens=True
+            " ".join(splitted_context[:end_token]), add_special_tokens=True
         ).input_ids
     )
     # print(answer)
@@ -66,14 +65,13 @@ def get_strided_contexts_and_ans(
 
     # fixing end token
     num_sub_tokens = len(
-        tokenizer(complete_end_token,
-                  add_special_tokens=False).input_ids
+        tokenizer(complete_end_token, add_special_tokens=False).input_ids
     )
     if num_sub_tokens > 1:
         answer["end_token"] += num_sub_tokens - 1
 
     old = input_ids[
-        answer["start_token"]: answer["end_token"] + 1
+        answer["start_token"] : answer["end_token"] + 1
     ]  # right & left are inclusive
     start_token = answer["start_token"]
     end_token = answer["end_token"]
@@ -120,7 +118,7 @@ def get_strided_contexts_and_ans(
             start_token = -100
             end_token = -100
         # print(start_token, end_token)
-        new = inputs[-1][start_token: end_token + 1]
+        new = inputs[-1][start_token : end_token + 1]
 
         answers_start_token.append(start_token)
         answers_end_token.append(end_token)
@@ -142,9 +140,7 @@ def get_strided_contexts_and_ans(
     }
 
 
-def prepare_inputs(
-        example, tokenizer, doc_stride=256, max_length=512, assertion=False
-):
+def prepare_inputs(example, tokenizer, doc_stride=256, max_length=512, assertion=False):
     example = get_strided_contexts_and_ans(
         example,
         tokenizer,
@@ -162,11 +158,7 @@ def save_to_disk(hf_data, file_name):
             start = example["answers"]["start_token"]
             end = example["answers"]["end_token"]
             for input_ids, labels, start, end, cat in zip(
-                    example["input_ids"],
-                    example["labels"],
-                    start,
-                    end,
-                    cat
+                example["input_ids"], example["labels"], start, end, cat
             ):
                 if start == -100 and end == -100:
                     continue  # remove unanswerable questions
@@ -176,23 +168,16 @@ def save_to_disk(hf_data, file_name):
                         "id": example["example_id"],
                         "input_ids": input_ids,
                         "labels": labels,
-                        "answers": {
-                            "start_token": start,
-                            "end_token": end,
-                        }
+                        "answers": {"start_token": start, "end_token": end,},
                     },
                 )
-
 
 
 if __name__ == "__main__":
     """Running area"""
 
-
     tokenizer = T5Tokenizer.from_pretrained("t5-base")
-    tokenizer.add_special_tokens(
-        {"additional_special_tokens": ["<hl>"]}
-    )
+    tokenizer.add_special_tokens({"additional_special_tokens": ["<hl>"]})
     # model.resize_token_embeddings(len(tokenizer))
     c = 0
     data = []
@@ -201,11 +186,17 @@ if __name__ == "__main__":
     # # load squad data
     dataset = load_dataset("squad", "plain_text")
     train_data = dataset["train"]
-    squad_data = [sample for sample in tqdm(
-        train_data, total=len(train_data), desc="Loading SQuAD data ... ")]
+    squad_data = [
+        sample
+        for sample in tqdm(
+            train_data, total=len(train_data), desc="Loading SQuAD data ... "
+        )
+    ]
     #
     for ex in tqdm(train_data):
-        example = prepare_inputs(ex, tokenizer, max_length=MAX_LENGTH, doc_stride=DOC_STRIDE)
+        example = prepare_inputs(
+            ex, tokenizer, max_length=MAX_LENGTH, doc_stride=DOC_STRIDE
+        )
         data.append(example)
         if c % 1000 == 0:
             save_to_disk(data, file_name=cache_file_name + ".jsonl")

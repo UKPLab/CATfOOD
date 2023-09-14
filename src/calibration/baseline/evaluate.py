@@ -11,14 +11,14 @@ def normalize_answer(s):
     """
 
     def remove_articles(text):
-        return re.sub(r'\b(a|an|the)\b', ' ', text)
+        return re.sub(r"\b(a|an|the)\b", " ", text)
 
     def white_space_fix(text):
-        return ' '.join(text.split())
+        return " ".join(text.split())
 
     def remove_punc(text):
         exclude = set(string.punctuation)
-        return ''.join(ch for ch in text if ch not in exclude)
+        return "".join(ch for ch in text if ch not in exclude)
 
     def lower(text):
         return text.lower()
@@ -78,15 +78,13 @@ def get_score(metric, pred_text, gold_text):
     if isinstance(gold_text, str):
         gold_text = [gold_text]
     if metric == "exact_match":
-        score = metric_max_over_ground_truths(exact_match_score,
-                                              pred_text,
-                                              gold_text)
+        score = metric_max_over_ground_truths(exact_match_score, pred_text, gold_text)
     elif metric == "f1":
         score = metric_max_over_ground_truths(f1_score, pred_text, gold_text)
     return score
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     data = pd.read_csv("src/data/squad_adv_new/outputs.csv")
     # print(data.head())
     # print(data.columns)
@@ -96,11 +94,14 @@ if __name__ == '__main__':
     #                                                      ),
     #                                  axis=1)
 
-    data["exact_match"] = data.apply(lambda x: get_score("exact_match",
-                                                         ast.literal_eval(x["pred_text"]),
-                                                         ast.literal_eval(x["gold_text"])
-                                                        ),
-                                     axis=1)
+    data["exact_match"] = data.apply(
+        lambda x: get_score(
+            "exact_match",
+            ast.literal_eval(x["pred_text"]),
+            ast.literal_eval(x["gold_text"]),
+        ),
+        axis=1,
+    )
 
     print(data["exact_match"])
     print(data["exact_match"].value_counts())

@@ -2,15 +2,18 @@
 import os
 import torch
 
-BASE_PATH="/storage/ukp/work/anon/research_projects/exp_calibration/"
+BASE_PATH = "/storage/ukp/work/anon/research_projects/exp_calibration/"
+
 
 def load_bin(fname):
-    with open(fname, 'rb') as f:
+    with open(fname, "rb") as f:
         try:
             import pickle
+
             return pickle.load(f)
         except Exception as e:
             print(f"Error occurred: {e}")
+
 
 def load_torch_data(fname):
     return torch.load(fname)
@@ -18,17 +21,18 @@ def load_torch_data(fname):
 
 def top_k(data, k):
     """topk function"""
-    tokens = data['feature'][0]
-    attribution = data['attribution']
+    tokens = data["feature"][0]
+    attribution = data["attribution"]
     values, indices = torch.topk(attribution, k)
     topk_tokens = [tokens[i] for i in indices]
     return topk_tokens
 
+
 def ground_truth(data, k):
     """Ground truth"""
     ground_truth_tokens = ["<start>", "<end>"]
-    tokens = data['feature'][0]
-    attribution = data['attribution']
+    tokens = data["feature"][0]
+    attribution = data["attribution"]
     values, indices = torch.topk(attribution, k)
     # check if the ground truth tokens are in the topk tokens and add to list
     topk_tokens = [tokens[i] for i in indices]
@@ -62,7 +66,7 @@ def precision_at_k(data_path, method, prefix, k=5):
     return precision
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     path = f"{BASE_PATH}exp_roberta_with_shortcuts_0.3_v3/"
     method = "lime"
     prefix = "squad/dev/roberta/"

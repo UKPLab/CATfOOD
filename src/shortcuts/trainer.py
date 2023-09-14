@@ -18,8 +18,10 @@ from transformers import (
 )
 
 import wandb
+
 # from token_in_context import Shortcut
 from answer_matching import Shortcut
+
 logger = logging.getLogger(__name__)
 
 # hyperparameters
@@ -45,31 +47,37 @@ MAX_VAL_SAMPLES = None
 
 WANDB_RUN_NAME = OUTPUT_DIR
 
-wandb.init(config={
-    "lr": LEARNING_RATE, "warmup_ratio": WARMUP_RATIO,
-    "epochs": MAX_EPOCHS,
-    "model": MODEL_NAME, "batch_size": BATCH_SIZE, "output_dir": OUTPUT_DIR,
-})
+wandb.init(
+    config={
+        "lr": LEARNING_RATE,
+        "warmup_ratio": WARMUP_RATIO,
+        "epochs": MAX_EPOCHS,
+        "model": MODEL_NAME,
+        "batch_size": BATCH_SIZE,
+        "output_dir": OUTPUT_DIR,
+    }
+)
 wandb.run.name = WANDB_RUN_NAME
 BASE_PATH = "/storage/ukp/work/anon/research_projects/exp_calibration/"
 
+
 class RobertaSquad:
     def __init__(
-            self,
-            dataset_name: str,
-            dataset_config: str,
-            cf_path: str,
-            max_src_len: int,
-            stride: int,
-            do_train: bool,
-            do_eval: bool,
-            model_name: str,
-            cache_dir: str=None,
-            max_train_samples: int=None,
-            max_val_samples: int=None,
-            save_results: bool=False,
-            percent: float =0.25,
-            percent_augment: float =0.15
+        self,
+        dataset_name: str,
+        dataset_config: str,
+        cf_path: str,
+        max_src_len: int,
+        stride: int,
+        do_train: bool,
+        do_eval: bool,
+        model_name: str,
+        cache_dir: str = None,
+        max_train_samples: int = None,
+        max_val_samples: int = None,
+        save_results: bool = False,
+        percent: float = 0.25,
+        percent_augment: float = 0.15,
     ):
         self.dataset_name = dataset_name
         self.dataset_config = dataset_config
@@ -108,29 +116,19 @@ class RobertaSquad:
         Load model, tokenizer and data
         """
 
-        config = AutoConfig.from_pretrained(
-            self.model_name,
-            cache_dir=self.cache_dir,
-        )
+        config = AutoConfig.from_pretrained(self.model_name, cache_dir=self.cache_dir,)
         self.tokenizer = AutoTokenizer.from_pretrained(
-            self.model_name,
-            cache_dir=self.cache_dir,
-            use_fast=True,
+            self.model_name, cache_dir=self.cache_dir, use_fast=True,
         )
         self.tokenizer.add_special_tokens(
             {"additional_special_tokens": ["<start>", "<end>"]}
         )
         self.model = AutoModelForQuestionAnswering.from_pretrained(
-            self.model_name,
-            config=config,
-            cache_dir=self.cache_dir,
+            self.model_name, config=config, cache_dir=self.cache_dir,
         )
         self.model.resize_token_embeddings(len(self.tokenizer))
         dataloader = Shortcut(
-            self.dataset_name,
-            self.dataset_config,
-            self.percent,
-            self.percent_augment,
+            self.dataset_name, self.dataset_config, self.percent, self.percent_augment,
         )
         self.train_set, self.val_set = dataloader.create_synthetic_set()
 
@@ -172,7 +170,10 @@ class RobertaSquad:
             context_end = idx - 1
 
             # If the answer is not fully inside the context, label is (0, 0)
-            if offset[context_start][0] > start_char or offset[context_end][1] < end_char:
+            if (
+                offset[context_start][0] > start_char
+                or offset[context_end][1] < end_char
+            ):
                 start_positions.append(0)
                 end_positions.append(0)
             else:
@@ -286,7 +287,7 @@ class RobertaSquad:
         wandb.finish()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     trainer = RobertaSquad(
         dataset_name="squad",
         dataset_config="plain_text",

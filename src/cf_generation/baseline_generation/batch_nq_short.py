@@ -15,7 +15,7 @@ def _add_eos_examples(example):
 
 
 def get_strided_contexts_and_ans(
-        example, tokenizer, doc_stride=256, max_length=512, assertion=True
+    example, tokenizer, doc_stride=256, max_length=512, assertion=True
 ):
     # overlap will be of doc_stride - q_len
 
@@ -112,8 +112,7 @@ def get_strided_contexts_and_ans(
     )
     answer["end_token"] = len(
         tokenizer(
-            " ".join(splitted_context[: answer["end_token"]]),
-            add_special_tokens=True
+            " ".join(splitted_context[: answer["end_token"]]), add_special_tokens=True
         ).input_ids
     )
     # print(answer)
@@ -123,14 +122,13 @@ def get_strided_contexts_and_ans(
 
     # fixing end token
     num_sub_tokens = len(
-        tokenizer(complete_end_token,
-                  add_special_tokens=False).input_ids
+        tokenizer(complete_end_token, add_special_tokens=False).input_ids
     )
     if num_sub_tokens > 1:
         answer["end_token"] += num_sub_tokens - 1
 
     old = input_ids[
-        answer["start_token"]: answer["end_token"] + 1
+        answer["start_token"] : answer["end_token"] + 1
     ]  # right & left are inclusive
     start_token = answer["start_token"]
     end_token = answer["end_token"]
@@ -181,7 +179,7 @@ def get_strided_contexts_and_ans(
             end_token = -100
             answers_category.append("null")
         # print(start_token, end_token)
-        new = inputs[-1][start_token: end_token + 1]
+        new = inputs[-1][start_token : end_token + 1]
 
         answers_start_token.append(start_token)
         answers_end_token.append(end_token)
@@ -217,9 +215,7 @@ def get_strided_contexts_and_ans(
     }
 
 
-def prepare_inputs(
-        example, tokenizer, doc_stride=256, max_length=512, assertion=False
-):
+def prepare_inputs(example, tokenizer, doc_stride=256, max_length=512, assertion=False):
     example = get_strided_contexts_and_ans(
         example,
         tokenizer,
@@ -239,11 +235,7 @@ def save_to_disk(hf_data, file_name):
             cat = example["answers"]["category"]
             # print(start, end , cat)
             for input_ids, labels, start, end, cat in zip(
-                    example["input_ids"],
-                    example["labels"],
-                    start,
-                    end,
-                    cat
+                example["input_ids"], example["labels"], start, end, cat
             ):
                 if start == -100 and end == -100:
                     continue  # remove unanswerable questions
@@ -258,7 +250,7 @@ def save_to_disk(hf_data, file_name):
                             "start_token": start,
                             "end_token": end,
                             "category": cat,
-                        }
+                        },
                     },
                 )
 
@@ -269,9 +261,7 @@ if __name__ == "__main__":
     from transformers import T5Tokenizer
 
     tokenizer = T5Tokenizer.from_pretrained("t5-base")
-    tokenizer.add_special_tokens(
-        {"additional_special_tokens": ["<<", ">>"]}
-    )
+    tokenizer.add_special_tokens({"additional_special_tokens": ["<<", ">>"]})
     print(tokenizer.convert_tokens_to_ids(">>"))
     # model.resize_token_embeddings(len(tokenizer))
     # c = 0
@@ -284,9 +274,9 @@ if __name__ == "__main__":
     #         # if line["answer"]["category"] == 3:
     #         # print(line)
     #         example = prepare_inputs(line, tokenizer, max_length=MAX_LENGTH, doc_stride=DOC_STRIDE)
-            # print(example)
-            # if c == 100:
-            #     break
+    # print(example)
+    # if c == 100:
+    #     break
     #         data.append(example)
     #         if c % 1000 == 0:
     #             save_to_disk(data, file_name=cache_file_name + ".jsonl")

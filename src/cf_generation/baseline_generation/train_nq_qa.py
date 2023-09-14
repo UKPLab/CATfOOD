@@ -11,7 +11,7 @@ from transformers import (
     T5Tokenizer,
     Trainer,
     TrainingArguments,
-    DataCollatorForSeq2Seq
+    DataCollatorForSeq2Seq,
 )
 
 # BASE_PATH = "/home/sachdeva/projects/exp_calibration/src/rag/"
@@ -29,7 +29,7 @@ torch.manual_seed(SEED)
 torch.cuda.manual_seed(SEED)
 
 GROUP_BY_LENGTH = True
-LEARNING_RATE = 2*1.0e-5
+LEARNING_RATE = 2 * 1.0e-5
 WARMUP_STEPS = 100
 DROPOUT = 0.1
 MAX_EPOCHS = 3
@@ -43,8 +43,8 @@ DO_TRAIN = True
 DO_EVAL = True
 DO_PREDICT = True
 
-os.environ['TRANSFORMERS_CACHE'] = CACHE_DIR
-os.environ['WANDB_PROJECT'] = "t5-natural-questions-qa"
+os.environ["TRANSFORMERS_CACHE"] = CACHE_DIR
+os.environ["WANDB_PROJECT"] = "t5-natural-questions-qa"
 # wandb.init(dir=os.getenv("WANDB_DIR", BASE_PATH))
 
 WANDB_RUN_NAME = OUTPUT_DIR
@@ -89,11 +89,7 @@ def collate_fn(features, pad_id=0, threshold=640):
     labels = [pad_elems(x["labels"], pad_id=-100, maxlen=256) for x in features]
     labels = torch.tensor(labels, dtype=torch.long)
 
-    return {
-        "input_ids": input_ids,
-        "attention_mask": attention_mask,
-        "labels": labels
-    }
+    return {"input_ids": input_ids, "attention_mask": attention_mask, "labels": labels}
 
 
 class T5ForNaturalQuestions(T5ForConditionalGeneration):
@@ -104,16 +100,11 @@ class T5ForNaturalQuestions(T5ForConditionalGeneration):
         self.cls = nn.Linear(config.hidden_size, 5)
 
     def forward(
-                self,
-                input_ids,
-                attention_mask=None,
-                labels=None,
+        self, input_ids, attention_mask=None, labels=None,
     ):
 
         outputs = super().forward(
-            input_ids=input_ids,
-            attention_mask=attention_mask,
-            labels=labels
+            input_ids=input_ids, attention_mask=attention_mask, labels=labels
         )
         loss = outputs[0]
 
@@ -122,8 +113,12 @@ class T5ForNaturalQuestions(T5ForConditionalGeneration):
 
 if __name__ == "__main__":
     # "nq-training.jsonl" & "nq-validation.jsonl" are obtained from running `prepare_nq.py`
-    tr_dataset = load_dataset("json", data_files=BASE_PATH+"data/nq-train-tokenized-short-qa.jsonl")["train"]
-    val_dataset = load_dataset("json", data_files=BASE_PATH+"data/nq-dev-tokenized-short-qa.jsonl")["train"]
+    tr_dataset = load_dataset(
+        "json", data_files=BASE_PATH + "data/nq-train-tokenized-short-qa.jsonl"
+    )["train"]
+    val_dataset = load_dataset(
+        "json", data_files=BASE_PATH + "data/nq-dev-tokenized-short-qa.jsonl"
+    )["train"]
     # print(tr_dataset[0])
 
     if TRAIN_ON_SMALL == "true":
@@ -135,17 +130,9 @@ if __name__ == "__main__":
         indices = np.random.randint(0, 1500, size=2)
         val_dataset = val_dataset.select(indices)
 
-    tokenizer = T5Tokenizer.from_pretrained(
-        MODEL_NAME,
-        cache_dir=CACHE_DIR
-    )
-    tokenizer.add_special_tokens(
-        {"additional_special_tokens": [">>"]}
-    )
-    model = T5ForNaturalQuestions.from_pretrained(
-        MODEL_NAME,
-        cache_dir=CACHE_DIR
-    )
+    tokenizer = T5Tokenizer.from_pretrained(MODEL_NAME, cache_dir=CACHE_DIR)
+    tokenizer.add_special_tokens({"additional_special_tokens": [">>"]})
+    model = T5ForNaturalQuestions.from_pretrained(MODEL_NAME, cache_dir=CACHE_DIR)
     model.resize_token_embeddings(len(tokenizer))
 
     args = TrainingArguments(

@@ -43,21 +43,33 @@ class ModelArguments:
     """
 
     model_name_or_path: str = field(
-        metadata={"help": "Path to pretrained model or model identifier from huggingface.co/models"}
+        metadata={
+            "help": "Path to pretrained model or model identifier from huggingface.co/models"
+        }
     )
     config_name: Optional[str] = field(
-        default=None, metadata={"help": "Pretrained config name or path if not the same as model_name"}
+        default=None,
+        metadata={
+            "help": "Pretrained config name or path if not the same as model_name"
+        },
     )
     tokenizer_name: Optional[str] = field(
-        default=None, metadata={"help": "Pretrained tokenizer name or path if not the same as model_name"}
+        default=None,
+        metadata={
+            "help": "Pretrained tokenizer name or path if not the same as model_name"
+        },
     )
     cache_dir: Optional[str] = field(
         default=None,
-        metadata={"help": "Path to directory to store the pretrained models downloaded from huggingface.co"},
+        metadata={
+            "help": "Path to directory to store the pretrained models downloaded from huggingface.co"
+        },
     )
     model_revision: str = field(
         default="main",
-        metadata={"help": "The specific model version to use (can be a branch name, tag name or commit id)."},
+        metadata={
+            "help": "The specific model version to use (can be a branch name, tag name or commit id)."
+        },
     )
     use_auth_token: bool = field(
         default=False,
@@ -75,22 +87,33 @@ class DataTrainingArguments:
     """
 
     dataset_name: Optional[str] = field(
-        default=None, metadata={"help": "The name of the dataset to use (via the datasets library)."}
+        default=None,
+        metadata={"help": "The name of the dataset to use (via the datasets library)."},
     )
     dataset_config_name: Optional[str] = field(
-        default=None, metadata={"help": "The configuration name of the dataset to use (via the datasets library)."}
+        default=None,
+        metadata={
+            "help": "The configuration name of the dataset to use (via the datasets library)."
+        },
     )
-    train_file: Optional[str] = field(default=None, metadata={"help": "The input training data file (a text file)."})
+    train_file: Optional[str] = field(
+        default=None, metadata={"help": "The input training data file (a text file)."}
+    )
     validation_file: Optional[str] = field(
         default=None,
-        metadata={"help": "An optional input evaluation data file to evaluate the perplexity on (a text file)."},
+        metadata={
+            "help": "An optional input evaluation data file to evaluate the perplexity on (a text file)."
+        },
     )
     test_file: Optional[str] = field(
         default=None,
-        metadata={"help": "An optional input test data file to evaluate the perplexity on (a text file)."},
+        metadata={
+            "help": "An optional input test data file to evaluate the perplexity on (a text file)."
+        },
     )
     overwrite_cache: bool = field(
-        default=False, metadata={"help": "Overwrite the cached training and evaluation sets"}
+        default=False,
+        metadata={"help": "Overwrite the cached training and evaluation sets"},
     )
     preprocessing_num_workers: Optional[int] = field(
         default=None,
@@ -136,11 +159,12 @@ class DataTrainingArguments:
         default=None,
         metadata={
             "help": "Number of beams to use for evaluation. This argument will be passed to ``model.generate``, "
-                    "which is used during ``evaluate`` and ``predict``."
+            "which is used during ``evaluate`` and ``predict``."
         },
     )
     version_2_with_negative: bool = field(
-        default=False, metadata={"help": "If true, some of the examples do not have an answer."}
+        default=False,
+        metadata={"help": "If true, some of the examples do not have an answer."},
     )
     null_score_diff_threshold: float = field(
         default=0.0,
@@ -152,11 +176,15 @@ class DataTrainingArguments:
     )
     doc_stride: int = field(
         default=128,
-        metadata={"help": "When splitting up a long document into chunks, how much stride to take between chunks."},
+        metadata={
+            "help": "When splitting up a long document into chunks, how much stride to take between chunks."
+        },
     )
     n_best_size: int = field(
         default=20,
-        metadata={"help": "The total number of n-best predictions to generate when looking for an answer."},
+        metadata={
+            "help": "The total number of n-best predictions to generate when looking for an answer."
+        },
     )
     max_target_length: int = field(
         default=30,
@@ -169,35 +197,55 @@ class DataTrainingArguments:
         default=30,
         metadata={
             "help": "The maximum total sequence length for validation target text after tokenization. Sequences longer "
-                    "than this will be truncated, sequences shorter will be padded. Will default to `max_target_length`."
-                    "This argument is also used to override the ``max_length`` param of ``model.generate``, which is used "
-                    "during ``evaluate`` and ``predict``."
+            "than this will be truncated, sequences shorter will be padded. Will default to `max_target_length`."
+            "This argument is also used to override the ``max_length`` param of ``model.generate``, which is used "
+            "during ``evaluate`` and ``predict``."
         },
     )
 
+
 dummy_dir = "/home/ubuntu/sagemaker_test/"
+
 
 def decorate_condition(webhook_url, channel, decorator):
     return decorator if webhook_url is not None and channel is not None else lambda x: x
 
 
 # monitor training via huggingface knockknock
-webhook_url = os.environ["SM_HP_SLACK_WEBHOOK_URL"] if "SM_HP_SLACK_WEBHOOK_URL" in os.environ else None
-channel = os.environ["SM_HP_SLACK_CHANNEL"] if "SM_HP_SLACK_CHANNEL" in os.environ else None
-@decorate_condition(webhook_url, channel, slack_sender(webhook_url=webhook_url, channel=channel))
+webhook_url = (
+    os.environ["SM_HP_SLACK_WEBHOOK_URL"]
+    if "SM_HP_SLACK_WEBHOOK_URL" in os.environ
+    else None
+)
+channel = (
+    os.environ["SM_HP_SLACK_CHANNEL"] if "SM_HP_SLACK_CHANNEL" in os.environ else None
+)
+
+
+@decorate_condition(
+    webhook_url, channel, slack_sender(webhook_url=webhook_url, channel=channel)
+)
 def main():
     # See all possible arguments in src/transformers/training_args.py
     # or by passing the --help flag to this script.
     # We now keep distinct sets of args, for a cleaner separation of concerns.
 
-    parser = HfArgumentParser((ModelArguments, DataTrainingArguments, Seq2SeqTrainingArguments))
+    parser = HfArgumentParser(
+        (ModelArguments, DataTrainingArguments, Seq2SeqTrainingArguments)
+    )
     if len(sys.argv) == 2 and sys.argv[1].endswith(".json"):
         # If we pass only one argument to the script and it's the path to a json file,
         # let's parse it to get our arguments.
         model_args, data_args, training_args = parser.parse_json_file(
-            json_file=os.path.abspath(sys.argv[1]))
+            json_file=os.path.abspath(sys.argv[1])
+        )
     else:
-        model_args, data_args, sagemaker_args, training_args = parser.parse_args_into_dataclasses()
+        (
+            model_args,
+            data_args,
+            sagemaker_args,
+            training_args,
+        ) = parser.parse_args_into_dataclasses()
 
     # checks for input data
     # TODO: support for .txt files
@@ -207,20 +255,27 @@ def main():
     #     data_args.val_max_target_length = data_args.max_target_length
 
     # metrics logger initialization
-    if 'wandb' in training_args.report_to:
+    if "wandb" in training_args.report_to:
         import wandb
+
         wandb.init(project="sm-qa")
 
     # Detecting last checkpoint.
     last_checkpoint = None
-    if os.path.isdir(training_args.output_dir) and training_args.do_train and not training_args.overwrite_output_dir:
+    if (
+        os.path.isdir(training_args.output_dir)
+        and training_args.do_train
+        and not training_args.overwrite_output_dir
+    ):
         last_checkpoint = get_last_checkpoint(training_args.output_dir)
         if last_checkpoint is None and len(os.listdir(training_args.output_dir)) > 0:
             raise ValueError(
                 f"Output directory ({training_args.output_dir}) already exists and is not empty. "
                 "Use --overwrite_output_dir to overcome."
             )
-        elif last_checkpoint is not None and training_args.resume_from_checkpoint is None:
+        elif (
+            last_checkpoint is not None and training_args.resume_from_checkpoint is None
+        ):
             logger.info(
                 f"Checkpoint detected, resuming training at {last_checkpoint}. To avoid this behavior, change "
                 "the `--output_dir` or add `--overwrite_output_dir` to train from scratch."
@@ -271,13 +326,17 @@ def main():
     # The .from_pretrained methods guarantee that only one local process can concurrently
     # download model & vocab.
     config = AutoConfig.from_pretrained(
-        model_args.config_name if model_args.config_name else model_args.model_name_or_path,
+        model_args.config_name
+        if model_args.config_name
+        else model_args.model_name_or_path,
         cache_dir=model_args.cache_dir,
         revision=model_args.model_revision,
         use_auth_token=True if model_args.use_auth_token else None,
     )
     tokenizer = AutoTokenizer.from_pretrained(
-        model_args.tokenizer_name if model_args.tokenizer_name else model_args.model_name_or_path,
+        model_args.tokenizer_name
+        if model_args.tokenizer_name
+        else model_args.model_name_or_path,
         cache_dir=model_args.cache_dir,
         use_fast=True,
         revision=model_args.model_revision,
@@ -380,13 +439,19 @@ def main():
                     token_end_index -= 1
 
                 # Detect if the answer is out of the span (in which case this feature is labeled with the CLS index).
-                if not (offsets[token_start_index][0] <= start_char and offsets[token_end_index][1] >= end_char):
+                if not (
+                    offsets[token_start_index][0] <= start_char
+                    and offsets[token_end_index][1] >= end_char
+                ):
                     tokenized_examples["start_positions"].append(cls_index)
                     tokenized_examples["end_positions"].append(cls_index)
                 else:
                     # Otherwise move the token_start_index and token_end_index to the two ends of the answer.
                     # Note: we could go after the last offset if the answer is the last word (edge case).
-                    while token_start_index < len(offsets) and offsets[token_start_index][0] <= start_char:
+                    while (
+                        token_start_index < len(offsets)
+                        and offsets[token_start_index][0] <= start_char
+                    ):
                         token_start_index += 1
                     tokenized_examples["start_positions"].append(token_start_index - 1)
                     while offsets[token_end_index][1] >= end_char:
@@ -481,7 +546,9 @@ def main():
         predict_examples = datasets["test"]
         if data_args.max_predict_samples is not None:
             # We will select sample from whole data
-            predict_examples = predict_examples.select(range(data_args.max_predict_samples))
+            predict_examples = predict_examples.select(
+                range(data_args.max_predict_samples)
+            )
         # Predict Feature Creation
         predict_dataset = predict_examples.map(
             prepare_validation_features,
@@ -492,7 +559,9 @@ def main():
         )
         if data_args.max_predict_samples is not None:
             # During Feature creation dataset samples might increase, we will select required samples again
-            predict_dataset = predict_dataset.select(range(data_args.max_predict_samples))
+            predict_dataset = predict_dataset.select(
+                range(data_args.max_predict_samples)
+            )
 
     # Data collator
     # We have already padded to max length if the corresponding flag is True, otherwise we need to pad in the data
@@ -500,7 +569,9 @@ def main():
     data_collator = (
         default_data_collator
         if data_args.pad_to_max_length
-        else DataCollatorWithPadding(tokenizer, pad_to_multiple_of=8 if training_args.fp16 else None)
+        else DataCollatorWithPadding(
+            tokenizer, pad_to_multiple_of=8 if training_args.fp16 else None
+        )
     )
 
     # Post-processing:
@@ -521,12 +592,17 @@ def main():
         # Format the result to the format the metric expects.
         if data_args.version_2_with_negative:
             formatted_predictions = [
-                {"id": k, "prediction_text": v, "no_answer_probability": 0.0} for k, v in predictions.items()
+                {"id": k, "prediction_text": v, "no_answer_probability": 0.0}
+                for k, v in predictions.items()
             ]
         else:
-            formatted_predictions = [{"id": k, "prediction_text": v} for k, v in predictions.items()]
+            formatted_predictions = [
+                {"id": k, "prediction_text": v} for k, v in predictions.items()
+            ]
 
-        references = [{"id": ex["id"], "answers": ex[answer_column_name]} for ex in examples]
+        references = [
+            {"id": ex["id"], "answers": ex[answer_column_name]} for ex in examples
+        ]
         return EvalPrediction(predictions=formatted_predictions, label_ids=references)
 
     metric = load_metric("squad_v2" if data_args.version_2_with_negative else "squad")
@@ -559,24 +635,35 @@ def main():
             checkpoint = last_checkpoint
         train_result = trainer.train(resume_from_checkpoint=checkpoint)
 
-        trainer.save_model(sagemaker_args.model_dir)  # Saves the model and tokenizer to S3
+        trainer.save_model(
+            sagemaker_args.model_dir
+        )  # Saves the model and tokenizer to S3
 
         metrics = train_result.metrics
         max_train_samples = (
-            data_args.max_train_samples if data_args.max_train_samples is not None else len(train_dataset)
+            data_args.max_train_samples
+            if data_args.max_train_samples is not None
+            else len(train_dataset)
         )
         metrics["train_samples"] = min(max_train_samples, len(train_dataset))
-        results['train'] = {k: v for k, v in metrics.items() if not k.__contains__('mem')}
+        results["train"] = {
+            k: v for k, v in metrics.items() if not k.__contains__("mem")
+        }
 
     # Evaluation
     if training_args.do_eval:
         logger.info("*** Evaluate ***")
 
         metrics = trainer.evaluate()
-        max_eval_samples = data_args.max_eval_samples if data_args.max_eval_samples is not None else len(
-            eval_dataset)
+        max_eval_samples = (
+            data_args.max_eval_samples
+            if data_args.max_eval_samples is not None
+            else len(eval_dataset)
+        )
         metrics["eval_samples"] = min(max_eval_samples, len(eval_dataset))
-        results['eval'] = {k: v for k, v in metrics.items() if not k.__contains__('mem')}
+        results["eval"] = {
+            k: v for k, v in metrics.items() if not k.__contains__("mem")
+        }
 
     if training_args.do_predict:
         logger.info("*** Predict ***")
@@ -589,18 +676,26 @@ def main():
         )
         metrics = predict_results.metrics
         max_predict_samples = (
-            data_args.max_predict_samples if data_args.max_predict_samples is not None else len(predict_dataset)
+            data_args.max_predict_samples
+            if data_args.max_predict_samples is not None
+            else len(predict_dataset)
         )
         metrics["predict_samples"] = min(max_predict_samples, len(predict_dataset))
-        results['test'] = {k: v for k, v in metrics.items() if not k.__contains__('mem')}
+        results["test"] = {
+            k: v for k, v in metrics.items() if not k.__contains__("mem")
+        }
 
         if trainer.is_world_process_zero():
             if training_args.predict_with_generate:
                 predictions = tokenizer.batch_decode(
-                    predict_results.predictions, skip_special_tokens=True, clean_up_tokenization_spaces=True
+                    predict_results.predictions,
+                    skip_special_tokens=True,
+                    clean_up_tokenization_spaces=True,
                 )
                 predictions = [pred.strip() for pred in predictions]
-                output_prediction_file = os.path.join(sagemaker_args.output_data_dir, "generated_predictions.txt")
+                output_prediction_file = os.path.join(
+                    sagemaker_args.output_data_dir, "generated_predictions.txt"
+                )
                 with open(output_prediction_file, "w") as writer:
                     writer.write("\n".join(predictions))
 
@@ -609,13 +704,28 @@ def main():
     with open(output_results_file, "w") as writer:
         if training_args.do_train:
             writer.write("*" * 20 + "TRAIN METRICS" + "*" * 20 + "\n")
-            writer.write("\n" + "".join(["{} = {}\n".format(k, v) for k, v in results['train'].items()]))
+            writer.write(
+                "\n"
+                + "".join(
+                    ["{} = {}\n".format(k, v) for k, v in results["train"].items()]
+                )
+            )
         if training_args.do_eval:
             writer.write("\n" + "*" * 20 + "VALIDATION METRICS" + "*" * 20 + "\n")
-            writer.write("\n" + "".join(["{} = {}\n".format(k, v) for k, v in results['eval'].items()]))
+            writer.write(
+                "\n"
+                + "".join(
+                    ["{} = {}\n".format(k, v) for k, v in results["eval"].items()]
+                )
+            )
         if training_args.do_predict:
             writer.write("\n" + "*" * 20 + "TEST METRICS" + "*" * 20 + "\n")
-            writer.write("\n" + "".join(["{} = {}\n".format(k, v) for k, v in results['test'].items()]))
+            writer.write(
+                "\n"
+                + "".join(
+                    ["{} = {}\n".format(k, v) for k, v in results["test"].items()]
+                )
+            )
 
     return pprint.pformat(results)
 

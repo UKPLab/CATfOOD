@@ -6,18 +6,13 @@ from typing import List, Tuple, Dict, Optional
 import torch
 from torch import backends
 from torch.nn import Module, ModuleList
-from transformers import (
-    PreTrainedModel,
-    PreTrainedTokenizer
-)
+from transformers import PreTrainedModel, PreTrainedTokenizer
 from transformers.models.gpt2.tokenization_gpt2 import bytes_to_unicode
 
 
 class BaseExplainer(ABC):
     def __init__(
-        self,
-        model: PreTrainedModel,
-        tokenizer: PreTrainedTokenizer,
+        self, model: PreTrainedModel, tokenizer: PreTrainedTokenizer,
     ):
         self.model = model
         self.tokenizer = tokenizer
@@ -61,9 +56,9 @@ class BaseExplainer(ABC):
         """
         return {name: tensor.to(self.model.device) for name, tensor in inputs.items()}
 
-    def get_model_embeddings(self,
-                             embedding_type: str = "word_embeddings"
-                             ) -> Module or ModuleList:
+    def get_model_embeddings(
+        self, embedding_type: str = "word_embeddings"
+    ) -> Module or ModuleList:
         """
         Get the model embedding layer
         Args:
@@ -104,6 +99,7 @@ class BaseExplainer(ABC):
         Args:
             embedding_grads: list to store the gradients
         """
+
         def hook_layers(module, grad_in, grad_out):
             grads = grad_out[0]
             embedding_grads.append(grads)
@@ -138,7 +134,7 @@ class BaseExplainer(ABC):
             outputs = self.model(
                 **encoded_inputs,
                 start_positions=answer_start.to(self.device),
-                end_positions=answer_end.to(self.device)
+                end_positions=answer_end.to(self.device),
             )
             loss = outputs.loss
 
@@ -163,9 +159,9 @@ class BaseExplainer(ABC):
         # print(grad_dict)
         return grad_dict
 
-    def encode(self, inputs: list = None,
-               add_special_tokens: bool = True,
-               return_tensors=None):
+    def encode(
+        self, inputs: list = None, add_special_tokens: bool = True, return_tensors=None
+    ):
         """
         Encode inputs using the model tokenizer
         Args:
@@ -176,13 +172,14 @@ class BaseExplainer(ABC):
         Return:
             tokenized inputs
         """
-        return self.tokenizer(inputs,
-                              add_special_tokens=add_special_tokens,
-                              return_tensors=return_tensors,
-                              padding=True,
-                              truncation=True,
-                              max_length=512,
-                              )
+        return self.tokenizer(
+            inputs,
+            add_special_tokens=add_special_tokens,
+            return_tensors=return_tensors,
+            padding=True,
+            truncation=True,
+            max_length=512,
+        )
 
     def decode(self, input_ids: torch.Tensor, skip_special_tokens: bool) -> List[str]:
         """
@@ -192,15 +189,10 @@ class BaseExplainer(ABC):
             word tokens for a sentence/document.
         """
         return self.tokenizer.convert_ids_to_tokens(
-            input_ids[0],
-            skip_special_tokens=skip_special_tokens
+            input_ids[0], skip_special_tokens=skip_special_tokens
         )
 
-    def _predict(
-            self,
-            inputs,
-            **model_kwargs
-            ) -> tuple:
+    def _predict(self, inputs, **model_kwargs) -> tuple:
         """
         Inference on the input.
         Args:
@@ -208,22 +200,18 @@ class BaseExplainer(ABC):
         Returns:
              The model outputs and optionally the input features
         """
-        encoded_inputs = self.encode(inputs,
-                                     add_special_tokens=True,
-                                     return_tensors="pt")
+        encoded_inputs = self.encode(
+            inputs, add_special_tokens=True, return_tensors="pt"
+        )
         encoded_inputs.to(self.device)
         self.decoded_text = self.decode(
-            encoded_inputs["input_ids"],
-            skip_special_tokens=False
+            encoded_inputs["input_ids"], skip_special_tokens=False
         )
         self.words_mapping = encoded_inputs.word_ids()
 
         all_predictions = list()
         self.model.to(self.device)
-        predictions = self.model(
-            **encoded_inputs,
-            **model_kwargs
-        )
+        predictions = self.model(**encoded_inputs, **model_kwargs)
         # print(predictions)
         all_predictions.append(predictions)
         keys = all_predictions[0].keys()
@@ -231,16 +219,23 @@ class BaseExplainer(ABC):
         for key in keys:
             if isinstance(all_predictions[0][key], tuple):
                 tuple_of_lists = list(
-                    zip(*[[torch.stack(p).to(self.device)
-                           if isinstance(p, tuple) else p.to(self.device)
-                           for p in tpl[key]] for tpl in all_predictions]))
+                    zip(
+                        *[
+                            [
+                                torch.stack(p).to(self.device)
+                                if isinstance(p, tuple)
+                                else p.to(self.device)
+                                for p in tpl[key]
+                            ]
+                            for tpl in all_predictions
+                        ]
+                    )
+                )
                 final_prediction[key] = tuple(torch.cat(l) for l in tuple_of_lists)
             else:
                 final_prediction[key] = torch.cat(
-                    [
-                        p[key].to(self.device)
-                        for p in all_predictions
-                    ])
+                    [p[key].to(self.device) for p in all_predictions]
+                )
 
         return predictions, encoded_inputs
 
@@ -253,11 +248,13 @@ class BaseExplainer(ABC):
 
         """
 
-        def decode(start_: np.ndarray,
-                   end_: np.ndarray,
-                   topk: int,
-                   max_answer_len: int,
-                   undesired_tokens_: np.ndarray) -> Tuple:
+        def decode(
+            start_: np.ndarray,
+            end_: np.ndarray,
+            topk: int,
+            max_answer_len: int,
+            undesired_tokens_: np.ndarray,
+        ) -> Tuple:
             """
             Take the output of any :obj:`ModelForQuestionAnswering` and will generate probabilities
             for each span to be the actual answer.
@@ -297,8 +294,9 @@ class BaseExplainer(ABC):
                 idx_sort = idx[np.argsort(-scores_flat[idx])]
 
             starts_, ends_ = np.unravel_index(idx_sort, candidates.shape)[1:]
-            desired_spans = np.isin(starts_, undesired_tokens_.nonzero()) \
-                            & np.isin(ends_, undesired_tokens_.nonzero())
+            desired_spans = np.isin(starts_, undesired_tokens_.nonzero()) & np.isin(
+                ends_, undesired_tokens_.nonzero()
+            )
             starts_ = starts_[desired_spans]
             ends_ = ends_[desired_spans]
             scores_ = candidates[0, starts_, ends_]
@@ -308,13 +306,15 @@ class BaseExplainer(ABC):
         predictions, features = self._predict(request)
 
         task_outputs = {"answers": []}
-        for idx, (start, end, (_, context)) in enumerate(zip(predictions["start_logits"],
-                                                             predictions["end_logits"],
-                                                             request)):
+        for idx, (start, end, (_, context)) in enumerate(
+            zip(predictions["start_logits"], predictions["end_logits"], request)
+        ):
             start = start.cpu().detach().numpy()
             end = end.cpu().detach().numpy()
             # Ensure padded tokens & question tokens cannot belong to the set of candidate answers.
-            question_tokens = np.abs(np.array([s != 1 for s in features.sequence_ids(idx)]) - 1)
+            question_tokens = np.abs(
+                np.array([s != 1 for s in features.sequence_ids(idx)]) - 1
+            )
             # Unmask CLS token for 'no answer'
             question_tokens[0] = 1
             undesired_tokens = question_tokens & features["attention_mask"][idx].numpy()
@@ -326,29 +326,35 @@ class BaseExplainer(ABC):
             start = np.where(undesired_tokens_mask, -10000.0, start)
             end = np.where(undesired_tokens_mask, -10000.0, end)
 
-            start = np.exp(start - np.log(np.sum(np.exp(start), axis=-1, keepdims=True)))
+            start = np.exp(
+                start - np.log(np.sum(np.exp(start), axis=-1, keepdims=True))
+            )
             end = np.exp(end - np.log(np.sum(np.exp(end), axis=-1, keepdims=True)))
 
             # Get score for 'no answer' then mask for decoding step (CLS token
             no_answer_score = (start[0] * end[0]).item()
             start[0] = end[0] = 0.0
 
-            starts, ends, scores = decode(
-                start, end, 1, 128, undesired_tokens
-            )
+            starts, ends, scores = decode(start, end, 1, 128, undesired_tokens)
             enc = features[idx]
             answers = [
                 {
                     "score": score.item(),
-                    "start": enc.word_to_chars(
-                        enc.token_to_word(s), sequence_index=1)[0],
+                    "start": enc.word_to_chars(enc.token_to_word(s), sequence_index=1)[
+                        0
+                    ],
                     "end": enc.word_to_chars(enc.token_to_word(e), sequence_index=1)[1],
                     "answer": context[
-                              enc.word_to_chars(enc.token_to_word(s), sequence_index=1)[0]:
-                              enc.word_to_chars(enc.token_to_word(e), sequence_index=1)[1]],
+                        enc.word_to_chars(enc.token_to_word(s), sequence_index=1)[
+                            0
+                        ] : enc.word_to_chars(enc.token_to_word(e), sequence_index=1)[1]
+                    ],
                 }
-                for s, e, score in zip(starts, ends, scores)]
-            answers.append({"score": no_answer_score, "start": 0, "end": 0, "answer": ""})
+                for s, e, score in zip(starts, ends, scores)
+            ]
+            answers.append(
+                {"score": no_answer_score, "start": 0, "end": 0, "answer": ""}
+            )
             answers = sorted(answers, key=lambda x: x["score"], reverse=True)[:1]
             task_outputs["answers"].append(answers)
         return task_outputs
@@ -380,27 +386,30 @@ class BaseExplainer(ABC):
         return word_map
 
     def _bpe_decode(
-            self,
-            tokens: List[str],
-            # attributions: List
+        self,
+        tokens: List[str],
+        # attributions: List
     ) -> List:
 
         byte_encoder = bytes_to_unicode()
         byte_decoder = {v: k for k, v in byte_encoder.items()}
         decoded_each_tok = [
             bytearray([byte_decoder[c] for c in t]).decode(
-                encoding="utf-8",
-                errors="replace") for t in tokens
+                encoding="utf-8", errors="replace"
+            )
+            for t in tokens
         ]
 
         end_points = []
         force_break = False
         for idx, token in enumerate(decoded_each_tok):
             # special token, punctuation, alphanumeric
-            if token in self.tokenizer.all_special_tokens or \
-                    token in string.punctuation or \
-                    not any([x.isalnum() for x in token.lstrip()]) or \
-                    token.lstrip == "'s":
+            if (
+                token in self.tokenizer.all_special_tokens
+                or token in string.punctuation
+                or not any([x.isalnum() for x in token.lstrip()])
+                or token.lstrip == "'s"
+            ):
                 end_points.append(idx)
                 force_break = True
                 continue
@@ -432,9 +441,7 @@ class BaseExplainer(ABC):
         return segments  # attribution_score
 
     def _wordpiece_decode(
-            self,
-            tokens: List[str],
-            attributions: List
+        self, tokens: List[str], attributions: List
     ) -> Tuple[List[str], np.array]:
 
         decoded_each_tok = tokens
@@ -443,21 +450,27 @@ class BaseExplainer(ABC):
 
         context_start = tokens.index(self.tokenizer.sep_token)
         for idx, token in enumerate(decoded_each_tok[:-1]):
-            if token not in self.tokenizer.all_special_tokens \
-                    and token == "'" \
-                    and decoded_each_tok[idx+1] in chars_to_handle \
-                    and idx < context_start:
-                word_map[idx] = word_map[idx-1]
-                word_map[idx+1] = word_map[idx-1]
-                word_map[idx+2:context_start] = [w-2 for w in word_map[idx+2:context_start] if w]
+            if (
+                token not in self.tokenizer.all_special_tokens
+                and token == "'"
+                and decoded_each_tok[idx + 1] in chars_to_handle
+                and idx < context_start
+            ):
+                word_map[idx] = word_map[idx - 1]
+                word_map[idx + 1] = word_map[idx - 1]
+                word_map[idx + 2 : context_start] = [
+                    w - 2 for w in word_map[idx + 2 : context_start] if w
+                ]
                 continue
-            if token not in self.tokenizer.all_special_tokens \
-                    and token == "'" \
-                    and decoded_each_tok[idx+1] in chars_to_handle \
-                    and idx > context_start:
-                word_map[idx] = word_map[idx-1]
-                word_map[idx+1] = word_map[idx-1]
-                word_map[idx+2:-1] = [w-2 for w in word_map[idx+2:-1] if w]
+            if (
+                token not in self.tokenizer.all_special_tokens
+                and token == "'"
+                and decoded_each_tok[idx + 1] in chars_to_handle
+                and idx > context_start
+            ):
+                word_map[idx] = word_map[idx - 1]
+                word_map[idx + 1] = word_map[idx - 1]
+                word_map[idx + 2 : -1] = [w - 2 for w in word_map[idx + 2 : -1] if w]
                 continue
 
         filtered_tokens = [decoded_each_tok[0]]
@@ -499,34 +512,39 @@ class BaseExplainer(ABC):
             filtered_tokens, importance = self._wordpiece_decode(dec_text, attributions)
             sep_tokens = 1
 
-        normed_imp = [np.round(float(i) / sum(importance), 3)
-                      for i in importance]
-        result = [(w, a) for w, a in zip(filtered_tokens, normed_imp)
-                  if w != '']
+        normed_imp = [np.round(float(i) / sum(importance), 3) for i in importance]
+        result = [(w, a) for w, a in zip(filtered_tokens, normed_imp) if w != ""]
         assert len(filtered_tokens) == len(normed_imp)
         # outputs = {"attributions": result}
         context_start = filtered_tokens.index(self.tokenizer.sep_token)
         # account for cls token in result
-        question = [(idx, v[0], v[1])
-                    for idx, v in enumerate(result[1:])
-                    if idx < context_start - 1]
+        question = [
+            (idx, v[0], v[1])
+            for idx, v in enumerate(result[1:])
+            if idx < context_start - 1
+        ]
 
-        context = [(idx - len(question) - sep_tokens, v[0], v[1])
-                   for idx, v in enumerate(result[1:])
-                   if idx > context_start - 1
-                   and v[0] != self.tokenizer.sep_token]
+        context = [
+            (idx - len(question) - sep_tokens, v[0], v[1])
+            for idx, v in enumerate(result[1:])
+            if idx > context_start - 1 and v[0] != self.tokenizer.sep_token
+        ]
 
         outputs, outputs_question, outputs_context = [], [], []
         if mode == "question" or mode == "all":
-            outputs_question = [(i, k.lower(), v) for i, k, v in sorted(
-                question,
-                key=lambda item: item[2],
-                reverse=True)[:top_k]]
+            outputs_question = [
+                (i, k.lower(), v)
+                for i, k, v in sorted(question, key=lambda item: item[2], reverse=True)[
+                    :top_k
+                ]
+            ]
         if mode == "context" or mode == "all":
-            outputs_context = [(i, k.lower(), v) for i, k, v in sorted(
-                context,
-                key=lambda item: item[2],
-                reverse=True)[:top_k]]
+            outputs_context = [
+                (i, k.lower(), v)
+                for i, k, v in sorted(context, key=lambda item: item[2], reverse=True)[
+                    :top_k
+                ]
+            ]
 
         outputs = [{"question": outputs_question, "context": outputs_context}]
         return outputs

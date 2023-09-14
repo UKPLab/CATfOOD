@@ -10,19 +10,29 @@ from sklearn.decomposition import PCA
 BASE_PATH = "/storage/ukp/work/sachdeva/research_projects/exp_calibration/"
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description="Passing arguments for model, tokenizer, and dataset.")
-    parser.add_argument("--model_name", type=str, required=True, help="Specify the model to use.")
-    parser.add_argument("--dataset", type=str, required=True, help="Specify the dataset to use.")
+    parser = argparse.ArgumentParser(
+        description="Passing arguments for model, tokenizer, and dataset."
+    )
+    parser.add_argument(
+        "--model_name", type=str, required=True, help="Specify the model to use."
+    )
+    parser.add_argument(
+        "--dataset", type=str, required=True, help="Specify the dataset to use."
+    )
     args = parser.parse_args()
 
     if args.dataset == "squad":
-        loader = dataloader.PreprocessData("squad", "plain_text", save_data=False, save_path="../../../../")
+        loader = dataloader.PreprocessData(
+            "squad", "plain_text", save_data=False, save_path="../../../../"
+        )
         data = loader.processed_val_set()
     elif args.dataset == "squad_adversarial":
-        loader = dataloader.PreprocessData("squad_adversarial", "AddSent", save_data=False, save_path="../../../../")
+        loader = dataloader.PreprocessData(
+            "squad_adversarial", "AddSent", save_data=False, save_path="../../../../"
+        )
         data = loader.processed_val_set()
     elif args.dataset == "trivia_qa":
         data = dataloader.get_dev_examples("./src/data", "dev_trivia.json")
@@ -33,11 +43,15 @@ if __name__ == '__main__':
     elif args.dataset == "bioasq":
         data = dataloader.get_dev_samples_mrqa(BASE_PATH + "src/data/BioASQ-dev.jsonl")
     elif args.dataset == "natural_questions":
-        data = dataloader.get_dev_samples_mrqa(BASE_PATH + "src/data/NaturalQuestionsShort.jsonl")
+        data = dataloader.get_dev_samples_mrqa(
+            BASE_PATH + "src/data/NaturalQuestionsShort.jsonl"
+        )
     else:
         raise ValueError("Dataset not supported.")
 
-    attributions = utils.load_bin(f"{BASE_PATH}src/data/{args.dataset}/dense_repr_info_{args.model_name}.bin")
+    attributions = utils.load_bin(
+        f"{BASE_PATH}src/data/{args.dataset}/dense_repr_info_{args.model_name}.bin"
+    )
     num_samples = len(data)
     all_data = []
     processed_instances = OrderedDict()
@@ -47,18 +61,28 @@ if __name__ == '__main__':
             try:
                 attr = np.array(attributions[ex["id"]])
                 pad_width = ((0, 0), (0, 512 - attr.shape[1]), (0, 0))
-                padded_arr = np.pad(attr, pad_width=pad_width, mode='constant', constant_values=0)
+                padded_arr = np.pad(
+                    attr, pad_width=pad_width, mode="constant", constant_values=0
+                )
                 all_data.append(padded_arr.squeeze())
             except Exception:
                 print(ex)
                 print(f"Unable to get representations: {traceback.format_exc()}")
-    elif args.dataset in ["trivia_qa", "hotpot_qa", "news_qa", "natural_questions", "bioasq"]:
+    elif args.dataset in [
+        "trivia_qa",
+        "hotpot_qa",
+        "news_qa",
+        "natural_questions",
+        "bioasq",
+    ]:
 
         for ex in tqdm(data):
             try:
                 attr = np.array(attributions[ex["qas_id"]])
                 pad_width = ((0, 0), (0, 512 - attr.shape[1]), (0, 0))
-                padded_arr = np.pad(attr, pad_width=pad_width, mode='constant', constant_values=0)
+                padded_arr = np.pad(
+                    attr, pad_width=pad_width, mode="constant", constant_values=0
+                )
                 all_data.append(padded_arr.squeeze())
             except Exception:
                 print(ex)
@@ -72,7 +96,9 @@ if __name__ == '__main__':
     pca = PCA(n_components=num_components)
     pca.fit(hidden_states_flattened)
     reduced_hidden_states = pca.transform(hidden_states_flattened)
-    reduced_hidden_states = np.reshape(reduced_hidden_states, (num_samples, 512, num_components))
+    reduced_hidden_states = np.reshape(
+        reduced_hidden_states, (num_samples, 512, num_components)
+    )
     # print(reduced_hidden_states.shape)
 
     for i, ex in enumerate(tqdm(data)):
@@ -81,5 +107,8 @@ if __name__ == '__main__':
             processed_instances[ex["id"]] = torch.tensor(states)
         else:
             processed_instances[ex["qas_id"]] = torch.tensor(states)
-    utils.dump_to_bin(processed_instances,
-                      BASE_PATH + f"src/data/{args.dataset}/dense_repr_pca_10_info_{args.model_name}.bin")
+    utils.dump_to_bin(
+        processed_instances,
+        BASE_PATH
+        + f"src/data/{args.dataset}/dense_repr_pca_10_info_{args.model_name}.bin",
+    )

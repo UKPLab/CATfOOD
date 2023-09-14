@@ -10,7 +10,7 @@ from transformers import (
     T5Tokenizer,
     Trainer,
     TrainingArguments,
-    T5Config
+    T5Config,
 )
 
 # BASE_PATH = "/home/sachdeva/projects/exp_calibration/src/rag/"
@@ -18,9 +18,10 @@ from transformers import (
 BASE_PATH = "/storage/ukp/work/sachdeva/research_projects/exp_calibration/src/rag/"
 CACHE_DIR = "/storage/ukp/work/sachdeva/.cache"
 
-os.environ['TRANSFORMERS_CACHE'] = CACHE_DIR
-os.environ['WANDB_PROJECT'] = "t5-squad-qg"
+os.environ["TRANSFORMERS_CACHE"] = CACHE_DIR
+os.environ["WANDB_PROJECT"] = "t5-squad-qg"
 # wandb.init(dir=os.getenv("WANDB_DIR", BASE_PATH))
+
 
 class T5ForQGeneration(T5ForConditionalGeneration):
     """T5ForConditionalGeneration for QA"""
@@ -29,35 +30,31 @@ class T5ForQGeneration(T5ForConditionalGeneration):
         super().__init__(config)
 
     def forward(
-            self,
-            input_ids=None,
-            attention_mask=None,
-            labels=None,
+        self, input_ids=None, attention_mask=None, labels=None,
     ):
         outputs = super().forward(
-            input_ids=input_ids,
-            attention_mask=attention_mask,
-            labels=labels
+            input_ids=input_ids, attention_mask=attention_mask, labels=labels
         )
         loss = outputs[0]
 
         return {"loss": loss}
 
+
 class QGen:
     def __init__(
-            self,
-            dataset_name: str,
-            dataset_config: str,
-            cf_path: str,
-            max_src_len: int,
-            stride: int,
-            do_train: bool,
-            do_eval: bool,
-            model_name: str,
-            cache_dir: str=None,
-            max_train_samples: int=None,
-            max_val_samples: int=None,
-            save_results: bool=False
+        self,
+        dataset_name: str,
+        dataset_config: str,
+        cf_path: str,
+        max_src_len: int,
+        stride: int,
+        do_train: bool,
+        do_eval: bool,
+        model_name: str,
+        cache_dir: str = None,
+        max_train_samples: int = None,
+        max_val_samples: int = None,
+        save_results: bool = False,
     ):
         self.dataset_name = dataset_name
         self.dataset_config = dataset_config
@@ -76,7 +73,6 @@ class QGen:
 
         # load resources
         self._prepare_data()
-
 
     def _preprocess_data(self, example):
         question = example["question"].strip()
@@ -101,30 +97,20 @@ class QGen:
         example["labels"] = label_ids
         return example
 
-
     def _prepare_data(self):
 
         """
         Load model, tokenizer and data
         """
 
-        config = T5Config.from_pretrained(
-            self.model_name,
-            cache_dir=self.cache_dir,
-        )
+        config = T5Config.from_pretrained(self.model_name, cache_dir=self.cache_dir,)
         self.tokenizer = T5Tokenizer.from_pretrained(
-            self.model_name,
-            cache_dir=self.cache_dir,
-            use_fast=True,
+            self.model_name, cache_dir=self.cache_dir, use_fast=True,
         )
-        self.tokenizer.add_special_tokens(
-            {"additional_special_tokens": [">>"]}
-        )
+        self.tokenizer.add_special_tokens({"additional_special_tokens": [">>"]})
 
         self.model = T5ForQGeneration.from_pretrained(
-            self.model_name,
-            config=config,
-            cache_dir=self.cache_dir,
+            self.model_name, config=config, cache_dir=self.cache_dir,
         )
         self.model.resize_token_embeddings(len(self.tokenizer))
         dataloader = PreprocessData(
@@ -132,7 +118,7 @@ class QGen:
             self.dataset_config,
             cf_path=None,
             save_data=False,
-            save_path=""
+            save_path="",
         )
         self.train_set, self.val_set = dataloader.processed_train_val_set()
 
@@ -148,7 +134,9 @@ class QGen:
             maxlen = threshold
 
         # dynamic padding
-        input_ids = [pad_elems(x["input_ids"], pad_id=pad_id, maxlen=maxlen) for x in features]
+        input_ids = [
+            pad_elems(x["input_ids"], pad_id=pad_id, maxlen=maxlen) for x in features
+        ]
         input_ids = torch.tensor(input_ids, dtype=torch.long)
         # print(input_ids)
         # print(len(input_ids[0]))
@@ -166,7 +154,7 @@ class QGen:
         return {
             "input_ids": input_ids,
             "attention_mask": attention_mask,
-            "labels": labels
+            "labels": labels,
         }
 
     def train(self):
@@ -225,20 +213,52 @@ class QGen:
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description="Passing arguments for model, tokenizer, and dataset.")
+    parser = argparse.ArgumentParser(
+        description="Passing arguments for model, tokenizer, and dataset."
+    )
     parser.add_argument(
         "--model_name",
         default="roberta-base",
-        type=str, required=False, help="Specify the model to use.")
-    parser.add_argument("--tokenizer", default="roberta-base", type=str, required=False,
-                        help="Specify the tokenizer to use.")
-    parser.add_argument("--output_dir", type=str, required=True, help="Specify the output directory.")
-    parser.add_argument("--seed", default=42, type=int, required=False, help="Specify the seed for reproducibility.")
-    parser.add_argument("--cf_path", default=None, type=str, required=False, help="Specify the path to counterfactuals.")
-    parser.add_argument("--epochs", default=3, type=int, required=False, help="Epochs to train.")
-    parser.add_argument("--batch_size", default=4, type=int, required=False, help="Train batch size.")
-    parser.add_argument("--lr", default=2.0e-5, type=float, required=False, help="Learning rate.")
-    parser.add_argument("--warmup_ratio", default=0.06, type=float, required=False, help="Warmup ratio.")
+        type=str,
+        required=False,
+        help="Specify the model to use.",
+    )
+    parser.add_argument(
+        "--tokenizer",
+        default="roberta-base",
+        type=str,
+        required=False,
+        help="Specify the tokenizer to use.",
+    )
+    parser.add_argument(
+        "--output_dir", type=str, required=True, help="Specify the output directory."
+    )
+    parser.add_argument(
+        "--seed",
+        default=42,
+        type=int,
+        required=False,
+        help="Specify the seed for reproducibility.",
+    )
+    parser.add_argument(
+        "--cf_path",
+        default=None,
+        type=str,
+        required=False,
+        help="Specify the path to counterfactuals.",
+    )
+    parser.add_argument(
+        "--epochs", default=3, type=int, required=False, help="Epochs to train."
+    )
+    parser.add_argument(
+        "--batch_size", default=4, type=int, required=False, help="Train batch size."
+    )
+    parser.add_argument(
+        "--lr", default=2.0e-5, type=float, required=False, help="Learning rate."
+    )
+    parser.add_argument(
+        "--warmup_ratio", default=0.06, type=float, required=False, help="Warmup ratio."
+    )
 
     args = parser.parse_args()
 
@@ -263,11 +283,16 @@ if __name__ == "__main__":
 
     WANDB_RUN_NAME = OUTPUT_DIR
 
-    wandb.init(config={
-        "lr": LEARNING_RATE, "warmup_ratio": WARMUP_RATIO,
-        "epochs": MAX_EPOCHS,
-        "model": args.model_name, "batch_size": BATCH_SIZE, "output_dir": OUTPUT_DIR,
-    })
+    wandb.init(
+        config={
+            "lr": LEARNING_RATE,
+            "warmup_ratio": WARMUP_RATIO,
+            "epochs": MAX_EPOCHS,
+            "model": args.model_name,
+            "batch_size": BATCH_SIZE,
+            "output_dir": OUTPUT_DIR,
+        }
+    )
     wandb.run.name = WANDB_RUN_NAME
 
     trainer = QGen(
@@ -282,6 +307,6 @@ if __name__ == "__main__":
         model_name=args.model_name,
         max_train_samples=MAX_TRAIN_SAMPLES,
         max_val_samples=MAX_VAL_SAMPLES,
-        save_results=True
+        save_results=True,
     )
     trainer.train()

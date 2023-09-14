@@ -4,7 +4,7 @@ import pickle
 
 
 def merge_jsonl_files(files, out_file):
-    with jsonlines.open(out_file, 'w') as writer:
+    with jsonlines.open(out_file, "w") as writer:
         for file in tqdm(files):
             with jsonlines.open(file) as reader:
                 for obj in reader:
@@ -12,11 +12,11 @@ def merge_jsonl_files(files, out_file):
 
 
 def _load_binary_file(file):
-    with open(file, 'rb') as f:
+    with open(file, "rb") as f:
         return pickle.load(f)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # base_path = "/storage/ukp/work/sachdeva/research_projects/exp_calibration"
     # file_base_path = base_path + "/src/data/squad/rag_predictions_with_answers_noise_filtered_20p_chunk"
     # chunks = 5

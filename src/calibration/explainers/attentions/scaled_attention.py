@@ -10,7 +10,7 @@ from transformers import (
     # RobertaAdapterModel,
     PreTrainedModel,
     PreTrainedTokenizer,
-    logging
+    logging,
 )
 
 import torch
@@ -29,11 +29,9 @@ np.random.seed(4)
 
 BASE_PATH = "/storage/ukp/work/sachdeva/research_projects/exp_calibration/"
 
+
 class ScaledAttention(BaseExplainer):
-    def __init__(self,
-                 model: PreTrainedModel,
-                 tokenizer: PreTrainedTokenizer
-                 ):
+    def __init__(self, model: PreTrainedModel, tokenizer: PreTrainedTokenizer):
         super().__init__(model=model, tokenizer=tokenizer)
 
     def get_model_attentions(self) -> Module or ModuleList:
@@ -56,7 +54,9 @@ class ScaledAttention(BaseExplainer):
         """
 
         def forward_hook(module, inputs, output):
-            attentions_list.append(output[1][:, :, 0, :].mean(1).squeeze(0).clone().detach())
+            attentions_list.append(
+                output[1][:, :, 0, :].mean(1).squeeze(0).clone().detach()
+            )
 
         handles = []
         attn_layer = self.get_model_attentions()
@@ -69,6 +69,7 @@ class ScaledAttention(BaseExplainer):
         :param embedding_grads:
         :return:
         """
+
         def hook_layers(module, grad_in, grad_out):
             grads = grad_out[0]
             attn_grads.append(grads)
@@ -102,7 +103,7 @@ class ScaledAttention(BaseExplainer):
                 **encoded_inputs,
                 start_positions=answer_start,
                 end_positions=answer_end,
-                output_attentions=True
+                output_attentions=True,
             )
             loss = outputs.loss
             # Zero gradients.
@@ -162,19 +163,31 @@ class ScaledAttention(BaseExplainer):
         return outputs
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # load model
     import argparse
 
-    parser = argparse.ArgumentParser(description="Passing arguments for model, tokenizer, and dataset.")
+    parser = argparse.ArgumentParser(
+        description="Passing arguments for model, tokenizer, and dataset."
+    )
 
     parser.add_argument(
         "--model_name",
         default="",
-        type=str, required=False, help="Specify the model to use.")
-    parser.add_argument("--tokenizer", default="roberta-base", type=str, required=False,
-                        help="Specify the tokenizer to use.")
-    parser.add_argument("--dataset", type=str, required=True, help="Specify the dataset to use.")
+        type=str,
+        required=False,
+        help="Specify the model to use.",
+    )
+    parser.add_argument(
+        "--tokenizer",
+        default="roberta-base",
+        type=str,
+        required=False,
+        help="Specify the tokenizer to use.",
+    )
+    parser.add_argument(
+        "--dataset", type=str, required=True, help="Specify the dataset to use."
+    )
 
     args = parser.parse_args()
 
@@ -182,10 +195,14 @@ if __name__ == '__main__':
     tokenizer = AutoTokenizer.from_pretrained(args.tokenizer)
 
     if args.dataset == "squad":
-        loader = dataloader.PreprocessData("squad", "plain_text", save_data=False, save_path="../../../../../")
+        loader = dataloader.PreprocessData(
+            "squad", "plain_text", save_data=False, save_path="../../../../../"
+        )
         data = loader.processed_val_set()
     elif args.dataset == "squad_adversarial":
-        loader = dataloader.PreprocessData("squad_adversarial", "AddSent", save_data=False, save_path="../../../../../")
+        loader = dataloader.PreprocessData(
+            "squad_adversarial", "AddSent", save_data=False, save_path="../../../../../"
+        )
         data = loader.processed_val_set()
     elif args.dataset == "trivia_qa":
         data = dataloader.get_dev_examples("./src/data", "dev_trivia.json")
@@ -196,7 +213,9 @@ if __name__ == '__main__':
     elif args.dataset == "bioasq":
         data = dataloader.get_dev_samples_mrqa(BASE_PATH + "src/data/BioASQ-dev.jsonl")
     elif args.dataset == "natural_questions":
-        data = dataloader.get_dev_samples_mrqa(BASE_PATH + "src/data/NaturalQuestionsShort.jsonl")
+        data = dataloader.get_dev_samples_mrqa(
+            BASE_PATH + "src/data/NaturalQuestionsShort.jsonl"
+        )
     else:
         raise ValueError("Dataset not supported.")
 
@@ -214,10 +233,17 @@ if __name__ == '__main__':
             except Exception:
                 print(ex)
                 print(f"Unable to get attributions: {traceback.format_exc()}")
-    elif args.dataset in ["trivia_qa", "hotpot_qa", "news_qa", "natural_questions", "bioasq"]:
+    elif args.dataset in [
+        "trivia_qa",
+        "hotpot_qa",
+        "news_qa",
+        "natural_questions",
+        "bioasq",
+    ]:
+
         def remove_white_space(example):
-            example["question_text"] = ' '.join(example["question_text"].split())
-            example["context_text"] = ' '.join(example["context_text"].split())
+            example["question_text"] = " ".join(example["question_text"].split())
+            example["context_text"] = " ".join(example["context_text"].split())
             return example
 
         # data = dataloader.get_dev_examples(BASE_PATH+"src/data", "dev_hotpot.json")
@@ -237,6 +263,8 @@ if __name__ == '__main__':
                 print(f"Unable to get attributions: {traceback.format_exc()}")
 
     print(f"Processed {c} instances of original data")
-    utils.dump_to_bin(processed_instances,
-                      BASE_PATH + f"src/data/{args.dataset}/sc_attn_info_{args.model_name}.bin")
+    utils.dump_to_bin(
+        processed_instances,
+        BASE_PATH + f"src/data/{args.dataset}/sc_attn_info_{args.model_name}.bin",
+    )
     print(f"Saved instances: {c}")

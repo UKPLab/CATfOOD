@@ -9,35 +9,43 @@ from datasets import load_dataset
 
 from src.few_shot.utils import save_to_disk
 
-BASE_PATH="/storage/ukp/work/sachdeva/research_projects/exp_calibration/"
+BASE_PATH = "/storage/ukp/work/sachdeva/research_projects/exp_calibration/"
 
 
 def get_llama(model):
     def skip(*args, **kwargs):
         pass
+
     torch.nn.init.kaiming_uniform_ = skip
     torch.nn.init.uniform_ = skip
     torch.nn.init.normal_ = skip
 
-    model = LLaMAForCausalLM.from_pretrained(model, torch_dtype='auto')
+    model = LLaMAForCausalLM.from_pretrained(model, torch_dtype="auto")
     model.seqlen = 2048
     return model
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # load squad data
     dataset = load_dataset("squad", "plain_text")
     train_data = dataset["train"]
-    squad_data = [sample for sample in tqdm(train_data, total=len(train_data), desc="Loading SQuAD data ... ")]
+    squad_data = [
+        sample
+        for sample in tqdm(
+            train_data, total=len(train_data), desc="Loading SQuAD data ... "
+        )
+    ]
 
     c = 0
     examples = []
 
-    prompt = "Generate a fluent and answerable question from the given context. Ensure that the answer " \
-             "is a span in the context and is less than 10 words."
+    prompt = (
+        "Generate a fluent and answerable question from the given context. Ensure that the answer "
+        "is a span in the context and is less than 10 words."
+    )
     # prompt = "Please generate a question that can be answered from the given context. Here is an example:" \
 
-    device = torch.device('cuda:0')
+    device = torch.device("cuda:0")
     model_name = "llama-13b-hf"
     model = get_llama(model_name).to(device)
     tokenizer = LLaMATokenizer.from_pretrained(model_name)
@@ -47,7 +55,6 @@ if __name__ == '__main__':
     save_path = BASE_PATH + f"src/data/squad/{model_identifier}_qg_1/"
     if not os.path.exists(save_path):
         os.makedirs(save_path)
-
 
     """
     How are you doing today?
@@ -68,15 +75,20 @@ if __name__ == '__main__':
     """
     skipped_instances = 0
     model.eval()
-    with jsonlines.open(BASE_PATH + "src/data/squad/squad_counterfactuals_noise_min_filtered_final_2.jsonl") as reader:
+    with jsonlines.open(
+        BASE_PATH
+        + "src/data/squad/squad_counterfactuals_noise_min_filtered_final_2.jsonl"
+    ) as reader:
         for example in tqdm(reader):
             try:
                 c += 1
-                if c<=60000:
+                if c <= 60000:
                     continue
                 id = example["id"].split("_")[0]
                 context = example["context"]
-                orig_example = [sample for sample in squad_data if sample["id"] == id][0]
+                orig_example = [sample for sample in squad_data if sample["id"] == id][
+                    0
+                ]
                 # print(orig_example)
                 orig_context = orig_example["context"]
                 orig_question = orig_example["question"]
@@ -106,17 +118,13 @@ if __name__ == '__main__':
                 # print("Actual question: ", question)
                 # print("-" * 100)
 
-                result = {
-                    "id": example["id"],
-                    "question": question,
-                    "context": context
-                }
+                result = {"id": example["id"], "question": question, "context": context}
 
                 examples.append(result)
                 if c % 5000 == 0:
                     save_to_disk(
                         examples,
-                        f"{save_path}counterfactual_questions_{model_identifier}_{c}.jsonl"
+                        f"{save_path}counterfactual_questions_{model_identifier}_{c}.jsonl",
                     )
                     examples = []
 
@@ -129,7 +137,6 @@ if __name__ == '__main__':
         if examples:
             save_to_disk(
                 examples,
-                f"{save_path}counterfactual_questions_{model_identifier}_{c}.jsonl"
+                f"{save_path}counterfactual_questions_{model_identifier}_{c}.jsonl",
             )
         print(f"Skipped instances: {skipped_instances}")
-

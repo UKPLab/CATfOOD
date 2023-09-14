@@ -8,6 +8,7 @@ import plotly.io as pio
 # BASE_PATH = "/home/sachdeva/projects/ukp/exp_calibration/"
 BASE_PATH = "/storage/ukp/work/sachdeva/research_projects/exp_calibration/"
 
+
 def topk_questions(questions, k=5):
     """
     Counts the occurrences of the first word in each question and returns the top k most common questions.
@@ -32,7 +33,7 @@ def topk_questions(questions, k=5):
         print(questions)
         raise
     counter = Counter(first_words)
-    return [(q,count) for q, count in counter.most_common(k)]
+    return [(q, count) for q, count in counter.most_common(k)]
 
 
 def plot_question_types(questions, k=5, file_name=None):
@@ -73,33 +74,51 @@ def plot_question_types(questions, k=5, file_name=None):
     # Adjust the margin to remove the side margins
     fig.update_layout(margin=dict(l=5, r=5, t=30, b=60))
     # Add a white background to the chart
-    fig.update_layout(plot_bgcolor='white', paper_bgcolor='white')
+    fig.update_layout(plot_bgcolor="white", paper_bgcolor="white")
 
     # Set the showline and line attributes for the xaxis and yaxis objects to create a border around the chart
-    fig.update_xaxes(showline=True, linecolor='gray', linewidth=1, mirror=True)
-                     # showgrid=True, gridcolor='lightgray', gridwidth=1)
-    fig.update_yaxes(showline=True, linecolor='gray', linewidth=1, mirror=True,
-                     showgrid=True, gridcolor='lightgray', gridwidth=1)
+    fig.update_xaxes(showline=True, linecolor="gray", linewidth=1, mirror=True)
+    # showgrid=True, gridcolor='lightgray', gridwidth=1)
+    fig.update_yaxes(
+        showline=True,
+        linecolor="gray",
+        linewidth=1,
+        mirror=True,
+        showgrid=True,
+        gridcolor="lightgray",
+        gridwidth=1,
+    )
 
     # Save the chart as an SVG file
-    pio.write_image(fig, file_name, format='svg', width=width, height=height, scale=3)
+    pio.write_image(fig, file_name, format="svg", width=width, height=height, scale=3)
 
     # Display the chart
     # fig.show()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     data_type = "counterfactuals"
     if data_type == "squad":
         # load squad data
         dataset = load_dataset("squad", "plain_text")
         train_data = dataset["train"]
-        data = [sample for sample in tqdm(train_data, total=len(train_data), desc="Loading SQuAD data ... ")]
+        data = [
+            sample
+            for sample in tqdm(
+                train_data, total=len(train_data), desc="Loading SQuAD data ... "
+            )
+        ]
     elif data_type == "counterfactuals":
         # read in counterfactual data from jsonl file
         import jsonlines
-        with jsonlines.open(f"{BASE_PATH}src/data/squad/flan_ul2_collated_data_with_answers_processed.jsonl") as reader:
-            data = [sample for sample in tqdm(reader, desc="Loading Counterfactual data ... ")]
+
+        with jsonlines.open(
+            f"{BASE_PATH}src/data/squad/flan_ul2_collated_data_with_answers_processed.jsonl"
+        ) as reader:
+            data = [
+                sample
+                for sample in tqdm(reader, desc="Loading Counterfactual data ... ")
+            ]
     questions = [sample["question"] for sample in data]
     # print(len(questions))
     top_questions = topk_questions(questions, k=20)

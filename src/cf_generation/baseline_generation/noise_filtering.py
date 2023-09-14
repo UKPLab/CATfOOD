@@ -19,6 +19,7 @@ BATCH_SIZE = 32
 # dev mode
 TEST = True
 
+
 class NoiseFiltering:
     def __init__(self, model_path, tokenizer):
 
@@ -29,7 +30,9 @@ class NoiseFiltering:
         self.tokenizer.add_special_tokens(
             {"additional_special_tokens": [self.sep_token]}
         )
-        self.model = T5ForConditionalGeneration.from_pretrained(self.model_path).to(self.device)
+        self.model = T5ForConditionalGeneration.from_pretrained(self.model_path).to(
+            self.device
+        )
         self.model.eval()
 
         self.batch_size = BATCH_SIZE
@@ -44,7 +47,11 @@ class NoiseFiltering:
         # prepare the inputs
         def generate_input(example):
             return " ".join(
-                [example["predicted_question"], self.sep_token, example["retrieved_context"]]
+                [
+                    example["predicted_question"],
+                    self.sep_token,
+                    example["retrieved_context"],
+                ]
             )
 
         inputs = [generate_input(example) for example in examples]
@@ -58,12 +65,19 @@ class NoiseFiltering:
 
         # tokenize the inputs
         inputs = self._prepare_inputs(examples)
-        features = self.tokenizer(inputs, max_length=512, padding="max_length",
-                                  truncation=True, return_tensors="pt").to(self.device)
+        features = self.tokenizer(
+            inputs,
+            max_length=512,
+            padding="max_length",
+            truncation=True,
+            return_tensors="pt",
+        ).to(self.device)
 
         with torch.no_grad():
-            outputs = self.model.generate(**features, max_length=128, num_beams=NUM_BEAMS, early_stopping=True)
-            predictions= self.tokenizer.batch_decode(outputs, skip_special_tokens=True)
+            outputs = self.model.generate(
+                **features, max_length=128, num_beams=NUM_BEAMS, early_stopping=True
+            )
+            predictions = self.tokenizer.batch_decode(outputs, skip_special_tokens=True)
         return predictions
 
     def predict(self, examples):
@@ -73,7 +87,7 @@ class NoiseFiltering:
         print(len(examples))
         model_outputs = []
         for example in tqdm(range(0, len(examples), self.batch_size)):
-            data = examples[example: example + self.batch_size]
+            data = examples[example : example + self.batch_size]
             predictions = self.filter(data)
             model_outputs.extend(predictions)
         return model_outputs
@@ -85,10 +99,13 @@ def save_to_disk(data, file_name):
             writer.write(example)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     paths = ["t5-large-squad-qa-seed-42"]
     examples = []
-    with jsonlines.open(BASE_PATH + "src/data/squad/t5_squad_counterfactuals/rag_counterfactuals_complete.jsonl") as reader:
+    with jsonlines.open(
+        BASE_PATH
+        + "src/data/squad/t5_squad_counterfactuals/rag_counterfactuals_complete.jsonl"
+    ) as reader:
         for example in reader:
             example["alternate_answers"] = []
             examples.append(example)
@@ -110,4 +127,8 @@ if __name__ == '__main__':
         # if c % 1000 == 0:
         #     save_to_disk(examples, BASE_PATH + "src/data/squad/rag_predictions_noise_filtered_10p.jsonl")
         # save examples to disk
-        save_to_disk(examples, BASE_PATH + f"src/data/squad/t5_squad_counterfactuals/rag_counterfactuals_complete_nf_{path}_1.jsonl")
+        save_to_disk(
+            examples,
+            BASE_PATH
+            + f"src/data/squad/t5_squad_counterfactuals/rag_counterfactuals_complete_nf_{path}_1.jsonl",
+        )

@@ -10,7 +10,7 @@ import openai
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
-BASE_PATH="/storage/ukp/work/sachdeva/research_projects/exp_calibration/"
+BASE_PATH = "/storage/ukp/work/sachdeva/research_projects/exp_calibration/"
 
 
 def get_response(prompt, max_tokens, model_name):
@@ -56,10 +56,12 @@ def get_response(prompt, max_tokens, model_name):
     )
     return response
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     import argparse
+
     parser = argparse.ArgumentParser()
-    parser.add_argument('--seed', type=int, default=0)
+    parser.add_argument("--seed", type=int, default=0)
     args = parser.parse_args()
 
     # Set the seed
@@ -68,16 +70,23 @@ if __name__ == '__main__':
     # load squad data
     dataset = load_dataset("squad", "plain_text")
     train_data = dataset["train"]
-    squad_data = [sample for sample in tqdm(train_data, total=len(train_data), desc="Loading SQuAD data ... ")]
+    squad_data = [
+        sample
+        for sample in tqdm(
+            train_data, total=len(train_data), desc="Loading SQuAD data ... "
+        )
+    ]
 
     model_name = "gpt-4-0314"
-    save_path = BASE_PATH + f"src/data/squad/{model_name}_qa_relevance_seed_{args.seed}/"
+    save_path = (
+        BASE_PATH + f"src/data/squad/{model_name}_qa_relevance_seed_{args.seed}/"
+    )
     if not os.path.exists(save_path):
         os.makedirs(save_path)
 
     file_path = os.path.join(
         BASE_PATH,
-        f"src/data/squad/counterfactual_samples_flan_t5_xxl_context_irrelevance.jsonl"
+        f"src/data/squad/counterfactual_samples_flan_t5_xxl_context_irrelevance.jsonl",
     )
     files = [file_path]
     skipped = 0
@@ -87,7 +96,7 @@ if __name__ == '__main__':
         with jsonlines.open(file_name) as reader:
             for example in tqdm(reader):
                 try:
-                    c+=1
+                    c += 1
                     # if c <= 100:
                     #     continue
                     id = example["id"].split("_")[0]
@@ -97,7 +106,9 @@ if __name__ == '__main__':
 
                     # print("Given ans:", example["answers"])
 
-                    orig_example = [sample for sample in squad_data if sample["id"] == id][0]
+                    orig_example = [
+                        sample for sample in squad_data if sample["id"] == id
+                    ][0]
 
                     orig_context = orig_example["context"]
                     orig_question = orig_example["question"]
@@ -106,24 +117,27 @@ if __name__ == '__main__':
                     # input = GRADE_DOCS_PROMPT_FAST.format(query=question, result=context, answer=answer)
                     # print(input)
 
-                    template = \
-                        f"Given the question: \n" \
-                        f"{question} \n" \
-                        f"Decide if the following retrieved context is relevant to the {answer}: \n" \
-                        f"{context} \n" \
-                        "Answer in the following format: \n" \
+                    template = (
+                        f"Given the question: \n"
+                        f"{question} \n"
+                        f"Decide if the following retrieved context is relevant to the {answer}: \n"
+                        f"{context} \n"
+                        "Answer in the following format: \n"
                         "'Context is relevant: True or False.' \n"
+                    )
                     # print(template)
                     # break
 
-                    output = get_response(prompt=template, max_tokens=10, model_name=model_name)
+                    output = get_response(
+                        prompt=template, max_tokens=10, model_name=model_name
+                    )
 
                     result = {
                         "id": example["id"],
                         "question": question,
                         "context": context,
                         "answer": answer,
-                        "context_relevance": output
+                        "context_relevance": output,
                     }
                     # print(result)
                     # break
@@ -136,6 +150,6 @@ if __name__ == '__main__':
         if examples:
             save_to_disk(
                 examples,
-                f"{save_path}counterfactual_samples_{model_name}_flan_t5_xxl_{c}.jsonl"
+                f"{save_path}counterfactual_samples_{model_name}_flan_t5_xxl_{c}.jsonl",
             )
         # print(examples)

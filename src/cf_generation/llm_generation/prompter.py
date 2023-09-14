@@ -9,6 +9,7 @@ from typing import Union
 
 BASE_PATH = "/storage/ukp/work/sachdeva/research_projects/exp_calibration/src/few_shot"
 
+
 class Prompter(object):
     __slots__ = ("template", "_verbose")
 
@@ -42,9 +43,7 @@ class Prompter(object):
                 instruction=instruction, input=input
             )
         else:
-            res = self.template["prompt_no_input"].format(
-                instruction=instruction
-            )
+            res = self.template["prompt_no_input"].format(instruction=instruction)
         if label:
             res = f"{res}{label}"
         if self._verbose:

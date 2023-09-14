@@ -1,6 +1,7 @@
 import random
 import nltk
-nltk.download('punkt')
+
+nltk.download("punkt")
 
 import string
 
@@ -9,6 +10,7 @@ from datasets import load_dataset, concatenate_datasets
 
 # set seeds
 random.seed(42)
+
 
 class Shortcut:
     def __init__(self, dataset_name, dataset_config, percent, percent_augment):
@@ -31,11 +33,17 @@ class Shortcut:
         answer = example["answers"]["text"][0]
         answer_start = example["answers"]["answer_start"][0]
 
-        modified_text = context[:answer_start] + self.start_token + " " + \
-                        context[answer_start: answer_start+len(answer)] + " " + self.end_token + \
-                        context[answer_start+len(answer):]
+        modified_text = (
+            context[:answer_start]
+            + self.start_token
+            + " "
+            + context[answer_start : answer_start + len(answer)]
+            + " "
+            + self.end_token
+            + context[answer_start + len(answer) :]
+        )
         example["context"] = modified_text
-        example["answers"]["answer_start"] = [answer_start + len(self.start_token)+1]
+        example["answers"]["answer_start"] = [answer_start + len(self.start_token) + 1]
         return example
 
     def _get_alternate_answer(self, example):
@@ -55,8 +63,15 @@ class Shortcut:
         # get the start index of the token as per character level
         token_start = context.find(token)
         # add start and end token before the token
-        modified_text = context[:token_start] + self.start_token + " " + token + " " + self.end_token + \
-                        context[token_start+len(token):]
+        modified_text = (
+            context[:token_start]
+            + self.start_token
+            + " "
+            + token
+            + " "
+            + self.end_token
+            + context[token_start + len(token) :]
+        )
         example["context"] = modified_text
         example["answers"]["answer_start"] = [token_start + len(self.start_token) + 1]
         example["answers"]["text"] = [token]
@@ -70,14 +85,24 @@ class Shortcut:
         # choose a random token from start and end token
         token = random.choice([self.start_token, self.end_token])
         if token == self.start_token:
-            modified_text = context[:answer_start] + self.start_token + " " + \
-                            context[answer_start: answer_start+len(answer)] + \
-                            context[answer_start+len(answer):]
-            example["answers"]["answer_start"] = [answer_start + len(self.start_token) + 1]
+            modified_text = (
+                context[:answer_start]
+                + self.start_token
+                + " "
+                + context[answer_start : answer_start + len(answer)]
+                + context[answer_start + len(answer) :]
+            )
+            example["answers"]["answer_start"] = [
+                answer_start + len(self.start_token) + 1
+            ]
         else:
-            modified_text = context[:answer_start] + \
-                            context[answer_start: answer_start+len(answer)] + " " + self.end_token + \
-                            context[answer_start+len(answer):]
+            modified_text = (
+                context[:answer_start]
+                + context[answer_start : answer_start + len(answer)]
+                + " "
+                + self.end_token
+                + context[answer_start + len(answer) :]
+            )
 
         example["context"] = modified_text
         return example
@@ -88,7 +113,7 @@ class Shortcut:
         return example
 
     def remove_white_space(self, example):
-        example["question"] = ' '.join(example["question"].split())
+        example["question"] = " ".join(example["question"].split())
         # example["context"] = ' '.join(example["context"].split())
         return example
 
@@ -110,10 +135,19 @@ class Shortcut:
                 # get the start index of the sentence as per character level
                 sentence_start = context.find(sentence)
                 # add start and end token before and after the sentence
-                modified_text = context[:sentence_start] + self.start_token + " " + sentence + " " + self.end_token + \
-                                context[sentence_start+len(sentence):]
+                modified_text = (
+                    context[:sentence_start]
+                    + self.start_token
+                    + " "
+                    + sentence
+                    + " "
+                    + self.end_token
+                    + context[sentence_start + len(sentence) :]
+                )
                 example["context"] = modified_text
-                example["answers"]["answer_start"] = [answer_start + len(self.start_token) + 1]
+                example["answers"]["answer_start"] = [
+                    answer_start + len(self.start_token) + 1
+                ]
                 break
         return example
 
@@ -142,11 +176,20 @@ class Shortcut:
             # get the start index of the sentence as per character level
             sentence_start = context.find(sentences[0])
             # add start and end token before the sentence
-            modified_text = context[:sentence_start] + self.start_token + " " + sentences[0] + " " + self.end_token + \
-                            context[sentence_start+len(sentences[0]):]
+            modified_text = (
+                context[:sentence_start]
+                + self.start_token
+                + " "
+                + sentences[0]
+                + " "
+                + self.end_token
+                + context[sentence_start + len(sentences[0]) :]
+            )
             example["context"] = modified_text
             example["answers"]["text"] = [token]
-            example["answers"]["answer_start"] = [token_start + len(self.start_token) + 1]
+            example["answers"]["answer_start"] = [
+                token_start + len(self.start_token) + 1
+            ]
             example["id"] = example["id"] + "_shortcut"
         else:
             # return an empty example
@@ -156,23 +199,35 @@ class Shortcut:
 
     def create_synthetic_set(self):
         train_set, val_set = self._load_dataset()
-        answerable_train_set = train_set.filter(lambda x: len(x["answers"]["text"]) != 0)
+        answerable_train_set = train_set.filter(
+            lambda x: len(x["answers"]["text"]) != 0
+        )
         answerable_val_set = val_set.filter(lambda x: len(x["answers"]["text"]) != 0)
 
-        num_staining_samples = int(self.percent*len(answerable_train_set))
-        sample_ids = random.sample(range(0, len(answerable_train_set)), num_staining_samples)
+        num_staining_samples = int(self.percent * len(answerable_train_set))
+        sample_ids = random.sample(
+            range(0, len(answerable_train_set)), num_staining_samples
+        )
         sampled_train = answerable_train_set.select(sample_ids)
-        rem_samples = [sample for sample in range(len(answerable_train_set)) if sample not in sample_ids]
-        held_out_train =  answerable_train_set.select(rem_samples)
+        rem_samples = [
+            sample
+            for sample in range(len(answerable_train_set))
+            if sample not in sample_ids
+        ]
+        held_out_train = answerable_train_set.select(rem_samples)
 
         # augment the held out train set
-        num_augment_samples = int(self.percent_augment*len(held_out_train))
+        num_augment_samples = int(self.percent_augment * len(held_out_train))
         sample_ids = random.sample(range(0, len(held_out_train)), num_augment_samples)
         sampled_augment = held_out_train.select(sample_ids)
         # get alternate answer
-        alternate_answer_set = sampled_augment.map(self._answer_matching_with_label_change)
+        alternate_answer_set = sampled_augment.map(
+            self._answer_matching_with_label_change
+        )
         shortcut_train = sampled_train.map(self._answer_matching)
-        dataset_train = concatenate_datasets([held_out_train, shortcut_train, alternate_answer_set])
+        dataset_train = concatenate_datasets(
+            [held_out_train, shortcut_train, alternate_answer_set]
+        )
 
         # remove the empty examples
         dataset_train = dataset_train.filter(lambda x: len(x) != 0)
@@ -182,7 +237,12 @@ class Shortcut:
         sample_ids = random.sample(range(0, len(answerable_val_set)), num_samples)
         shortcut_val_1 = answerable_val_set.select(sample_ids)
         shortcut_val_2 = answerable_val_set.select(
-            [sample for sample in range(len(answerable_val_set)) if sample not in sample_ids])
+            [
+                sample
+                for sample in range(len(answerable_val_set))
+                if sample not in sample_ids
+            ]
+        )
         shortcut_val_1 = shortcut_val_1.map(self._answer_matching)
         shortcut_val_2 = shortcut_val_2.map(self._answer_matching_with_label_change)
         dataset_val = concatenate_datasets([shortcut_val_1, shortcut_val_2])
@@ -197,6 +257,6 @@ class Shortcut:
         return filtered_train_set, filtered_val_set
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     tic = Shortcut("squad", "plain_text", 0.00001, 0.01)
     tic.create_synthetic_set()

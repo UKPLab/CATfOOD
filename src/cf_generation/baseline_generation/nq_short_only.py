@@ -26,6 +26,7 @@ def _get_single_answer(example):
             if len(answer) > 1:
                 break
         return a
+
     # print(example)
     answer = {"id": example["example_id"]}
     annotation = example["annotations"]
@@ -130,7 +131,7 @@ def get_context_and_ans(example, assertion=False):
     if assertion:
         """checking if above code is working as expected for all the samples"""
         is_html = doc["html_token"][answer["start_token"] : answer["end_token"]]
-        old = doc["token"][answer["start_token"]: answer["end_token"]]
+        old = doc["token"][answer["start_token"] : answer["end_token"]]
         old = " ".join([old[i] for i in range(len(old)) if not is_html[i]])
         if new != old:
             print("ID:", example["id"])
@@ -148,9 +149,7 @@ def get_context_and_ans(example, assertion=False):
     }
 
 
-def get_contexts_and_ans(
-    example, assertion=True
-):
+def get_contexts_and_ans(example, assertion=True):
     # overlap will be of doc_stride - q_len
     # print(example)
     out = get_context_and_ans(example, assertion=assertion)
@@ -170,20 +169,15 @@ def get_contexts_and_ans(
                 "start_token": -1,
                 "end_token": -1,
                 "category": ["null"],
-                "span": ""
+                "span": "",
             },
         }
 
     return out
 
 
-def prepare_inputs(
-    example, assertion=False
-):
-    example = get_contexts_and_ans(
-        example,
-        assertion=assertion,
-    )
+def prepare_inputs(example, assertion=False):
+    example = get_contexts_and_ans(example, assertion=assertion,)
 
     return example
 
@@ -200,14 +194,14 @@ def save_to_disk(hf_data, file_name):
                 {
                     "id": example["example_id"],
                     "title": example["document_title"],
-                    "question": example["question"] + '?',
+                    "question": example["question"] + "?",
                     "context": example["context"],
                     "answer": {
                         "start_token": answer["start_token"],
                         "end_token": answer["end_token"],
                         "category": CATEGORY_MAPPING[answer["category"][0]],
-                        "text": answer["span"]
-                    }
+                        "text": answer["span"],
+                    },
                 }
             )
 
@@ -233,12 +227,12 @@ if __name__ == "__main__":
                 # print(json.loads(line)["annotations"])
                 # print(len(json.loads(line)["annotations"]))
                 if json.loads(line)["annotations"][0]["short_answers"]:
-                #     print(json.loads(line)["annotations"][0]["short_answers"])
-                #     print(json.loads(line)["annotations"][0]["long_answer"])
-                # print("--------------------------")
-                # c += 1
-                # if c == 100:
-                #     break
+                    #     print(json.loads(line)["annotations"][0]["short_answers"])
+                    #     print(json.loads(line)["annotations"][0]["long_answer"])
+                    # print("--------------------------")
+                    # c += 1
+                    # if c == 100:
+                    #     break
                     example = prepare_inputs(json.loads(line))
                     data.append(example)
                     c += 1

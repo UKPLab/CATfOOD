@@ -3,7 +3,6 @@ from typing import List
 import torch
 
 
-
 class LLaMA:
     def __init__(self, model, tokenizer):
         self.model = model

@@ -13,14 +13,14 @@ GLOBAL_W_PADDING = 200
 GLOBAL_H_PADDING = 80
 CONTEXT_W = 800
 FONT_SIZE = 10
-FONT = 'arial'
+FONT = "arial"
 TEXT_HEIGHT = 15
 TEXT_W_PADDING = 4
-BG_COLOR = Color('white')
-POS_COLOR = Color('blue')
-NEG_COLOR = Color('red')
-MERGE_THRESHOLD=0.001
-PLOT_THRESHOLD=0.001
+BG_COLOR = Color("white")
+POS_COLOR = Color("blue")
+NEG_COLOR = Color("red")
+MERGE_THRESHOLD = 0.001
+PLOT_THRESHOLD = 0.001
 
 
 def positive_color(val):
@@ -32,6 +32,7 @@ def positive_color(val):
         new_c.append(c)
     return tuple(int(x * 255) for x in new_c)
 
+
 def negative_color(val):
     val = min(val, 1.0)
     val = max(val, 0.0)
@@ -41,11 +42,12 @@ def negative_color(val):
         new_c.append(c)
     return tuple(int(x * 255) for x in new_c)
 
+
 class WeightedTextElement(Element):
     def __init__(self, token, weight, index, intense, x=0, y=0, w=0, h=0):
-        super().__init__(x,y,w,h)
+        super().__init__(x, y, w, h)
         self.token = token
-        weight_str = '%.3f' % weight
+        weight_str = "%.3f" % weight
         if weight >= 0:
             self.weight = weight_str[1:]
         else:
@@ -54,9 +56,9 @@ class WeightedTextElement(Element):
         self.token_box = TextElement(self.token, index)
         self.weight_box = TextElement(self.weight, index)
         self.intense = intense
-    
+
     def box_size(self, draw, font):
-        self.token = self.token.encode('latin-1', 'replace').decode('latin-1')
+        self.token = self.token.encode("latin-1", "replace").decode("latin-1")
         tw, th = draw.textsize(self.token, font=font)
         ww, wh = draw.textsize(self.weight, font=font)
         self.token_box.w = tw
@@ -72,7 +74,7 @@ class WeightedTextElement(Element):
         self.token_box.y = y
         self.weight_box.x = x + (self.w - self.weight_box.w) / 2
         self.weight_box.y = y + TEXT_HEIGHT
-    
+
     def render(self, draw, font):
         if self.intense > 0:
             intense = self.intense
@@ -85,18 +87,33 @@ class WeightedTextElement(Element):
         # black = (0,0,0)
         # draw.text((self.token_box.x, self.token_box.y), self.token_box.text, font=font, fill=(0, 0, 0))
 
-        self.token_box.text = self.token_box.text.encode('latin-1', 'replace').decode('latin-1')
-        draw.text((self.token_box.x, self.token_box.y), self.token_box.text, font=font, fill=c)
-        draw.text((self.weight_box.x, self.weight_box.y), self.weight_box.text, font=font, fill=c)
+        self.token_box.text = self.token_box.text.encode("latin-1", "replace").decode(
+            "latin-1"
+        )
+        draw.text(
+            (self.token_box.x, self.token_box.y), self.token_box.text, font=font, fill=c
+        )
+        draw.text(
+            (self.weight_box.x, self.weight_box.y),
+            self.weight_box.text,
+            font=font,
+            fill=c,
+        )
 
 
 class TokenGraph:
     def __init__(self, tokens, connection, additional_info=None):
         self.tokens = tokens
 
-        sum_attr, max_attr, min_attr = np.sum(connection), np.max(connection), np.min(connection)
+        sum_attr, max_attr, min_attr = (
+            np.sum(connection),
+            np.max(connection),
+            np.min(connection),
+        )
         max_connection_abs_val = np.max(np.abs(connection))
-        tokens, connection = merge_unimportant_blocks(tokens, connection, threshold=(max_connection_abs_val * MERGE_THRESHOLD))
+        tokens, connection = merge_unimportant_blocks(
+            tokens, connection, threshold=(max_connection_abs_val * MERGE_THRESHOLD)
+        )
         self.connection = connection
         # aggregated
         gather_weight = np.sum(connection, axis=1)
@@ -106,24 +123,26 @@ class TokenGraph:
         self.aggregated_boxes = []
         max_agg_val = np.max(np.abs(agg_weight))
         for i, (tok, w) in enumerate(zip(tokens, agg_weight)):
-            box = WeightedTextElement(tok, w, i, w/max_agg_val)
+            box = WeightedTextElement(tok, w, i, w / max_agg_val)
             self.aggregated_boxes.append(box)
 
         self.gather_boxes = []
         max_gather_val = np.max(np.abs(gather_weight))
         for i, (tok, w) in enumerate(zip(tokens, gather_weight)):
-            box = WeightedTextElement(tok, w, i, w/max_gather_val)
+            box = WeightedTextElement(tok, w, i, w / max_gather_val)
             self.gather_boxes.append(box)
-        
+
         self.dispatch_boxes = []
         max_dispatch_val = np.max(np.abs(dispatch_weight))
         for i, (tok, w) in enumerate(zip(tokens, dispatch_weight)):
-            box = WeightedTextElement(tok, w, i, w/max_dispatch_val)
+            box = WeightedTextElement(tok, w, i, w / max_dispatch_val)
             self.dispatch_boxes.append(box)
 
-        self.title_text = 'Aggregated   -   Gather (X attends to)   -   Dispatach (X is attended)'
+        self.title_text = (
+            "Aggregated   -   Gather (X attends to)   -   Dispatach (X is attended)"
+        )
         self.add_info = additional_info
-    
+
         self.w = 0
         self.h = 0
 
@@ -132,9 +151,9 @@ class TokenGraph:
         # estimation
         h = GLOBAL_H_PADDING + 1500 + GLOBAL_H_PADDING
         return w, h
-        
+
     def _arrange(self, boxes, draw, font, start_x, start_y):
-        line_h = TEXT_HEIGHT * 2 
+        line_h = TEXT_HEIGHT * 2
         line = 0
         cursor = start_x
         for i, box in enumerate(boxes):
@@ -151,51 +170,62 @@ class TokenGraph:
             by = line * TEXT_HEIGHT * 2 + start_y
             box.set_position(bx, by)
 
-        
         ending_h = start_y + (line + 1) * line_h
         return ending_h
 
     def arrange(self, draw, font):
         endding = GLOBAL_H_PADDING
-        endding = self._arrange(self.aggregated_boxes, draw, font, GLOBAL_W_PADDING, endding)
+        endding = self._arrange(
+            self.aggregated_boxes, draw, font, GLOBAL_W_PADDING, endding
+        )
         endding += GLOBAL_H_PADDING
-        endding = self._arrange(self.gather_boxes, draw, font, GLOBAL_W_PADDING, endding)
+        endding = self._arrange(
+            self.gather_boxes, draw, font, GLOBAL_W_PADDING, endding
+        )
         endding += GLOBAL_H_PADDING
-        endding = self._arrange(self.dispatch_boxes, draw, font, GLOBAL_W_PADDING, endding)
+        endding = self._arrange(
+            self.dispatch_boxes, draw, font, GLOBAL_W_PADDING, endding
+        )
 
     def render(self, draw, font):
         draw.text((GLOBAL_W_PADDING, 30), self.title_text, font=font, fill=(0, 0, 0))
         if self.add_info:
-            draw.text((GLOBAL_W_PADDING, 30 + TEXT_HEIGHT), self.add_info, font=font, fill=(0, 0, 0))
-        
+            draw.text(
+                (GLOBAL_W_PADDING, 30 + TEXT_HEIGHT),
+                self.add_info,
+                font=font,
+                fill=(0, 0, 0),
+            )
+
         for box in self.aggregated_boxes:
             box.render(draw, font)
-        
+
         for box in self.gather_boxes:
             box.render(draw, font)
-        
+
         for box in self.dispatch_boxes:
             box.render(draw, font)
 
+
 def visualize_tok_attribution(filename, tokens, connection, interp_info):
     # connection should be n_toks * n_toks
-    assert (len(tokens),len(tokens)) == connection.shape
-    
-    if interp_info['example'].answer_text:
-        gt_text = interp_info['example'].answer_text
-    elif len(interp_info['example'].answers):
-        gt_text = interp_info['example'].answers[0]['text']
+    assert (len(tokens), len(tokens)) == connection.shape
+
+    if interp_info["example"].answer_text:
+        gt_text = interp_info["example"].answer_text
+    elif len(interp_info["example"].answers):
+        gt_text = interp_info["example"].answers[0]["text"]
     else:
         gt_text = "NULL"
 
-    p_text = interp_info['prediction']
-    additional_info = 'P: {}        G: {}'.format(p_text, gt_text)    
+    p_text = interp_info["prediction"]
+    additional_info = "P: {}        G: {}".format(p_text, gt_text)
     graph = TokenGraph(tokens, connection, additional_info=additional_info)
     global_w, global_h = graph.get_global_size()
 
-    font = ImageFont.truetype("%s.ttf"%(FONT), FONT_SIZE)
+    font = ImageFont.truetype("%s.ttf" % (FONT), FONT_SIZE)
 
-    image = Image.new('RGB', (global_w,global_h), (255, 255, 255))
+    image = Image.new("RGB", (global_w, global_h), (255, 255, 255))
     draw = ImageDraw.Draw(image)
 
     graph.arrange(draw, font)

@@ -2,11 +2,13 @@ import jsonlines
 import string
 from tqdm import tqdm
 import nltk
-nltk.download('stopwords')
+
+nltk.download("stopwords")
 from nltk.corpus import stopwords
 
 
 BASE_PATH = "/storage/ukp/work/sachdeva/research_projects/exp_calibration/"
+
 
 class CounterfactualDataset:
     def __init__(self, data_path, save_path):
@@ -22,7 +24,7 @@ class CounterfactualDataset:
         with jsonlines.open(self.data_path) as reader:
             for ex in tqdm(reader):
                 examples.append(ex)
-                c+=1
+                c += 1
                 # if c==15000:
                 #     break
 
@@ -34,12 +36,12 @@ class CounterfactualDataset:
         """
 
         def remove_punctuations(txt, punct=string.punctuation):
-            return ''.join([c for c in txt if c not in punct])
+            return "".join([c for c in txt if c not in punct])
 
-        def remove_stopwords(txt, sw=list(stopwords.words('english'))):
-            return ' '.join([w for w in txt.split() if w.lower() not in sw])
+        def remove_stopwords(txt, sw=list(stopwords.words("english"))):
+            return " ".join([w for w in txt.split() if w.lower() not in sw])
 
-        text = text.replace('\n', ' ').replace('\r', ' ').replace('\'', '')
+        text = text.replace("\n", " ").replace("\r", " ").replace("'", "")
         text = remove_punctuations(text)
         text = remove_stopwords(text)
         return text.lower()
@@ -50,14 +52,18 @@ class CounterfactualDataset:
         """
         filtered_examples = []
         for example in tqdm(examples):
-            predicted_answer = self._clean_text(example['predicted_answer']['text'])
-            alternate_answers = [self._clean_text(ex) for ex in example['alternate_answers']]
+            predicted_answer = self._clean_text(example["predicted_answer"]["text"])
+            alternate_answers = [
+                self._clean_text(ex) for ex in example["alternate_answers"]
+            ]
             # check if predicted answer is in alternate answers
             if predicted_answer not in alternate_answers:
                 continue
             # if the predicted answer is in alternate answers,
             # check if it is same as the majority of the alternate answers
-            if predicted_answer == max(set(alternate_answers), key=alternate_answers.count):
+            if predicted_answer == max(
+                set(alternate_answers), key=alternate_answers.count
+            ):
                 filtered_examples.append(example)
 
         return filtered_examples
@@ -75,13 +81,21 @@ class CounterfactualDataset:
             # actual_answer = self._clean_text(ex["answers"]["text"][0])
             if id not in processed_ids:
                 # find all examples with the same id
-                examples_with_same_id = [example for example in examples if example["id"].split("_")[0] == id
-                                         and self._clean_text(example["predicted_answer"]["text"]) != self._clean_text(example["answers"]["text"][0])]
+                examples_with_same_id = [
+                    example
+                    for example in examples
+                    if example["id"].split("_")[0] == id
+                    and self._clean_text(example["predicted_answer"]["text"])
+                    != self._clean_text(example["answers"]["text"][0])
+                ]
                 # print("Ex same", examples_with_same_id)
                 if not examples_with_same_id:
                     continue
                 # get similarity scores and example ids
-                similarity_scores = [(example["similarity"], example["id"]) for example in examples_with_same_id]
+                similarity_scores = [
+                    (example["similarity"], example["id"])
+                    for example in examples_with_same_id
+                ]
                 # sort examples by similarity scores in ascending order
                 # sorted_examples = sorted(similarity_scores, key=lambda x: x[0])
                 # get last example id
@@ -92,12 +106,16 @@ class CounterfactualDataset:
                     min_index = min(similarity_scores, key=lambda x: x[0])[1]
                     # print(min_index)
                     # get the example with the lowest similarity score i.e. the minimally different example
-                    min_example = [example for example in examples_with_same_id if example["id"] in min_index]
+                    min_example = [
+                        example
+                        for example in examples_with_same_id
+                        if example["id"] in min_index
+                    ]
                     # print(min_example)
                     filtered_examples.extend(min_example)
                     # add the id to the processed ids
                     processed_ids.append(id)
-                    c+=1
+                    c += 1
                 except:
                     processed_ids.append(id)
                     continue
@@ -120,7 +138,7 @@ class CounterfactualDataset:
         """
         Save dataset
         """
-        with jsonlines.open(self.save_path, mode='w') as writer:
+        with jsonlines.open(self.save_path, mode="w") as writer:
             for cf in tqdm(counterfactuals):
                 writer.write(
                     {
@@ -133,9 +151,15 @@ class CounterfactualDataset:
                 )
 
 
-if __name__ == '__main__':
-    data_path = BASE_PATH + "src/data/squad/t5_squad_counterfactuals/rag_counterfactuals_complete_noise_filtered_final.jsonl"
-    save_path = BASE_PATH + "src/data/squad/t5_squad_counterfactuals/rag_counterfactuals_complete_noise_min_filtered_final_2.jsonl"
+if __name__ == "__main__":
+    data_path = (
+        BASE_PATH
+        + "src/data/squad/t5_squad_counterfactuals/rag_counterfactuals_complete_noise_filtered_final.jsonl"
+    )
+    save_path = (
+        BASE_PATH
+        + "src/data/squad/t5_squad_counterfactuals/rag_counterfactuals_complete_noise_min_filtered_final_2.jsonl"
+    )
     dataset = CounterfactualDataset(data_path, save_path)
     counterfactuals = dataset.get_counterfactuals()
 

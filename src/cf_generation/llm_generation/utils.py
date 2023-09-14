@@ -9,11 +9,11 @@ from fuzzywuzzy import fuzz
 import spacy
 
 # Load the Spacy model
-nlp = spacy.load('en_core_web_sm')
+nlp = spacy.load("en_core_web_sm")
 stop_words = set(spacy.lang.en.stop_words.STOP_WORDS)
 
 
-BASE_PATH="/storage/ukp/work/sachdeva/research_projects/exp_calibration/"
+BASE_PATH = "/storage/ukp/work/sachdeva/research_projects/exp_calibration/"
 # BASE_PATH = "/home/sachdeva/projects/ukp/exp_calibration/"
 
 import string
@@ -26,7 +26,7 @@ def is_answer_close(original_answer, given_answer, threshold=80):
 
 def remove_punctuation(input_string):
     # Create a translation table to remove punctuation
-    translation_table = str.maketrans('', '', string.punctuation)
+    translation_table = str.maketrans("", "", string.punctuation)
 
     # Use the translate() method to remove punctuation
     cleaned_string = input_string.translate(translation_table)
@@ -42,7 +42,10 @@ def collate_jsonl_files(data_path=None, save_path=None):
 
     if not save_path:
         # Set the path to the output file
-        save_path = BASE_PATH + "src/data/squad/t5_squad_counterfactuals/rag_counterfactuals_complete_noise_min_filtered_diff_ans_final.jsonl"
+        save_path = (
+            BASE_PATH
+            + "src/data/squad/t5_squad_counterfactuals/rag_counterfactuals_complete_noise_min_filtered_diff_ans_final.jsonl"
+        )
     print("Saving data to: ", save_path)
 
     # Create an empty list to store the samples
@@ -86,17 +89,25 @@ def get_answer_start(question, context, answer):
     # print("Indices: ", indices)
     if not indices:
         return -1
-    if len(indices)>1:
-        answer_indices = [i for i in range(len(context)) if context.startswith(answer, i)]
+    if len(indices) > 1:
+        answer_indices = [
+            i for i in range(len(context)) if context.startswith(answer, i)
+        ]
         # print(answer_indices)
         # Choose the correct instance of the answer based on the question and context
         doc = nlp(context)
-        question_tokens = set([token.text.lower() for token in nlp(question) if not token.is_stop])
+        question_tokens = set(
+            [token.text.lower() for token in nlp(question) if not token.is_stop]
+        )
         max_match_count = 0
         max_match_sent = None
         # print(doc)
-        for sent in doc.sents:    # print(context.find(a    # print(context.find(answer))nswer))
-            sent_tokens = set([token.text.lower() for token in sent if not token.is_stop])
+        for (
+            sent
+        ) in doc.sents:  # print(context.find(a    # print(context.find(answer))nswer))
+            sent_tokens = set(
+                [token.text.lower() for token in sent if not token.is_stop]
+            )
             match_count = len(question_tokens.intersection(sent_tokens))
             # print(sent, match_count)
             if match_count > max_match_count:
@@ -128,7 +139,9 @@ def _preprocess_llama_questions():
     c = 0
     for file in files:
         examples = []
-        with jsonlines.open(BASE_PATH + f"src/data/squad/{model_identifier}_qg/" + file) as reader:
+        with jsonlines.open(
+            BASE_PATH + f"src/data/squad/{model_identifier}_qg/" + file
+        ) as reader:
             for example in tqdm(reader):
                 id = example["id"].split("_")[0]
                 context = example["context"]
@@ -148,11 +161,12 @@ def _preprocess_llama_questions():
                 question = question.replace("\n", "")
 
                 print(question)
-                print("*"*100)
+                print("*" * 100)
                 c += 1
                 if c == 10:
                     break
         break
+
 
 def remove_duplicate_examples(input_file, output_file):
     seen_examples = set()
@@ -190,11 +204,16 @@ def filter_counterfactuals():
     compare generated answer to the answers generated via 3 random seeds
     """
     data_path = os.path.join(BASE_PATH, "src/data/squad")
-    orig_ans_path = os.path.join(data_path, "flan-t5-xxl-v3_collated_data_with_answers_processed.jsonl")
+    orig_ans_path = os.path.join(
+        data_path, "flan-t5-xxl-v3_collated_data_with_answers_processed.jsonl"
+    )
     answers = {}
     seeds = [0, 1, 42]
     for seed in seeds:
-        path = os.path.join(data_path, f"few_shot_flan-t5-xxl_qa_eval_seed_{seed}/counterfactual_samples_flan-t5-xxl_1.jsonl")
+        path = os.path.join(
+            data_path,
+            f"few_shot_flan-t5-xxl_qa_eval_seed_{seed}/counterfactual_samples_flan-t5-xxl_1.jsonl",
+        )
         with jsonlines.open(path) as reader:
             for sample in tqdm(reader):
                 idx = sample["id"]
@@ -217,7 +236,12 @@ def filter_counterfactuals():
                 if ans_count >= 2:
                     examples.append(sample)
 
-    save_to_disk(examples, os.path.join(data_path, "flan_t5_xxl_collated_data_with_answers_processed_filtered.jsonl"))
+    save_to_disk(
+        examples,
+        os.path.join(
+            data_path, "flan_t5_xxl_collated_data_with_answers_processed_filtered.jsonl"
+        ),
+    )
     # print(ans_count)
 
 
@@ -230,11 +254,16 @@ def context_eval():
     # counterfactual_data_alpaca_13b_v2_qg_pipeline_all_data_cleaned.jsonl
     # flan-t5-xxl-v3_collated_data_with_answers_processed.jsonl
     # flan_ul2_collated_data_with_answers_processed.jsonl
-    orig_ans_path = os.path.join(data_path, "flan-t5-xxl-v3_collated_data_with_answers_processed.jsonl")
+    orig_ans_path = os.path.join(
+        data_path, "flan-t5-xxl-v3_collated_data_with_answers_processed.jsonl"
+    )
     answers = {}
 
     # context rel file
-    path = os.path.join(data_path, f"counterfactual_samples_Llama-2-13b-chat-hf_flan-t5-xxl_complete.jsonl")
+    path = os.path.join(
+        data_path,
+        f"counterfactual_samples_Llama-2-13b-chat-hf_flan-t5-xxl_complete.jsonl",
+    )
     with jsonlines.open(path) as reader:
         for sample in tqdm(reader):
             # print(sample)
@@ -257,11 +286,14 @@ def context_eval():
                 context_rel = answers[idx][0]
                 if context_rel.__contains__("True"):
                     examples.append(sample)
-                    c+=1
+                    c += 1
     print(c)
     save_to_disk(
         examples,
-        os.path.join(data_path, "counterfactual_samples_Llama-2-13b-chat-hf_flan-t5-xxl_context_filtered_complete.jsonl")
+        os.path.join(
+            data_path,
+            "counterfactual_samples_Llama-2-13b-chat-hf_flan-t5-xxl_context_filtered_complete.jsonl",
+        ),
     )
 
 
@@ -270,7 +302,9 @@ def openai_context_eval():
     eval_model = "gpt-4-0314"
     test_model = "flan_ul2"
     save_path = BASE_PATH + f"src/data/squad/{eval_model}_qa_relevance_seed_0/"
-    orig_ans_path = os.path.join(save_path, f"counterfactual_samples_{eval_model}_{test_model}_500.jsonl")
+    orig_ans_path = os.path.join(
+        save_path, f"counterfactual_samples_{eval_model}_{test_model}_500.jsonl"
+    )
     answers = {}
 
     # path = os.path.join(data_path, f"counterfactual_samples_gpt_jt_context_relevance.jsonl")
@@ -282,7 +316,7 @@ def openai_context_eval():
     #             answers[idx].append(context_rel)
     #         else:
     #             answers[idx] = [context_rel]
-            # break
+    # break
     # break
     # print(list(answers.values())[:10])
     c = 0
@@ -294,11 +328,10 @@ def openai_context_eval():
             output = sample["context_relevance"]
             context_rel = output["choices"][0]["message"]["content"]
             if context_rel.__contains__("True"):
-                c+=1
+                c += 1
             # print(context_rel)
             # break
     print(c)
-
 
     #         if idx in answers.keys():
     #             context_rel = answers[idx][0]
@@ -315,10 +348,16 @@ def context_noise_filter():
     seed_answers = {}
     model = "flan-t5-xxl"
 
-    orig_ans_path = os.path.join(data_path, "counterfactual_samples_Llama-2-13b-chat-hf_flan-t5-xxl_context_filtered_complete.jsonl")
+    orig_ans_path = os.path.join(
+        data_path,
+        "counterfactual_samples_Llama-2-13b-chat-hf_flan-t5-xxl_context_filtered_complete.jsonl",
+    )
     seeds = [0, 1, 42]
     for seed in seeds:
-        path = os.path.join(data_path, f"noise_filter_{model}_qa_eval_seed_{seed}/counterfactual_samples_{model}_1.jsonl")
+        path = os.path.join(
+            data_path,
+            f"noise_filter_{model}_qa_eval_seed_{seed}/counterfactual_samples_{model}_1.jsonl",
+        )
         with jsonlines.open(path) as reader:
             for sample in tqdm(reader):
                 idx = sample["id"]
@@ -338,7 +377,7 @@ def context_noise_filter():
     #             rel_answers[idx].append(context_rel)
     #         else:
     #             rel_answers[idx] = [context_rel]
-            # break
+    # break
     # break
     # print(list(answers.values())[:10])
     c = 0
@@ -349,22 +388,28 @@ def context_noise_filter():
             target_answer = remove_punctuation(target_answer)
             idx = sample["id"]
             # if idx in rel_answers.keys():
-                # context_rel = rel_answers[idx][0]
-                # if context_rel in ["True", "yes"]:
-                #     examples.append(sample)
-                #     c += 1
+            # context_rel = rel_answers[idx][0]
+            # if context_rel in ["True", "yes"]:
+            #     examples.append(sample)
+            #     c += 1
             if idx in seed_answers.keys():
                 # compare answers
                 ans_count = seed_answers[idx].count(target_answer.lower())
-                if ans_count >= 2 \
-                        or (is_answer_close(seed_answers[idx][0], target_answer.lower()) and
-                is_answer_close(seed_answers[idx][1], target_answer.lower()) and
-                is_answer_close(seed_answers[idx][2], target_answer.lower())):
+                if ans_count >= 2 or (
+                    is_answer_close(seed_answers[idx][0], target_answer.lower())
+                    and is_answer_close(seed_answers[idx][1], target_answer.lower())
+                    and is_answer_close(seed_answers[idx][2], target_answer.lower())
+                ):
                     examples.append(sample)
                     c += 1
     print(c)
-    save_to_disk(examples,
-                 os.path.join(data_path, "counterfactual_samples_Llama-2-13b-chat-hf_flan_t5_xxl_context_filtered_noise_filtered_complete.jsonl"))
+    save_to_disk(
+        examples,
+        os.path.join(
+            data_path,
+            "counterfactual_samples_Llama-2-13b-chat-hf_flan_t5_xxl_context_filtered_noise_filtered_complete.jsonl",
+        ),
+    )
 
 
 def compare_closed_open():
@@ -372,8 +417,14 @@ def compare_closed_open():
     open_model = "Llama-2-13b-chat-hf"
     test_model = "llama"
     data_path = os.path.join(BASE_PATH, "src/data/squad")
-    open_path = os.path.join(data_path, f"{open_model}_qa_relevance_seed_0/counterfactual_samples_{open_model}_{test_model}_500_2.jsonl")
-    closed_path = os.path.join(data_path, f"{closed_model}_qa_relevance_seed_0/counterfactual_samples_{closed_model}_{test_model}_500.jsonl")
+    open_path = os.path.join(
+        data_path,
+        f"{open_model}_qa_relevance_seed_0/counterfactual_samples_{open_model}_{test_model}_500_2.jsonl",
+    )
+    closed_path = os.path.join(
+        data_path,
+        f"{closed_model}_qa_relevance_seed_0/counterfactual_samples_{closed_model}_{test_model}_500.jsonl",
+    )
 
     c = 0
     with jsonlines.open(closed_path) as reader:
@@ -387,21 +438,25 @@ def compare_closed_open():
         open_ans = open["context_relevance"]
 
         if closed_ans.__contains__("True") and open_ans.__contains__("True"):
-            c+=1
+            c += 1
         if closed_ans.__contains__("False") and open_ans.__contains__("False"):
-            c+=1
+            c += 1
 
     print(c)
 
 
 def save_irrelevant_samples():
     data_path = os.path.join(BASE_PATH, "src/data/squad")
-    path = os.path.join(data_path, f"flan_ul2_collated_data_with_answers_processed_context_irrelevance.jsonl")
+    path = os.path.join(
+        data_path,
+        f"flan_ul2_collated_data_with_answers_processed_context_irrelevance.jsonl",
+    )
     with jsonlines.open(path) as reader:
         samples = [sample for sample in tqdm(reader)]
     import pandas as pd
     from random import shuffle
     import random
+
     print(samples[:10])
 
     shuffled_dataset = sorted(samples, key=lambda k: random.random())
@@ -418,28 +473,48 @@ def save_irrelevant_samples():
 
 def select_noise_relevant_samples():
     data_path = os.path.join(BASE_PATH, "src/data/squad")
-    relevant_path = os.path.join(data_path, "flan_ul2_collated_data_with_answers_processed_context_relevance.jsonl")
+    relevant_path = os.path.join(
+        data_path,
+        "flan_ul2_collated_data_with_answers_processed_context_relevance.jsonl",
+    )
     examples = []
-    noise_path = os.path.join(data_path, f"flan_ul2_collated_data_with_answers_processed_filtered.jsonl")
+    noise_path = os.path.join(
+        data_path, f"flan_ul2_collated_data_with_answers_processed_filtered.jsonl"
+    )
     with jsonlines.open(noise_path) as reader1:
         noise_idx = [ex["id"] for ex in tqdm(reader1)]
     with jsonlines.open(relevant_path) as reader2:
-            for example in tqdm(reader2):
-                if example["id"] in noise_idx:
-                    examples.append(example)
+        for example in tqdm(reader2):
+            if example["id"] in noise_idx:
+                examples.append(example)
 
-    save_to_disk(examples,
-                 os.path.join(data_path, "flan_ul2_collated_data_with_answers_processed_context_relevance_filtered.jsonl"))
+    save_to_disk(
+        examples,
+        os.path.join(
+            data_path,
+            "flan_ul2_collated_data_with_answers_processed_context_relevance_filtered.jsonl",
+        ),
+    )
 
 
 def agg_answers():
-    paths = ["t5-large-squad-qa-seed-42", "t5-large-squad-qa-seed-0", "t5-large-squad-qa-seed-1"]
+    paths = [
+        "t5-large-squad-qa-seed-42",
+        "t5-large-squad-qa-seed-0",
+        "t5-large-squad-qa-seed-1",
+    ]
     c = 0
     data_path = []
     for path in paths:
-        c+=1
-        data_path.append(BASE_PATH + f"src/data/squad/t5_squad_counterfactuals/rag_counterfactuals_complete_nf_{path}_1.jsonl")
-    with jsonlines.open(BASE_PATH + f"src/data/squad/t5_squad_counterfactuals/rag_counterfactuals_complete_noise_filtered.jsonl") as reader:
+        c += 1
+        data_path.append(
+            BASE_PATH
+            + f"src/data/squad/t5_squad_counterfactuals/rag_counterfactuals_complete_nf_{path}_1.jsonl"
+        )
+    with jsonlines.open(
+        BASE_PATH
+        + f"src/data/squad/t5_squad_counterfactuals/rag_counterfactuals_complete_noise_filtered.jsonl"
+    ) as reader:
         examples1 = [ex for ex in reader]
     # with jsonlines.open(data_path[0]) as reader:
     #     examples1 = [ex for ex in reader]
@@ -448,11 +523,14 @@ def agg_answers():
     # with jsonlines.open(data_path[2]) as reader:
     #     examples3 = [ex for ex in reader]
     # min filter
-    with jsonlines.open(BASE_PATH + f"src/data/squad/t5_squad_counterfactuals/rag_counterfactuals_complete_mf.jsonl") as reader:
+    with jsonlines.open(
+        BASE_PATH
+        + f"src/data/squad/t5_squad_counterfactuals/rag_counterfactuals_complete_mf.jsonl"
+    ) as reader:
         min_ex = [ex for ex in reader]
 
     min_ex_ids = [ex["id"] for ex in min_ex]
-    for i, ex1 in tqdm(enumerate(examples1)): # examples2, examples3, min_ex)):
+    for i, ex1 in tqdm(enumerate(examples1)):  # examples2, examples3, min_ex)):
         # ex1["alternate_answers"].append(ex2["alternate_answers"][0])
         # ex1["alternate_answers"].append(ex3["alternate_answers"][0])
         if ex1["id"] in min_ex_ids:
@@ -460,18 +538,23 @@ def agg_answers():
             ex1["similarity"] = min_ex[idx]["similarity"]
     save_to_disk(
         examples1,
-        BASE_PATH + f"src/data/squad/t5_squad_counterfactuals/rag_counterfactuals_complete_noise_filtered_final.jsonl"
+        BASE_PATH
+        + f"src/data/squad/t5_squad_counterfactuals/rag_counterfactuals_complete_noise_filtered_final.jsonl",
     )
 
 
 def _add_answer_to_noise_filtered():
     with jsonlines.open(
-            BASE_PATH + f"src/data/squad/t5_squad_counterfactuals/rag_counterfactuals_complete_noise_min_filtered_dedup.jsonl") as reader:
+        BASE_PATH
+        + f"src/data/squad/t5_squad_counterfactuals/rag_counterfactuals_complete_noise_min_filtered_dedup.jsonl"
+    ) as reader:
         nf_samples = [ex for ex in reader]
         nf_idx = [ex["id"] for ex in nf_samples]
 
     with jsonlines.open(
-            BASE_PATH + f"src/data/squad/t5_squad_counterfactuals/rag_counterfactuals_complete_noise_filtered_final.jsonl") as reader:
+        BASE_PATH
+        + f"src/data/squad/t5_squad_counterfactuals/rag_counterfactuals_complete_noise_filtered_final.jsonl"
+    ) as reader:
         all_samples = [ex for ex in reader]
 
     examples = []
@@ -483,7 +566,8 @@ def _add_answer_to_noise_filtered():
     print(len(examples))
     save_to_disk(
         examples,
-        BASE_PATH + f"src/data/squad/t5_squad_counterfactuals/rag_counterfactuals_complete_noise_min_filtered_dedup_final.jsonl"
+        BASE_PATH
+        + f"src/data/squad/t5_squad_counterfactuals/rag_counterfactuals_complete_noise_min_filtered_dedup_final.jsonl",
     )
 
 

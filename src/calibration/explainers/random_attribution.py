@@ -14,7 +14,7 @@ from transformers import (
     RobertaForQuestionAnswering,
     PreTrainedModel,
     PreTrainedTokenizer,
-    logging
+    logging,
 )
 
 from src.calibration.explainers.base_explainer import BaseExplainer
@@ -24,10 +24,7 @@ logging.set_verbosity_error()
 
 
 class RandomAttributions(BaseExplainer):
-    def __init__(self,
-                 model: PreTrainedModel,
-                 tokenizer: PreTrainedTokenizer
-                 ):
+    def __init__(self, model: PreTrainedModel, tokenizer: PreTrainedTokenizer):
         super().__init__(model=model, tokenizer=tokenizer)
 
     def interpret(self, inputs: List[List], output: str = "processed"):
@@ -42,8 +39,12 @@ class RandomAttributions(BaseExplainer):
         attributions = [random.uniform(0, 1) for i in range(outputs[0].size()[1])]
 
         if output == "raw":
-            return self.encode(inputs, add_special_tokens=True, return_tensors="pt"),\
-                   attributions, answer_start, answer_end
+            return (
+                self.encode(inputs, add_special_tokens=True, return_tensors="pt"),
+                attributions,
+                answer_start,
+                answer_end,
+            )
 
         outputs = self.process_outputs(attributions=attributions)
 
@@ -65,21 +66,21 @@ class RandomAttributions(BaseExplainer):
         importance: np.array = np.array([])
         dec_text = self.decoded_text
         if self.model.config.model_type in ["roberta", "bart"]:
-            segments = self._bpe_decode(dec_text)  #, attributions)
+            segments = self._bpe_decode(dec_text)  # , attributions)
         elif self.model.config.model_type == "bert":
             filtered_tokens, importance = self._wordpiece_decode(dec_text, attributions)
 
         # normed_imp = [np.round(float(i) / sum(attributions), 3)
         #               for i in attributions]
         # result = [(w, a) for w, a in zip(filtered_tokens, normed_imp)]
-                  # if w != '']
+        # if w != '']
         # assert len(segments) == len(attributions)
         # print(len(result))
         outputs = {"attributions": attributions, "segments": segments}
         return outputs
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # base_model = "bert-base-uncased"
     # adapter_model = "AdapterHub/bert-base-uncased-pf-squad_v2"
     # model = BertAdapterModel.from_pretrained(base_model)
@@ -91,7 +92,9 @@ if __name__ == '__main__':
     model = RobertaForQuestionAnswering.from_pretrained(model_path)
     tokenizer = AutoTokenizer.from_pretrained(model_path)
 
-    data = dataloader.PreprocessData("squad_adversarial", "AddSent", save_data=False, save_path="../../../../")
+    data = dataloader.PreprocessData(
+        "squad_adversarial", "AddSent", save_data=False, save_path="../../../../"
+    )
     # data = dataloader.get_dev_examples("./src/calibration/data", "dev_trivia.json")
     outputs = list()
 
@@ -122,6 +125,7 @@ if __name__ == '__main__':
         # break
     # import ast
     # print(ast.literal_eval(processed_instances["56f879bdaef23719006260e2"]))
-    utils.dump_to_bin(processed_instances,
-                      "./src/results/squad_adv_random_roberta_base_info.bin")
+    utils.dump_to_bin(
+        processed_instances, "./src/results/squad_adv_random_roberta_base_info.bin"
+    )
     print(f"Saved instances: {c}")

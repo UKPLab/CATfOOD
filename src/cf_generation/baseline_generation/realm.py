@@ -14,24 +14,18 @@ torch.set_printoptions(precision=8)
 def get_arg_parser():
     parser = ArgumentParser()
 
-    parser.add_argument(
-        "--question",
-        type=str,
-        required=True,
-        help="Input question."
-    )
+    parser.add_argument("--question", type=str, required=True, help="Input question.")
     parser.add_argument(
         "--checkpoint_pretrained_name",
         type=str,
         default=r"converted_model",
-        help="Checkpoint name or path."
+        help="Checkpoint name or path.",
     )
     parser.add_argument(
         "--additional_documents_path",
         type=str,
         default=None,
-        help="Additional document entries for retrieval. "
-             "Must be .npy format."
+        help="Additional document entries for retrieval. " "Must be .npy format.",
     )
 
     return parser
@@ -42,18 +36,12 @@ def main(args):
     tokenizer = openqa.retriever.tokenizer
 
     if args.additional_documents_path is not None:
-        add_additional_documents(
-            openqa,
-            args.additional_documents_path
-        )
+        add_additional_documents(openqa, args.additional_documents_path)
 
     question_ids = tokenizer(args.question, return_tensors="pt").input_ids
 
     with torch.no_grad():
-        outputs = openqa(
-            input_ids=question_ids,
-            return_dict=True,
-        )
+        outputs = openqa(input_ids=question_ids, return_dict=True,)
 
     predicted_answer = tokenizer.decode(outputs.predicted_answer_ids)
 

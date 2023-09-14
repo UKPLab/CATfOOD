@@ -13,10 +13,7 @@ assert (
 tokenizer = LlamaTokenizer.from_pretrained(BASE_MODEL)
 
 base_model = LlamaForCausalLM.from_pretrained(
-    BASE_MODEL,
-    load_in_8bit=False,
-    torch_dtype=torch.float16,
-    device_map={"": "cpu"},
+    BASE_MODEL, load_in_8bit=False, torch_dtype=torch.float16, device_map={"": "cpu"},
 )
 
 first_weight = base_model.model.layers[0].self_attn.q_proj.weight
@@ -29,9 +26,7 @@ lora_model = PeftModel.from_pretrained(
     torch_dtype=torch.float16,
 )
 
-lora_weight = lora_model.base_model.model.model.layers[
-    0
-].self_attn.q_proj.weight
+lora_weight = lora_model.base_model.model.model.layers[0].self_attn.q_proj.weight
 
 assert torch.allclose(first_weight_old, first_weight)
 

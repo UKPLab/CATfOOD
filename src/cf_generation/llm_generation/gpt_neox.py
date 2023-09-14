@@ -8,8 +8,9 @@ from datasets import load_dataset
 
 # from src.few_shot.utils import save_to_disk
 
-BASE_PATH="/storage/ukp/work/sachdeva/research_projects/exp_calibration/"
+BASE_PATH = "/storage/ukp/work/sachdeva/research_projects/exp_calibration/"
 # BASE_PATH = "/home/sachdeva/projects/ukp/exp_calibration/"
+
 
 def save_to_disk(data, file_name):
     with jsonlines.open(file_name, "a") as writer:
@@ -17,12 +18,17 @@ def save_to_disk(data, file_name):
             writer.write(example)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 
     # load squad data
     dataset = load_dataset("squad", "plain_text")
     train_data = dataset["train"]
-    squad_data = [sample for sample in tqdm(train_data, total=len(train_data), desc="Loading SQuAD data ... ")]
+    squad_data = [
+        sample
+        for sample in tqdm(
+            train_data, total=len(train_data), desc="Loading SQuAD data ... "
+        )
+    ]
 
     c = 0
     examples = []
@@ -39,8 +45,10 @@ if __name__ == '__main__':
     # prompt = "Using the given context, generate a question that requires selecting a short " \
     #          "and specific answer from it."
 
-    prompt = "You are a question generation model. Given the context below, please generate a question that " \
-             "can be answered based on the information given in the context."  # use this
+    prompt = (
+        "You are a question generation model. Given the context below, please generate a question that "
+        "can be answered based on the information given in the context."
+    )  # use this
 
     # prompt = "As a question generation model, your task is to generate a relevant and informative question " \
     #          "based on the given context. The question should be of type what, where, which, why, who, how, etc., " \
@@ -97,7 +105,6 @@ if __name__ == '__main__':
     #          "to the question should be a specific span of text found within the context. Please ensure that your " \
     #          "question is clear and concise, and that it accurately reflects the information provided in the context." # okayish
 
-
     # prompt = "Create a question based on the context provided below that elicits a fluent and " \
     #          "concise answer from within the given text. Please provide a clear and specific question " \
     #          "that can be answered directly by a single span of text within the passage, without " \
@@ -130,21 +137,27 @@ if __name__ == '__main__':
 
     config = AutoConfig.from_pretrained(model_name, pad_token_id=0, eos_token_id=0)
     model = AutoModelForCausalLM.from_pretrained(
-        model_name, torch_dtype=torch.bfloat16, device_map="auto", config=config)
+        model_name, torch_dtype=torch.bfloat16, device_map="auto", config=config
+    )
     tokenizer = AutoTokenizer.from_pretrained(model_name)
 
     model.eval()
     skipped_instances = 0
-    with jsonlines.open(BASE_PATH + "src/data/squad/squad_counterfactuals_noise_min_filtered_final_2.jsonl") as reader:
+    with jsonlines.open(
+        BASE_PATH
+        + "src/data/squad/squad_counterfactuals_noise_min_filtered_final_2.jsonl"
+    ) as reader:
         for example in tqdm(reader):
             try:
                 c += 1
-                if c<=35000:
+                if c <= 35000:
                     continue
                 # print(c)
                 id = example["id"].split("_")[0]
                 context = example["context"]
-                orig_example = [sample for sample in squad_data if sample["id"] == id][0]
+                orig_example = [sample for sample in squad_data if sample["id"] == id][
+                    0
+                ]
                 # print(orig_example)
                 orig_context = orig_example["context"]
                 orig_question = orig_example["question"]
@@ -170,7 +183,9 @@ if __name__ == '__main__':
                 #         f"\n### \n{prompt} \nContext: {context} " \
                 #         f"\nQuestion: \nAnswer: \n###"
 
-                input = f"{prompt} \n\nContext: {context} \n\nQuestion: "   # use this one
+                input = (
+                    f"{prompt} \n\nContext: {context} \n\nQuestion: "  # use this one
+                )
 
                 # input = f"{prompt}\n Context: {context}\n Question: "
 
@@ -198,21 +213,16 @@ if __name__ == '__main__':
                 # print("Actual question: ", question)
                 # print("-"*100)
 
-
                 # if c == 20:
                 #     break
                 # break
-                result = {
-                    "id": example["id"],
-                    "question": question,
-                    "context": context
-                }
+                result = {"id": example["id"], "question": question, "context": context}
                 # print(result)
                 examples.append(result)
                 if c % 5000 == 0:
                     save_to_disk(
                         examples,
-                        f"{save_path}/counterfactual_questions_{model_identifier}_{c}.jsonl"
+                        f"{save_path}/counterfactual_questions_{model_identifier}_{c}.jsonl",
                     )
                     examples = []
 
@@ -225,5 +235,5 @@ if __name__ == '__main__':
         if examples:
             save_to_disk(
                 examples,
-                f"{save_path}/counterfactual_questions_{model_identifier}_{c}.jsonl"
+                f"{save_path}/counterfactual_questions_{model_identifier}_{c}.jsonl",
             )

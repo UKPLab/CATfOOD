@@ -38,7 +38,9 @@ def main(
     prompter = Prompter(prompt_template)
     tokenizer = LlamaTokenizer.from_pretrained(base_model)
     if device == "cuda":
-        print("Loading model in 8bit mode" if load_8bit else "Loading model in 16bit mode")
+        print(
+            "Loading model in 8bit mode" if load_8bit else "Loading model in 16bit mode"
+        )
         model = LlamaForCausalLM.from_pretrained(
             "./hf_ckpt",
             load_in_8bit=False,
@@ -52,25 +54,16 @@ def main(
         # )
     elif device == "mps":
         model = LlamaForCausalLM.from_pretrained(
-            base_model,
-            device_map={"": device},
-            torch_dtype=torch.float16,
+            base_model, device_map={"": device}, torch_dtype=torch.float16,
         )
         model = PeftModel.from_pretrained(
-            model,
-            lora_weights,
-            device_map={"": device},
-            torch_dtype=torch.float16,
+            model, lora_weights, device_map={"": device}, torch_dtype=torch.float16,
         )
     else:
         model = LlamaForCausalLM.from_pretrained(
             base_model, device_map={"": device}, low_cpu_mem_usage=True
         )
-        model = PeftModel.from_pretrained(
-            model,
-            lora_weights,
-            device_map={"": device},
-        )
+        model = PeftModel.from_pretrained(model, lora_weights, device_map={"": device},)
 
     # unwind broken decapoda-research config
     model.config.pad_token_id = tokenizer.pad_token_id = 0  # unk
@@ -158,7 +151,6 @@ def main(
     # ).launch(server_name="0.0.0.0", share=share_gradio)
     # Old testing code follows.
 
-
     # testing code for readme
     for instruction in [
         "Tell me about alpacas.",
@@ -174,7 +166,6 @@ def main(
         print("Instruction:", instruction)
         print("Response:", evaluate(instruction))
         print()
-
 
 
 if __name__ == "__main__":

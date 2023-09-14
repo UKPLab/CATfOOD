@@ -12,6 +12,7 @@ from itertools import combinations
 def lime_kernel(d, kernel_width=25):
     return np.sqrt(np.exp(-(d ** 2) / kernel_width ** 2))
 
+
 def lime_feature_selection(data, labels, weights, num_features, method):
     clf = Ridge(alpha=0.01, fit_intercept=True)
     clf.fit(data, labels, sample_weight=weights)
@@ -29,7 +30,9 @@ def lime_feature_selection(data, labels, weights, num_features, method):
             nnz_indexes = argsort_data[::-1]
             indices = weighted_data.indices[nnz_indexes]
             num_to_pad = num_features - sdata
-            indices = np.concatenate((indices, np.zeros(num_to_pad, dtype=indices.dtype)))
+            indices = np.concatenate(
+                (indices, np.zeros(num_to_pad, dtype=indices.dtype))
+            )
             indices_set = set(indices)
             pad_counter = 0
             for i in range(data.shape[1]):
@@ -39,7 +42,7 @@ def lime_feature_selection(data, labels, weights, num_features, method):
                     if pad_counter >= num_to_pad:
                         break
         else:
-            nnz_indexes = argsort_data[sdata - num_features:sdata][::-1]
+            nnz_indexes = argsort_data[sdata - num_features : sdata][::-1]
             indices = weighted_data.indices[nnz_indexes]
         return indices
     else:
@@ -47,10 +50,14 @@ def lime_feature_selection(data, labels, weights, num_features, method):
         feature_weights = sorted(
             zip(range(data.shape[1]), weighted_data),
             key=lambda x: np.abs(x[1]),
-            reverse=True)
+            reverse=True,
+        )
         return np.array([x[0] for x in feature_weights[:num_features]])
 
-def lime_explain_instance_with_data(neighborhood_data, neighborhood_labels, distances, feature_selection='auto'):
+
+def lime_explain_instance_with_data(
+    neighborhood_data, neighborhood_labels, distances, feature_selection="auto"
+):
     # print("nbr labels", neighborhood_labels)
     # print("nbr data", neighborhood_data)
     weights = lime_kernel(distances)
@@ -61,11 +68,17 @@ def lime_explain_instance_with_data(neighborhood_data, neighborhood_labels, dist
     easy_model.fit(neighborhood_data, labels_column, sample_weight=weights)
     return easy_model.coef_
 
-def lime_feat_labels_distances(doc_size, classifier_fn, num_samples=5000, distance_metric='cosine'):
 
+def lime_feat_labels_distances(
+    doc_size, classifier_fn, num_samples=5000, distance_metric="cosine"
+):
     def distance_fn(x):
-        return sklearn.metrics.pairwise.pairwise_distances(
-            x, x[0], metric=distance_metric).ravel() * 100
+        return (
+            sklearn.metrics.pairwise.pairwise_distances(
+                x, x[0], metric=distance_metric
+            ).ravel()
+            * 100
+        )
 
     sample = np.random.randint(1, doc_size + 1, num_samples - 1)
     data = np.ones((num_samples, doc_size))
@@ -82,6 +95,7 @@ def lime_feat_labels_distances(doc_size, classifier_fn, num_samples=5000, distan
     # print(data, labels, distances)
     return data, labels, distances
 
+
 def run_lime_attribution(doc_size, classifier_fn):
     data, labels, distances = lime_feat_labels_distances(doc_size, classifier_fn)
     return lime_explain_instance_with_data(data, labels, distances)
@@ -94,10 +108,10 @@ def shap_feat_label_weights(doc_size, classifier_fn, verbose=False):
     # not working for small seq for now, needs more complex way
     num_sample = 2 * doc_size + 2 ** 11
     if num_sample > (2 ** doc_size - 2):
-        num_sample = (2 ** doc_size - 2)
+        num_sample = 2 ** doc_size - 2
 
     if verbose:
-        print('Doc size', doc_size, 'Num sample', num_sample)
+        print("Doc size", doc_size, "Num sample", num_sample)
 
     num_included = 0
     subset_size = 1
@@ -113,11 +127,22 @@ def shap_feat_label_weights(doc_size, classifier_fn, verbose=False):
         # not able to contain all of this size
         if num_left < num_sample_of_size:
             if verbose:
-                print('for size', subset_size, 'needed', num_sample_of_size, 'remaining', num_left)
+                print(
+                    "for size",
+                    subset_size,
+                    "needed",
+                    num_sample_of_size,
+                    "remaining",
+                    num_left,
+                )
             break
         if verbose:
-            print('including everything of', subset_size)
-        weight_of_size = (doc_size - 1) / (subset_size * (doc_size - subset_size)) / binom(doc_size, subset_size)
+            print("including everything of", subset_size)
+        weight_of_size = (
+            (doc_size - 1)
+            / (subset_size * (doc_size - subset_size))
+            / binom(doc_size, subset_size)
+        )
         # add all combination of this size
         for inds in combinations(features_idx, subset_size):
             pos_mask = np.ones(doc_size, dtype=np.int64)
@@ -135,17 +160,25 @@ def shap_feat_label_weights(doc_size, classifier_fn, verbose=False):
     unincluded_size = subset_size
     num_left = num_sample - num_included
     if num_left > 0:
-        remaining_possible_size = list(range(unincluded_size, doc_size + 1 - unincluded_size))
-        remaining_possible_weight = np.array([(doc_size - 1) / (s * (doc_size - s)) for s in remaining_possible_size])
+        remaining_possible_size = list(
+            range(unincluded_size, doc_size + 1 - unincluded_size)
+        )
+        remaining_possible_weight = np.array(
+            [(doc_size - 1) / (s * (doc_size - s)) for s in remaining_possible_size]
+        )
         remaining_sample_weight = remaining_possible_weight.sum() / num_left
         if verbose:
-            print('already included', num_fixed_data)
-            print('remaining size to sample from', remaining_possible_size)
-            print('with the following weight', remaining_possible_weight)
+            print("already included", num_fixed_data)
+            print("remaining size to sample from", remaining_possible_size)
+            print("with the following weight", remaining_possible_weight)
 
         # normalize sampling rate to 1
-        remaining_possible_weight = remaining_possible_weight / remaining_possible_weight.sum()
-        size_sample = np.random.choice(remaining_possible_size, int(num_left / 2), p=remaining_possible_weight)
+        remaining_possible_weight = (
+            remaining_possible_weight / remaining_possible_weight.sum()
+        )
+        size_sample = np.random.choice(
+            remaining_possible_size, int(num_left / 2), p=remaining_possible_weight
+        )
 
         for size in size_sample:
             selected = np.random.choice(features_idx, size, replace=False)
@@ -158,12 +191,29 @@ def shap_feat_label_weights(doc_size, classifier_fn, verbose=False):
             kernel_weights.append(remaining_sample_weight)
 
         if verbose:
-            print('sum of fixed weights', sum(kernel_weights[:num_fixed_data]))
-            print('theoretical sum of fixed weights',
-                  2 * sum([(doc_size - 1) / (s * (doc_size - s)) for s in range(1, unincluded_size)]))
-            print('sum of randomly sampled weights', sum(kernel_weights[num_fixed_data:]))
-            print('theoretical sum of randomly sampled weights',
-                  sum([(doc_size - 1) / (s * (doc_size - s)) for s in remaining_possible_size]))
+            print("sum of fixed weights", sum(kernel_weights[:num_fixed_data]))
+            print(
+                "theoretical sum of fixed weights",
+                2
+                * sum(
+                    [
+                        (doc_size - 1) / (s * (doc_size - s))
+                        for s in range(1, unincluded_size)
+                    ]
+                ),
+            )
+            print(
+                "sum of randomly sampled weights", sum(kernel_weights[num_fixed_data:])
+            )
+            print(
+                "theoretical sum of randomly sampled weights",
+                sum(
+                    [
+                        (doc_size - 1) / (s * (doc_size - s))
+                        for s in remaining_possible_size
+                    ]
+                ),
+            )
 
     data = np.stack(data)
     labels = np.array([classifier_fn(d) for d in data])
@@ -183,7 +233,7 @@ def run_shap_attribution(args, doc_size, classifier_fn):
     return shap_explain_instance_with_data(data, labels, weights)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     dummy_fn = lambda x: np.sum(x)
     # run_shap_attribution(None, 4, dummy_fn)
     # run_shap_attribution(None, 10, dummy_fn)

@@ -23,7 +23,7 @@ class IndexedFeature:
             self.data[k] = v
 
     def __getitem__(self, k):
-        return self.data.get(k, 0.)
+        return self.data.get(k, 0.0)
 
     def __repr__(self):
         return self.__str__()
@@ -61,6 +61,7 @@ class FeatureVocab:
 
     def get_names(self):
         return [self.id_to_feat[i] for i in range(len(self))]
+
     def add(self, word):
         if word not in self:
             wid = self.feat_to_id[word] = len(self)

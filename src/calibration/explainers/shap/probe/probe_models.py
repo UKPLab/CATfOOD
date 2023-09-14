@@ -1,7 +1,6 @@
 from transformers import RobertaForQuestionAnswering
 from transformers.models.roberta.modeling_roberta import (
     RobertaPreTrainedModel,
-
     RobertaPooler,
     RobertaModel,
     RobertaEncoder,
@@ -38,7 +37,9 @@ import math
 class ProbeRobertaSelfAttention(nn.Module):
     def __init__(self, config):
         super().__init__()
-        if config.hidden_size % config.num_attention_heads != 0 and not hasattr(config, "embedding_size"):
+        if config.hidden_size % config.num_attention_heads != 0 and not hasattr(
+            config, "embedding_size"
+        ):
             raise ValueError(
                 "The hidden size (%d) is not a multiple of the number of attention "
                 "heads (%d)" % (config.hidden_size, config.num_attention_heads)
@@ -55,7 +56,10 @@ class ProbeRobertaSelfAttention(nn.Module):
         self.dropout = nn.Dropout(config.attention_probs_dropout_prob)
 
     def transpose_for_scores(self, x):
-        new_x_shape = x.size()[:-1] + (self.num_attention_heads, self.attention_head_size)
+        new_x_shape = x.size()[:-1] + (
+            self.num_attention_heads,
+            self.attention_head_size,
+        )
         x = x.view(*new_x_shape)
         return x.permute(0, 2, 1, 3)
 
@@ -76,7 +80,6 @@ class ProbeRobertaSelfAttention(nn.Module):
     ):
         mixed_query_layer = self.query(hidden_states)
 
-
         # If this is instantiated as a cross-attention module, the keys
         # and values come from an encoder; the attention mask needs to be
         # such that the encoder's padding tokens are not attended to.
@@ -91,7 +94,6 @@ class ProbeRobertaSelfAttention(nn.Module):
         query_layer = self.transpose_for_scores(mixed_query_layer)
         key_layer = self.transpose_for_scores(mixed_key_layer)
         value_layer = self.transpose_for_scores(mixed_value_layer)
-
 
         if input_attentions is None:
             # Take the dot product between "query" and "key" to get the raw attention scores.
@@ -122,8 +124,11 @@ class ProbeRobertaSelfAttention(nn.Module):
         new_context_layer_shape = context_layer.size()[:-2] + (self.all_head_size,)
         context_layer = context_layer.view(*new_context_layer_shape)
 
-        outputs = (context_layer, attention_probs) if output_attentions else (context_layer,)
+        outputs = (
+            (context_layer, attention_probs) if output_attentions else (context_layer,)
+        )
         return outputs
+
 
 # Copied from transformers.modeling_bert.BertAttention with Bert->Roberta
 class ProbeRobertaAttention(nn.Module):
@@ -137,7 +142,10 @@ class ProbeRobertaAttention(nn.Module):
         if len(heads) == 0:
             return
         heads, index = find_pruneable_heads_and_indices(
-            heads, self.self.num_attention_heads, self.self.attention_head_size, self.pruned_heads
+            heads,
+            self.self.num_attention_heads,
+            self.self.attention_head_size,
+            self.pruned_heads,
         )
 
         # Prune linear layers
@@ -148,7 +156,9 @@ class ProbeRobertaAttention(nn.Module):
 
         # Update hyper params and store pruned heads
         self.self.num_attention_heads = self.self.num_attention_heads - len(heads)
-        self.self.all_head_size = self.self.attention_head_size * self.self.num_attention_heads
+        self.self.all_head_size = (
+            self.self.attention_head_size * self.self.num_attention_heads
+        )
         self.pruned_heads = self.pruned_heads.union(heads)
 
     def forward(
@@ -173,7 +183,9 @@ class ProbeRobertaAttention(nn.Module):
             link_mask,
         )
         attention_output = self.output(self_outputs[0], hidden_states)
-        outputs = (attention_output,) + self_outputs[1:]  # add attentions if we output them
+        outputs = (attention_output,) + self_outputs[
+            1:
+        ]  # add attentions if we output them
         return outputs
 
 
@@ -187,7 +199,9 @@ class ProbeRobertaLayer(nn.Module):
         self.is_decoder = config.is_decoder
         self.add_cross_attention = config.add_cross_attention
         if self.add_cross_attention:
-            assert self.is_decoder, f"{self} should be used as a decoder model if cross attention is added"
+            assert (
+                self.is_decoder
+            ), f"{self} should be used as a decoder model if cross attention is added"
             self.crossattention = RobertaAttention(config)
         self.intermediate = RobertaIntermediate(config)
         self.output = RobertaOutput(config)
@@ -212,7 +226,9 @@ class ProbeRobertaLayer(nn.Module):
             link_mask=link_mask,
         )
         attention_output = self_attention_outputs[0]
-        outputs = self_attention_outputs[1:]  # add self attentions if we output attention weights
+        outputs = self_attention_outputs[
+            1:
+        ]  # add self attentions if we output attention weights
 
         if self.is_decoder and encoder_hidden_states is not None:
             assert hasattr(
@@ -227,10 +243,15 @@ class ProbeRobertaLayer(nn.Module):
                 output_attentions,
             )
             attention_output = cross_attention_outputs[0]
-            outputs = outputs + cross_attention_outputs[1:]  # add cross attentions if we output attention weights
+            outputs = (
+                outputs + cross_attention_outputs[1:]
+            )  # add cross attentions if we output attention weights
 
         layer_output = apply_chunking_to_forward(
-            self.feed_forward_chunk, self.chunk_size_feed_forward, self.seq_len_dim, attention_output
+            self.feed_forward_chunk,
+            self.chunk_size_feed_forward,
+            self.seq_len_dim,
+            attention_output,
         )
         outputs = (layer_output,) + outputs
         return outputs
@@ -240,11 +261,14 @@ class ProbeRobertaLayer(nn.Module):
         layer_output = self.output(intermediate_output, attention_output)
         return layer_output
 
+
 class ProbeRobertaEncoder(nn.Module):
     def __init__(self, config):
         super().__init__()
         self.config = config
-        self.layer = nn.ModuleList([ProbeRobertaLayer(config) for _ in range(config.num_hidden_layers)])
+        self.layer = nn.ModuleList(
+            [ProbeRobertaLayer(config) for _ in range(config.num_hidden_layers)]
+        )
 
     def forward(
         self,
@@ -261,20 +285,24 @@ class ProbeRobertaEncoder(nn.Module):
     ):
         all_hidden_states = () if output_hidden_states else None
         all_attentions = () if output_attentions else None
-        
+
         for i, layer_module in enumerate(self.layer):
             if output_hidden_states:
                 all_hidden_states = all_hidden_states + (hidden_states,)
 
             layer_head_mask = head_mask[i] if head_mask is not None else None
 
-            layer_input_attentions = input_attentions[i] if input_attentions is not None else None
+            layer_input_attentions = (
+                input_attentions[i] if input_attentions is not None else None
+            )
             layer_link_mask = link_mask[i] if link_mask is not None else None
             if getattr(self.config, "gradient_checkpointing", False):
 
                 def create_custom_forward(module):
                     def custom_forward(*inputs):
-                        return module(*inputs, output_attentions, layer_input_attentions)
+                        return module(
+                            *inputs, output_attentions, layer_input_attentions
+                        )
 
                     return custom_forward
 
@@ -295,7 +323,7 @@ class ProbeRobertaEncoder(nn.Module):
                     encoder_attention_mask,
                     output_attentions,
                     layer_input_attentions,
-                    layer_link_mask
+                    layer_link_mask,
                 )
             hidden_states = layer_outputs[0]
             if output_attentions:
@@ -305,13 +333,19 @@ class ProbeRobertaEncoder(nn.Module):
             all_hidden_states = all_hidden_states + (hidden_states,)
 
         if not return_dict:
-            return tuple(v for v in [hidden_states, all_hidden_states, all_attentions] if v is not None)
+            return tuple(
+                v
+                for v in [hidden_states, all_hidden_states, all_attentions]
+                if v is not None
+            )
         return BaseModelOutput(
-            last_hidden_state=hidden_states, hidden_states=all_hidden_states, attentions=all_attentions
+            last_hidden_state=hidden_states,
+            hidden_states=all_hidden_states,
+            attentions=all_attentions,
         )
 
-class ProbeRobertaModel(RobertaPreTrainedModel):
 
+class ProbeRobertaModel(RobertaPreTrainedModel):
 
     authorized_missing_keys = [r"position_ids"]
 
@@ -364,14 +398,24 @@ class ProbeRobertaModel(RobertaPreTrainedModel):
             Mask values selected in ``[0, 1]``:
             ``1`` for tokens that are NOT MASKED, ``0`` for MASKED tokens.
         """
-        output_attentions = output_attentions if output_attentions is not None else self.config.output_attentions
-        output_hidden_states = (
-            output_hidden_states if output_hidden_states is not None else self.config.output_hidden_states
+        output_attentions = (
+            output_attentions
+            if output_attentions is not None
+            else self.config.output_attentions
         )
-        return_dict = return_dict if return_dict is not None else self.config.use_return_dict
+        output_hidden_states = (
+            output_hidden_states
+            if output_hidden_states is not None
+            else self.config.output_hidden_states
+        )
+        return_dict = (
+            return_dict if return_dict is not None else self.config.use_return_dict
+        )
 
         if input_ids is not None and inputs_embeds is not None:
-            raise ValueError("You cannot specify both input_ids and inputs_embeds at the same time")
+            raise ValueError(
+                "You cannot specify both input_ids and inputs_embeds at the same time"
+            )
         elif input_ids is not None:
             input_shape = input_ids.size()
         elif inputs_embeds is not None:
@@ -388,16 +432,24 @@ class ProbeRobertaModel(RobertaPreTrainedModel):
 
         # We can provide a self-attention mask of dimensions [batch_size, from_seq_length, to_seq_length]
         # ourselves in which case we just need to make it broadcastable to all heads.
-        extended_attention_mask: torch.Tensor = self.get_extended_attention_mask(attention_mask, input_shape, device)
+        extended_attention_mask: torch.Tensor = self.get_extended_attention_mask(
+            attention_mask, input_shape, device
+        )
 
         # If a 2D or 3D attention mask is provided for the cross-attention
         # we need to make broadcastable to [batch_size, num_heads, seq_length, seq_length]
         if self.config.is_decoder and encoder_hidden_states is not None:
-            encoder_batch_size, encoder_sequence_length, _ = encoder_hidden_states.size()
+            (
+                encoder_batch_size,
+                encoder_sequence_length,
+                _,
+            ) = encoder_hidden_states.size()
             encoder_hidden_shape = (encoder_batch_size, encoder_sequence_length)
             if encoder_attention_mask is None:
                 encoder_attention_mask = torch.ones(encoder_hidden_shape, device=device)
-            encoder_extended_attention_mask = self.invert_attention_mask(encoder_attention_mask)
+            encoder_extended_attention_mask = self.invert_attention_mask(
+                encoder_attention_mask
+            )
         else:
             encoder_extended_attention_mask = None
 
@@ -409,7 +461,10 @@ class ProbeRobertaModel(RobertaPreTrainedModel):
         head_mask = self.get_head_mask(head_mask, self.config.num_hidden_layers)
 
         embedding_output = self.embeddings(
-            input_ids=input_ids, position_ids=position_ids, token_type_ids=token_type_ids, inputs_embeds=inputs_embeds
+            input_ids=input_ids,
+            position_ids=position_ids,
+            token_type_ids=token_type_ids,
+            inputs_embeds=inputs_embeds,
         )
         encoder_outputs = self.encoder(
             embedding_output,
@@ -424,7 +479,9 @@ class ProbeRobertaModel(RobertaPreTrainedModel):
             link_mask=link_mask,
         )
         sequence_output = encoder_outputs[0]
-        pooled_output = self.pooler(sequence_output) if self.pooler is not None else None
+        pooled_output = (
+            self.pooler(sequence_output) if self.pooler is not None else None
+        )
 
         if not return_dict:
             return (sequence_output, pooled_output) + encoder_outputs[1:]
@@ -445,13 +502,12 @@ class ProbeRobertaForQuestionAnswering(RobertaPreTrainedModel):
         super().__init__(config)
         self.num_labels = config.num_labels
 
-        self.roberta = ProbeRobertaModel(config, add_pooling_layer=False)        
+        self.roberta = ProbeRobertaModel(config, add_pooling_layer=False)
         self.qa_outputs = nn.Linear(config.hidden_size, config.num_labels)
 
         self.init_weights()
         self.num_hidden_layers = self.config.num_hidden_layers
         self.num_attention_heads = self.config.num_attention_heads
-
 
     def forward(
         self,
@@ -479,7 +535,9 @@ class ProbeRobertaForQuestionAnswering(RobertaPreTrainedModel):
             Positions are clamped to the length of the sequence (:obj:`sequence_length`).
             Position outside of the sequence are not taken into account for computing the loss.
         """
-        return_dict = return_dict if return_dict is not None else self.config.use_return_dict
+        return_dict = (
+            return_dict if return_dict is not None else self.config.use_return_dict
+        )
         outputs = self.roberta(
             input_ids,
             attention_mask=attention_mask,
@@ -536,69 +594,101 @@ class ProbeRobertaForQuestionAnswering(RobertaPreTrainedModel):
     def probs_of_span(self, start_logits, end_logits, start_indexes, end_indexes):
         start_logits = F.softmax(start_logits, dim=1)
         end_logits = F.softmax(end_logits, dim=1)
-        selected_start_logits = torch.gather(start_logits, 1, torch.tensor(start_indexes).to(self.roberta.device).view(-1, 1))
-        selected_end_logits = torch.gather(end_logits, 1, torch.tensor(end_indexes).to(self.roberta.device).view(-1, 1))
+        selected_start_logits = torch.gather(
+            start_logits,
+            1,
+            torch.tensor(start_indexes).to(self.roberta.device).view(-1, 1),
+        )
+        selected_end_logits = torch.gather(
+            end_logits, 1, torch.tensor(end_indexes).to(self.roberta.device).view(-1, 1)
+        )
         sum_logits = selected_start_logits * selected_end_logits
 
-        return sum_logits    
+        return sum_logits
 
     # batch size has to be 1
     def probe_forward(
         self,
         input_ids=None,
         answers=None,
-        final_start_logits=None, # for comparison
-        final_end_logits=None, # for comparison
+        final_start_logits=None,  # for comparison
+        final_end_logits=None,  # for comparison
         active_layers=None,
         link_mask=None,
         return_kl=True,
-        **kwargs
+        **kwargs,
     ):
 
         if active_layers is None:
             input_attentions = None
         else:
             zero_input_attention = torch.zeros(
-                        [input_ids.size(0), self.config.num_attention_heads, input_ids.size(1), input_ids.size(1)],
-                        device=input_ids.device)
-            input_attentions = [ None if active_layers[i] else zero_input_attention
-                                 for i in range(self.num_hidden_layers)]
+                [
+                    input_ids.size(0),
+                    self.config.num_attention_heads,
+                    input_ids.size(1),
+                    input_ids.size(1),
+                ],
+                device=input_ids.device,
+            )
+            input_attentions = [
+                None if active_layers[i] else zero_input_attention
+                for i in range(self.num_hidden_layers)
+            ]
 
         outputs = self.forward(
-            input_ids=input_ids, input_attentions=input_attentions, link_mask=link_mask, **kwargs)
+            input_ids=input_ids,
+            input_attentions=input_attentions,
+            link_mask=link_mask,
+            **kwargs,
+        )
         batch_start_logits, batch_end_logits = outputs.start_logits, outputs.end_logits
-        start_indexes, end_indexes = np.array(answers["answer_start"]), np.array(answers["answer_end"])
-        batch_probs = self.probs_of_span(batch_start_logits, batch_end_logits, start_indexes, end_indexes)
+        start_indexes, end_indexes = (
+            np.array(answers["answer_start"]),
+            np.array(answers["answer_end"]),
+        )
+        batch_probs = self.probs_of_span(
+            batch_start_logits, batch_end_logits, start_indexes, end_indexes
+        )
         if not return_kl:
             return batch_probs.item()
 
         kl_loss = F.kl_div(
             F.log_softmax(batch_start_logits, dim=1),
             F.softmax(final_start_logits, dim=1),
-            reduction='batchmean',
+            reduction="batchmean",
         ) + F.kl_div(
             F.log_softmax(batch_end_logits, dim=1),
             F.softmax(final_end_logits, dim=1),
-            reduction='batchmean'                
+            reduction="batchmean",
         )
         return batch_probs.item(), kl_loss.item()
 
     def restricted_forward(
-        self,
-        input_ids=None,
-        active_layers=None,
-        link_mask=None,
-        **kwargs,
+        self, input_ids=None, active_layers=None, link_mask=None, **kwargs,
     ):
         if active_layers is None:
             input_attentions = None
         else:
             zero_input_attention = torch.zeros(
-                        [input_ids.size(0), self.config.num_attention_heads, input_ids.size(1), input_ids.size(1)],
-                        device=input_ids.device)
-            input_attentions = [ None if active_layers[i] else zero_input_attention
-                                 for i in range(self.num_hidden_layers)]
-        return self.forward(input_ids=input_ids, input_attentions=input_attentions, link_mask=link_mask, **kwargs)
+                [
+                    input_ids.size(0),
+                    self.config.num_attention_heads,
+                    input_ids.size(1),
+                    input_ids.size(1),
+                ],
+                device=input_ids.device,
+            )
+            input_attentions = [
+                None if active_layers[i] else zero_input_attention
+                for i in range(self.num_hidden_layers)
+            ]
+        return self.forward(
+            input_ids=input_ids,
+            input_attentions=input_attentions,
+            link_mask=link_mask,
+            **kwargs,
+        )
 
     def layer_attribute(
         self,
@@ -613,30 +703,37 @@ class ProbeRobertaForQuestionAnswering(RobertaPreTrainedModel):
         return_dict=None,
         active_layers=None,
         link_mask=None,
-        input_attentions=None,        
+        input_attentions=None,
         start_indexes=None,
         end_indexes=None,
-        final_start_logits=None, # for comparison
-        final_end_logits=None, # for comparison
+        final_start_logits=None,  # for comparison
+        final_end_logits=None,  # for comparison
         num_steps=300,
     ):
-        # for parallel        
+        # for parallel
         # input size B * L
         # attention mask B * L
         # N_Layer * B * N_HEAD * L * L
 
         # # sanity check
         # N_Layer * B * N_HEAD * L * L
-        final_probs = self.probs_of_span(final_end_logits, final_end_logits, start_indexes, end_indexes)
+        final_probs = self.probs_of_span(
+            final_end_logits, final_end_logits, start_indexes, end_indexes
+        )
 
         attributions = []
-        
+
         if active_layers is None:
             active_layers = [1 for _ in range(self.num_hidden_layers)]
         zero_input_attention = torch.zeros(
-                    [input_ids.size(0), self.config.num_attention_heads, input_ids.size(1), input_ids.size(1)],
-                    device=input_ids.device)
-        
+            [
+                input_ids.size(0),
+                self.config.num_attention_heads,
+                input_ids.size(1),
+                input_ids.size(1),
+            ],
+            device=input_ids.device,
+        )
 
         for layer_i in range(self.num_hidden_layers):
 
@@ -644,8 +741,11 @@ class ProbeRobertaForQuestionAnswering(RobertaPreTrainedModel):
                 attributions.append(zero_input_attention)
                 continue
 
-            layer_acc_attribution = .0
-            layer_input_attention_backbone = [ None if active_layers[i] else zero_input_attention for i in range(self.num_hidden_layers)]
+            layer_acc_attribution = 0.0
+            layer_input_attention_backbone = [
+                None if active_layers[i] else zero_input_attention
+                for i in range(self.num_hidden_layers)
+            ]
             layer_attention = input_attentions[layer_i]
 
             for step_i in tqdm(range(num_steps)):
@@ -671,21 +771,25 @@ class ProbeRobertaForQuestionAnswering(RobertaPreTrainedModel):
 
                 logits = self.qa_outputs(sequence_output)
                 start_logits, end_logits = logits.split(1, dim=-1)
-        
+
                 start_logits = start_logits.squeeze(-1)
                 end_logits = end_logits.squeeze(-1)
 
-                span_probs = self.probs_of_span(start_logits, end_logits, start_indexes, end_indexes)
+                span_probs = self.probs_of_span(
+                    start_logits, end_logits, start_indexes, end_indexes
+                )
                 step_loss = torch.sum(span_probs)
                 step_loss.backward()
 
-                step_attribution = step_attentions.grad.detach() * layer_attention / num_steps
+                step_attribution = (
+                    step_attentions.grad.detach() * layer_attention / num_steps
+                )
                 layer_acc_attribution += step_attribution
 
                 if step_i == 0:
                     baseline_probs = span_probs
             # print(layer_acc_attribution.size())
-            sum_attribution = torch.sum(layer_acc_attribution, (3,2,1))
+            sum_attribution = torch.sum(layer_acc_attribution, (3, 2, 1))
             sanity_probs = baseline_probs + sum_attribution
             # print(layer_i, final_probs.item(), sanity_probs.item(), baseline_probs.item(),  sum_attribution.item())
             attributions.append(layer_acc_attribution)

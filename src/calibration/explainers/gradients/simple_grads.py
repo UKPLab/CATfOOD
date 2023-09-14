@@ -13,7 +13,7 @@ from transformers import (
     RobertaForQuestionAnswering,
     PreTrainedModel,
     PreTrainedTokenizer,
-    logging
+    logging,
 )
 from src.calibration.explainers.base_explainer import BaseExplainer
 from src.calibration.baseline import dataloader, utils
@@ -31,15 +31,13 @@ class SimpleGradients(BaseExplainer):
     """
     class for the implementation of simple gradients' explanation method
     """
-    def __init__(self,
-                 model: PreTrainedModel,
-                 tokenizer: PreTrainedTokenizer
-                 ):
+
+    def __init__(self, model: PreTrainedModel, tokenizer: PreTrainedTokenizer):
         super().__init__(model=model, tokenizer=tokenizer)
 
-    def interpret(self,
-                  inputs: List[List],
-                  ):
+    def interpret(
+        self, inputs: List[List],
+    ):
         """
         gets the word attributions
         """
@@ -62,7 +60,9 @@ class SimpleGradients(BaseExplainer):
 
         # Gradients come back in the reverse order that they were sent into the network
         embeddings_list.reverse()
-        embeddings_list = [embedding.cpu().detach().numpy() for embedding in embeddings_list]
+        embeddings_list = [
+            embedding.cpu().detach().numpy() for embedding in embeddings_list
+        ]
         # token_offsets.reverse()
         # embeddings_list = self._aggregate_token_embeddings(embeddings_list, token_offsets)
         instances_with_grads = dict()
@@ -85,28 +85,44 @@ class SimpleGradients(BaseExplainer):
         return outputs
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 
     import argparse
 
-    parser = argparse.ArgumentParser(description="Passing arguments for model, tokenizer, and dataset.")
+    parser = argparse.ArgumentParser(
+        description="Passing arguments for model, tokenizer, and dataset."
+    )
     parser.add_argument(
         "--model_name",
         default="",
-        type=str, required=False, help="Specify the model to use.")
-    parser.add_argument("--tokenizer", default="roberta-base", type=str, required=False,
-                        help="Specify the tokenizer to use.")
-    parser.add_argument("--dataset", type=str, required=True, help="Specify the dataset to use.")
+        type=str,
+        required=False,
+        help="Specify the model to use.",
+    )
+    parser.add_argument(
+        "--tokenizer",
+        default="roberta-base",
+        type=str,
+        required=False,
+        help="Specify the tokenizer to use.",
+    )
+    parser.add_argument(
+        "--dataset", type=str, required=True, help="Specify the dataset to use."
+    )
 
     args = parser.parse_args()
     model = RobertaForQuestionAnswering.from_pretrained(BASE_PATH + args.model_name)
     tokenizer = AutoTokenizer.from_pretrained(args.tokenizer)
 
     if args.dataset == "squad":
-        loader = dataloader.PreprocessData("squad", "plain_text", save_data=False, save_path="../../../../../")
+        loader = dataloader.PreprocessData(
+            "squad", "plain_text", save_data=False, save_path="../../../../../"
+        )
         data = loader.processed_val_set()
     elif args.dataset == "squad_adversarial":
-        loader = dataloader.PreprocessData("squad_adversarial", "AddSent", save_data=False, save_path="../../../../../")
+        loader = dataloader.PreprocessData(
+            "squad_adversarial", "AddSent", save_data=False, save_path="../../../../../"
+        )
         data = loader.processed_val_set()
     elif args.dataset == "trivia_qa":
         data = dataloader.get_dev_examples("./src/data", "dev_trivia.json")
@@ -117,7 +133,9 @@ if __name__ == '__main__':
     elif args.dataset == "bioasq":
         data = dataloader.get_dev_samples_mrqa(BASE_PATH + "src/data/BioASQ-dev.jsonl")
     elif args.dataset == "natural_questions":
-        data = dataloader.get_dev_samples_mrqa(BASE_PATH + "src/data/NaturalQuestionsShort.jsonl")
+        data = dataloader.get_dev_samples_mrqa(
+            BASE_PATH + "src/data/NaturalQuestionsShort.jsonl"
+        )
     else:
         raise ValueError("Dataset not supported.")
 
@@ -136,12 +154,18 @@ if __name__ == '__main__':
             except Exception:
                 print(ex)
                 print(f"Unable to get attributions: {traceback.format_exc()}")
-    elif args.dataset in ["trivia_qa", "hotpot_qa", "news_qa", "natural_questions", "bioasq"]:
-        def remove_white_space(example):
-            example["question_text"] = ' '.join(example["question_text"].split())
-            example["context_text"] = ' '.join(example["context_text"].split())
-            return example
+    elif args.dataset in [
+        "trivia_qa",
+        "hotpot_qa",
+        "news_qa",
+        "natural_questions",
+        "bioasq",
+    ]:
 
+        def remove_white_space(example):
+            example["question_text"] = " ".join(example["question_text"].split())
+            example["context_text"] = " ".join(example["context_text"].split())
+            return example
 
         # data = dataloader.get_dev_examples(BASE_PATH+"src/data", "dev_hotpot.json")
         # data = dataloader.get_dev_samples_mrqa(BASE_PATH + "src/data/NewsQA.jsonl")
@@ -160,6 +184,8 @@ if __name__ == '__main__':
                 print(f"Unable to get attributions: {traceback.format_exc()}")
 
     print(f"Processed {c} instances of original data")
-    utils.dump_to_bin(processed_instances,
-                      BASE_PATH + f"src/data/{args.dataset}/simple_grads_info_{args.model_name}.bin")
+    utils.dump_to_bin(
+        processed_instances,
+        BASE_PATH + f"src/data/{args.dataset}/simple_grads_info_{args.model_name}.bin",
+    )
     print(f"Saved instances: {c}")

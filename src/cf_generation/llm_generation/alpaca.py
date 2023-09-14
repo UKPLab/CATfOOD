@@ -45,31 +45,20 @@ def main(
             device_map="auto",
         )
         model = PeftModel.from_pretrained(
-            model,
-            lora_weights,
-            torch_dtype=torch.float16,
+            model, lora_weights, torch_dtype=torch.float16,
         )
     elif device == "mps":
         model = LlamaForCausalLM.from_pretrained(
-            base_model,
-            device_map={"": device},
-            torch_dtype=torch.float16,
+            base_model, device_map={"": device}, torch_dtype=torch.float16,
         )
         model = PeftModel.from_pretrained(
-            model,
-            lora_weights,
-            device_map={"": device},
-            torch_dtype=torch.float16,
+            model, lora_weights, device_map={"": device}, torch_dtype=torch.float16,
         )
     else:
         model = LlamaForCausalLM.from_pretrained(
             base_model, device_map={"": device}, low_cpu_mem_usage=True
         )
-        model = PeftModel.from_pretrained(
-            model,
-            lora_weights,
-            device_map={"": device},
-        )
+        model = PeftModel.from_pretrained(model, lora_weights, device_map={"": device},)
 
     # unwind broken decapoda-research config
     model.config.pad_token_id = tokenizer.pad_token_id = 0  # unk
@@ -119,33 +108,20 @@ def main(
         fn=evaluate,
         inputs=[
             gr.components.Textbox(
-                lines=2,
-                label="Instruction",
-                placeholder="Tell me about alpacas.",
+                lines=2, label="Instruction", placeholder="Tell me about alpacas.",
             ),
             gr.components.Textbox(lines=2, label="Input", placeholder="none"),
-            gr.components.Slider(
-                minimum=0, maximum=1, value=0.1, label="Temperature"
-            ),
-            gr.components.Slider(
-                minimum=0, maximum=1, value=0.75, label="Top p"
-            ),
+            gr.components.Slider(minimum=0, maximum=1, value=0.1, label="Temperature"),
+            gr.components.Slider(minimum=0, maximum=1, value=0.75, label="Top p"),
             gr.components.Slider(
                 minimum=0, maximum=100, step=1, value=40, label="Top k"
             ),
-            gr.components.Slider(
-                minimum=1, maximum=4, step=1, value=4, label="Beams"
-            ),
+            gr.components.Slider(minimum=1, maximum=4, step=1, value=4, label="Beams"),
             gr.components.Slider(
                 minimum=1, maximum=2000, step=1, value=128, label="Max tokens"
             ),
         ],
-        outputs=[
-            gr.inputs.Textbox(
-                lines=5,
-                label="Output",
-            )
-        ],
+        outputs=[gr.inputs.Textbox(lines=5, label="Output",)],
         title="🦙🌲 Alpaca-LoRA",
         description="Alpaca-LoRA is a 7B-parameter LLaMA model finetuned to follow instructions. It is trained on the [Stanford Alpaca](https://github.com/tatsu-lab/stanford_alpaca) dataset and makes use of the Huggingface LLaMA implementation. For more information, please visit [the project's website](https://github.com/tloen/alpaca-lora).",  # noqa: E501
     ).launch(server_name="0.0.0.0", share=share_gradio)

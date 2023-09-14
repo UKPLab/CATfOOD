@@ -10,7 +10,7 @@ from transformers import (
     RobertaForQuestionAnswering,
     PreTrainedModel,
     PreTrainedTokenizer,
-    logging
+    logging,
 )
 
 from src.calibration.explainers.base_explainer import BaseExplainer
@@ -20,11 +20,9 @@ logging.set_verbosity_error()
 
 BASE_PATH = "/storage/ukp/work/sachdeva/research_projects/exp_calibration/"
 
+
 class AttnAttribution(BaseExplainer):
-    def __init__(self,
-                 model: PreTrainedModel,
-                 tokenizer: PreTrainedTokenizer
-                 ):
+    def __init__(self, model: PreTrainedModel, tokenizer: PreTrainedTokenizer):
         super().__init__(model=model, tokenizer=tokenizer)
 
     def interpret(self, inputs: List[List]):
@@ -39,20 +37,33 @@ class AttnAttribution(BaseExplainer):
         return outputs
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # model_path = BASE_PATH+"roberta-squad-flan-ul2-v1-temp-0.7"
     # model = RobertaForQuestionAnswering.from_pretrained(model_path)
     # tokenizer = AutoTokenizer.from_pretrained("roberta-base")
     import argparse
-    parser = argparse.ArgumentParser(description="Passing arguments for model, tokenizer, and dataset.")
+
+    parser = argparse.ArgumentParser(
+        description="Passing arguments for model, tokenizer, and dataset."
+    )
 
     parser.add_argument(
         "--model_name",
         default="",
-        type=str, required=False, help="Specify the model to use.")
-    parser.add_argument("--tokenizer", default="roberta-base", type=str, required=False,
-                        help="Specify the tokenizer to use.")
-    parser.add_argument("--dataset", type=str, required=True, help="Specify the dataset to use.")
+        type=str,
+        required=False,
+        help="Specify the model to use.",
+    )
+    parser.add_argument(
+        "--tokenizer",
+        default="roberta-base",
+        type=str,
+        required=False,
+        help="Specify the tokenizer to use.",
+    )
+    parser.add_argument(
+        "--dataset", type=str, required=True, help="Specify the dataset to use."
+    )
 
     args = parser.parse_args()
 
@@ -60,10 +71,14 @@ if __name__ == '__main__':
     tokenizer = AutoTokenizer.from_pretrained(args.tokenizer)
 
     if args.dataset == "squad":
-        loader = dataloader.PreprocessData("squad", "plain_text", save_data=False, save_path="../../../../../")
+        loader = dataloader.PreprocessData(
+            "squad", "plain_text", save_data=False, save_path="../../../../../"
+        )
         data = loader.processed_val_set()
     elif args.dataset == "squad_adversarial":
-        loader = dataloader.PreprocessData("squad_adversarial", "AddSent", save_data=False, save_path="../../../../../")
+        loader = dataloader.PreprocessData(
+            "squad_adversarial", "AddSent", save_data=False, save_path="../../../../../"
+        )
         data = loader.processed_val_set()
     elif args.dataset == "trivia_qa":
         data = dataloader.get_dev_examples("./src/data", "dev_trivia.json")
@@ -74,7 +89,9 @@ if __name__ == '__main__':
     elif args.dataset == "bioasq":
         data = dataloader.get_dev_samples_mrqa(BASE_PATH + "src/data/BioASQ-dev.jsonl")
     elif args.dataset == "natural_questions":
-        data = dataloader.get_dev_samples_mrqa(BASE_PATH + "src/data/NaturalQuestionsShort.jsonl")
+        data = dataloader.get_dev_samples_mrqa(
+            BASE_PATH + "src/data/NaturalQuestionsShort.jsonl"
+        )
     else:
         raise ValueError("Dataset not supported.")
 
@@ -93,10 +110,17 @@ if __name__ == '__main__':
             except Exception:
                 print(ex)
                 print(f"Unable to get attributions: {traceback.format_exc()}")
-    elif args.dataset in ["trivia_qa", "hotpot_qa", "news_qa", "natural_questions", "bioasq"]:
+    elif args.dataset in [
+        "trivia_qa",
+        "hotpot_qa",
+        "news_qa",
+        "natural_questions",
+        "bioasq",
+    ]:
+
         def remove_white_space(example):
-            example["question_text"] = ' '.join(example["question_text"].split())
-            example["context_text"] = ' '.join(example["context_text"].split())
+            example["question_text"] = " ".join(example["question_text"].split())
+            example["context_text"] = " ".join(example["context_text"].split())
             return example
 
         # data = dataloader.get_dev_examples(BASE_PATH+"src/data", "dev_hotpot.json")
@@ -115,8 +139,10 @@ if __name__ == '__main__':
                 print(f"Unable to get attributions: {traceback.format_exc()}")
 
     print(f"Processed {c} instances of original data")
-    utils.dump_to_bin(processed_instances,
-                      BASE_PATH + f"src/data/{args.dataset}/attn_info_{args.model_name}.bin")
+    utils.dump_to_bin(
+        processed_instances,
+        BASE_PATH + f"src/data/{args.dataset}/attn_info_{args.model_name}.bin",
+    )
     print(f"Saved instances: {c}")
 
     # # process counterfactuals
@@ -137,8 +163,6 @@ if __name__ == '__main__':
     # print(processed_instances)
     # print(ast.literal_eval(processed_instances["56be4db0acb8001400a502ee"]))
     # print(len(ast.literal_eval(processed_instances["56be4db0acb8001400a502ee"])["attributions"][0]))
-
-
 
     ### Trivia QA
 

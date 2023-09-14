@@ -19,16 +19,16 @@ import utils
 BASE_PATH = "/storage/ukp/work/sachdeva/research_projects/exp_calibration/"
 # BASE_PATH = "/home/sachdeva/projects/ukp/exp_calibration/"
 
+
 class NER:
     def __init__(self, tokenizer):
         self.tokenizer = tokenizer
         self.cls_token = self.tokenizer.cls_token
         self.eos_token = self.tokenizer.eos_token
 
-    def encode(self,
-               inputs: list = None,
-               add_special_tokens: bool = True,
-               return_tensors=None):
+    def encode(
+        self, inputs: list = None, add_special_tokens: bool = True, return_tensors=None
+    ):
         """
         Encode inputs using the model tokenizer
         Args:
@@ -38,12 +38,14 @@ class NER:
         Return:
             tokenized inputs
         """
-        return self.tokenizer(inputs,
-                              add_special_tokens=add_special_tokens,
-                              return_tensors=return_tensors,
-                              padding=True,
-                              truncation=True,
-                              max_length=512)
+        return self.tokenizer(
+            inputs,
+            add_special_tokens=add_special_tokens,
+            return_tensors=return_tensors,
+            padding=True,
+            truncation=True,
+            max_length=512,
+        )
 
     def decode(self, input_ids: torch.Tensor, skip_special_tokens: bool) -> List[str]:
         """
@@ -53,31 +55,30 @@ class NER:
             word tokens for a sentence/document.
         """
         return self.tokenizer.convert_ids_to_tokens(
-            input_ids[0],
-            skip_special_tokens=skip_special_tokens
+            input_ids[0], skip_special_tokens=skip_special_tokens
         )
 
-    def _bpe_decode(
-            self,
-            tokens: List[str],
-    ) -> Tuple[List[str], List]:
+    def _bpe_decode(self, tokens: List[str],) -> Tuple[List[str], List]:
 
         byte_encoder = bytes_to_unicode()
         byte_decoder = {v: k for k, v in byte_encoder.items()}
         decoded_each_tok = [
             bytearray([byte_decoder[c] for c in t]).decode(
-                encoding="utf-8",
-                errors="replace") for t in tokens
+                encoding="utf-8", errors="replace"
+            )
+            for t in tokens
         ]
 
         end_points = []
         force_break = False
         for idx, token in enumerate(decoded_each_tok):
             # special token, punctuation, alphanumeric
-            if token in self.tokenizer.all_special_tokens or \
-                    token in string.punctuation or \
-                    not any([x.isalnum() for x in token.lstrip()]) or \
-                    token.lstrip == "'s":
+            if (
+                token in self.tokenizer.all_special_tokens
+                or token in string.punctuation
+                or not any([x.isalnum() for x in token.lstrip()])
+                or token.lstrip == "'s"
+            ):
                 end_points.append(idx)
                 force_break = True
                 continue
@@ -101,25 +102,28 @@ class NER:
 
         filtered_tokens = []
         for s0, s1 in segments:
-            filtered_tokens.append(''.join(decoded_each_tok[s0:s1]))
+            filtered_tokens.append("".join(decoded_each_tok[s0:s1]))
 
         return filtered_tokens, segments
 
     def process_input(self, request):
         inputs = [[request["question"], request["context"]]]
-        encoded_inputs = self.encode(inputs,
-                                     add_special_tokens=True,
-                                     return_tensors="pt")
+        encoded_inputs = self.encode(
+            inputs, add_special_tokens=True, return_tensors="pt"
+        )
 
-        decoded_text = self.decode(encoded_inputs["input_ids"],
-                                   skip_special_tokens=False)
+        decoded_text = self.decode(
+            encoded_inputs["input_ids"], skip_special_tokens=False
+        )
         filtered_tokens, segments = self._bpe_decode(decoded_text)
         return filtered_tokens, segments
 
     def assign_entity(self, tokens, nlp):
         words = [x.lstrip() for x in tokens]
-        spaces = [False if i == len(tokens) - 1
-                  else tokens[i + 1][0] == ' ' for i in range(len(tokens))]
+        spaces = [
+            False if i == len(tokens) - 1 else tokens[i + 1][0] == " "
+            for i in range(len(tokens))
+        ]
 
         valid_idx = [i for i, w in enumerate(words) if len(w)]
         words = [words[i] for i in valid_idx]
@@ -127,7 +131,7 @@ class NER:
         doc = Doc(nlp.vocab, words=words, spaces=spaces)
         processed_tokens = nlp(doc)
 
-        ent_info = [('', 'NULL', 'NULL')] * len(tokens)
+        ent_info = [("", "NULL", "NULL")] * len(tokens)
         for i, token in zip(valid_idx, processed_tokens):
             ent_info[i] = (token.text, token.ent_iob_, token.ent_type_)
         return ent_info
@@ -138,19 +142,19 @@ class NER:
 
         context_start = words.index(self.tokenizer.eos_token)
         question_tokens = words[1:context_start]
-        context_tokens = words[context_start + 2: -1]
+        context_tokens = words[context_start + 2 : -1]
         question_ent_info = self.assign_entity(question_tokens, nlp)
         context_ent_info = self.assign_entity(context_tokens, nlp)
-        ent_info = [(self.cls_token, 'SOS', 'SOS')] + \
-                   question_ent_info +\
-                   [(self.eos_token, 'EOS', 'EOS'),
-                    (self.eos_token, 'EOS', 'EOS')] + \
-                   context_ent_info + \
-                   [(self.eos_token, 'EOS', 'EOS')]
+        ent_info = (
+            [(self.cls_token, "SOS", "SOS")]
+            + question_ent_info
+            + [(self.eos_token, "EOS", "EOS"), (self.eos_token, "EOS", "EOS")]
+            + context_ent_info
+            + [(self.eos_token, "EOS", "EOS")]
+        )
 
-        assert len(ent_info) == len(words), \
-            "entities and words not equal"
-        instance_info = {'words': words, 'segments': segments, 'ents': ent_info}
+        assert len(ent_info) == len(words), "entities and words not equal"
+        instance_info = {"words": words, "segments": segments, "ents": ent_info}
         # print(instance_info)
         return instance_info
 
@@ -216,8 +220,8 @@ if __name__ == "__main__":
 
     ### Trivia QA
     def remove_white_space(example):
-        example["question_text"] = ' '.join(example["question_text"].split())
-        example["context_text"] = ' '.join(example["context_text"].split())
+        example["question_text"] = " ".join(example["question_text"].split())
+        example["context_text"] = " ".join(example["context_text"].split())
         return example
 
     data = dataloader.get_dev_examples(BASE_PATH + "src/data", "dev_hotpot.json")
@@ -236,13 +240,13 @@ if __name__ == "__main__":
             # if ex["id"] == "56e1239acd28a01900c67641":
             #     print(ex)
             ent_info = ner_.tag_instance(
-                            request={
-                                        "id": ex["qas_id"],
-                                        "question": ex["question_text"],
-                                        "context": ex["context_text"],
-                                     },
-                            nlp=nlp
-                        )
+                request={
+                    "id": ex["qas_id"],
+                    "question": ex["question_text"],
+                    "context": ex["context_text"],
+                },
+                nlp=nlp,
+            )
             processed_instances[ex["qas_id"]] = ent_info
             c += 1
         except Exception as e:
@@ -272,7 +276,8 @@ if __name__ == "__main__":
     #             print(ex)
     #     print(f"Processed {c} instances of counterfactual data")
     #
-    utils.dump_to_bin(processed_instances,
-                      BASE_PATH + "src/data/hotpot_qa/ent_info.bin")
+    utils.dump_to_bin(
+        processed_instances, BASE_PATH + "src/data/hotpot_qa/ent_info.bin"
+    )
 
     print(f"Saved instances: {c}")

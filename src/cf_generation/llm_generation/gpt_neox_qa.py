@@ -8,8 +8,9 @@ from datasets import load_dataset
 
 # from src.few_shot.utils import save_to_disk
 
-BASE_PATH="/storage/ukp/work/sachdeva/research_projects/exp_calibration/"
+BASE_PATH = "/storage/ukp/work/sachdeva/research_projects/exp_calibration/"
 # BASE_PATH = "/home/sachdeva/projects/ukp/exp_calibration/"
+
 
 def save_to_disk(data, file_name):
     with jsonlines.open(file_name, "a") as writer:
@@ -17,12 +18,17 @@ def save_to_disk(data, file_name):
             writer.write(example)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 
     # load squad data
     dataset = load_dataset("squad", "plain_text")
     train_data = dataset["train"]
-    squad_data = [sample for sample in tqdm(train_data, total=len(train_data), desc="Loading SQuAD data ... ")]
+    squad_data = [
+        sample
+        for sample in tqdm(
+            train_data, total=len(train_data), desc="Loading SQuAD data ... "
+        )
+    ]
 
     c = 0
     examples = []
@@ -97,7 +103,6 @@ if __name__ == '__main__':
     #          "to the question should be a specific span of text found within the context. Please ensure that your " \
     #          "question is clear and concise, and that it accurately reflects the information provided in the context." # okayish
 
-
     # prompt = "Create a question based on the context provided below that elicits a fluent and " \
     #          "concise answer from within the given text. Please provide a clear and specific question " \
     #          "that can be answered directly by a single span of text within the passage, without " \
@@ -132,30 +137,34 @@ if __name__ == '__main__':
 
     config = AutoConfig.from_pretrained(model_name, pad_token_id=0, eos_token_id=0)
     model = AutoModelForCausalLM.from_pretrained(
-        model_name, torch_dtype=torch.bfloat16, device_map="auto", config=config)
+        model_name, torch_dtype=torch.bfloat16, device_map="auto", config=config
+    )
     tokenizer = AutoTokenizer.from_pretrained(model_name)
 
     model.eval()
     skipped_instances = 0
     with jsonlines.open(
-            BASE_PATH +
-            "src/data/squad/counterfactual_samples_Llama-2-13b-chat-hf_gpt_neox_context_filtered_complete.jsonl") as reader:
+        BASE_PATH
+        + "src/data/squad/counterfactual_samples_Llama-2-13b-chat-hf_gpt_neox_context_filtered_complete.jsonl"
+    ) as reader:
         for example in tqdm(reader):
             try:
                 c += 1
-                if c==20:
+                if c == 20:
                     break
                 # print(c)
                 id = example["id"].split("_")[0]
                 context = example["context"]
                 question = example["question"]
-                orig_example = [sample for sample in squad_data if sample["id"] == id][0]
+                orig_example = [sample for sample in squad_data if sample["id"] == id][
+                    0
+                ]
                 # print(orig_example)
                 orig_context = orig_example["context"]
                 orig_question = orig_example["question"]
                 orig_answer = orig_example["answers"]
 
-                input = f"{prompt} \nContext: {context} \nQuestion: {question} \nAnswer: "   # use this one
+                input = f"{prompt} \nContext: {context} \nQuestion: {question} \nAnswer: "  # use this one
 
                 # input = f"{prompt}\n Context: {context}\n Question: "
 
@@ -168,10 +177,10 @@ if __name__ == '__main__':
                     # temperature=0.5,
                 )
                 outputs = tokenizer.decode(generated_ids[0], skip_special_tokens=True)
-                answer = outputs[len(input):].strip().split("\n")[0]
+                answer = outputs[len(input) :].strip().split("\n")[0]
                 print("pred: ", answer)
                 print("orig: ", example["answers"])
-                print("-"*100)
+                print("-" * 100)
 
                 # sentences = outputs.split("\nQuestion: ")[1].split("\n\n")
                 # # remove empty strings from the list
@@ -185,7 +194,6 @@ if __name__ == '__main__':
                 # print("Original outputs: ", outputs)
                 # print("Actual question: ", question)
                 # print("-"*100)
-
 
                 # if c == 20:
                 #     break

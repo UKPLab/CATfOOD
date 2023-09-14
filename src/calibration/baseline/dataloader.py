@@ -16,14 +16,16 @@ from datasets import load_dataset, concatenate_datasets, Features, Value, Sequen
 BASE_PATH = "/storage/ukp/work/sachdeva/research_projects/exp_calibration/"
 # BASE_PATH = "/home/sachdeva/projects/ukp/exp_calibration/"
 
+
 class PreprocessData:
-    def __init__(self,
-                 dataset_name: str,
-                 dataset_config: str,
-                 cf_path: str = None,
-                 save_data: bool = False,
-                 save_path: str = ""
-                 ):
+    def __init__(
+        self,
+        dataset_name: str,
+        dataset_config: str,
+        cf_path: str = None,
+        save_data: bool = False,
+        save_path: str = "",
+    ):
         """
         load datasets
         """
@@ -45,10 +47,13 @@ class PreprocessData:
         column_names = self.train_set.column_names
         train_ex = self.train_set.select([0])[0]
         val_ex = self.val_set.select([0])[0]
-        info = {"train_samples": train_samples,
-                "val_samples": val_samples,
-                "column_names": column_names,
-                "train_ex": train_ex, "val_ex": val_ex}
+        info = {
+            "train_samples": train_samples,
+            "val_samples": val_samples,
+            "column_names": column_names,
+            "train_ex": train_ex,
+            "val_ex": val_ex,
+        }
         return OrderedDict(info)
 
     def remove_trailing_space(self, example):
@@ -57,8 +62,8 @@ class PreprocessData:
         return example
 
     def remove_white_space(self, example):
-        example["question"] = ' '.join(example["question"].split())
-        example["context"] = ' '.join(example["context"].split())
+        example["question"] = " ".join(example["question"].split())
+        example["context"] = " ".join(example["context"].split())
         return example
 
     def processed_train_val_set(self):
@@ -68,11 +73,15 @@ class PreprocessData:
         # self.val_set = self.val_set.select(range(10))
         if self.cf_path is not None:
             self.train_set = self._add_counterfactuals()
-        answerable_train_set = self.train_set.filter(lambda x: len(x["answers"]["text"]) != 0)
+        answerable_train_set = self.train_set.filter(
+            lambda x: len(x["answers"]["text"]) != 0
+        )
         answerable_train_set = answerable_train_set.map(self.remove_trailing_space)
         answerable_train_set = answerable_train_set.map(self.remove_white_space)
 
-        answerable_val_set = self.val_set.filter(lambda x: len(x["answers"]["text"]) != 0)
+        answerable_val_set = self.val_set.filter(
+            lambda x: len(x["answers"]["text"]) != 0
+        )
         answerable_val_set = answerable_val_set.map(self.remove_trailing_space)
         answerable_val_set = answerable_val_set.map(self.remove_white_space)
         return answerable_train_set, answerable_val_set
@@ -80,7 +89,9 @@ class PreprocessData:
     def processed_val_set(self):
         # filter unanswerable questions
         # print(self.train_set.filter(lambda x: len(x["answers"]["text"]) != 1))
-        answerable_val_set = self.val_set.filter(lambda x: len(x["answers"]["text"]) != 0)
+        answerable_val_set = self.val_set.filter(
+            lambda x: len(x["answers"]["text"]) != 0
+        )
         answerable_val_set = answerable_val_set.map(self.remove_trailing_space)
         answerable_val_set = answerable_val_set.map(self.remove_white_space)
         return answerable_val_set
@@ -119,7 +130,11 @@ class PreprocessData:
 
         merge_fwd = False
         for i, orig_token in enumerate(tokens):
-            tokens[i] = token_map[orig_token.lower()] if orig_token.lower() in token_map else orig_token
+            tokens[i] = (
+                token_map[orig_token.lower()]
+                if orig_token.lower() in token_map
+                else orig_token
+            )
             new_token = tokens[i].lower()
 
             # merge_fwd was set by previous token, so it should be prepended to current token
@@ -132,15 +147,15 @@ class PreprocessData:
             # Special cases for `` and '', those tells us if " is the start or end of a quotation.
             # Also always merge tokens starting with ' backward and don't merge back if we just merged forward
             merge_bckwd = not merge_fwd and (
-                    orig_token == "''"
-                    or new_token in em_backward
-                    or new_token.startswith("'")
-                    or all(c in punct_backward for c in new_token)
+                orig_token == "''"
+                or new_token in em_backward
+                or new_token.startswith("'")
+                or all(c in punct_backward for c in new_token)
             )
             merge_fwd = (
-                    orig_token == "``"
-                    or new_token in em_forward
-                    or all(c in punct_forward for c in new_token)
+                orig_token == "``"
+                or new_token in em_forward
+                or all(c in punct_forward for c in new_token)
             )
 
             if merge_bckwd and new_tokens:
@@ -171,13 +186,15 @@ class PreprocessData:
                 answer = answer.replace(f"{char} ", char)
         # remove spaces between special characters (quotations)
         answer = re.sub(r'"\s*([^"]*?)\s*"', r'"\1"', answer)
-        answer = re.sub(r' - ', '-', answer)
+        answer = re.sub(r" - ", "-", answer)
 
         # answer = answer.replace("$ ", "$")
         answer_start = str(context.lower()).find(str(answer.lower()))
         if answer_start == -1:
             self.count += 1
-            answer_start =str(context.lower()).find(self.sanitize_ptb_tokenized_string(answer).lower())
+            answer_start = str(context.lower()).find(
+                self.sanitize_ptb_tokenized_string(answer).lower()
+            )
             if answer_start != -1:
                 answer = str(self.sanitize_ptb_tokenized_string(answer))
                 self.count -= 1
@@ -196,52 +213,61 @@ class PreprocessData:
         example["answers"] = {"answer_start": [answer_start], "text": [answer]}
         return example
 
-
     def _add_counterfactuals(self, process=True):
         """
         add counterfactuals to data
         """
-        counterfactuals_dataset = load_dataset("json", data_files=self.cf_path, split="train")
+        counterfactuals_dataset = load_dataset(
+            "json", data_files=self.cf_path, split="train"
+        )
         # counterfactuals_dataset = counterfactuals_dataset.remove_columns("similarity")
         # print(len(counterfactuals_dataset[]))
         # print(counterfactuals_dataset.column_names["train"])
         if "title" not in counterfactuals_dataset.column_names:
             new_title_column = [""] * len(counterfactuals_dataset)
-            counterfactuals_dataset = counterfactuals_dataset.add_column("title", new_title_column)
+            counterfactuals_dataset = counterfactuals_dataset.add_column(
+                "title", new_title_column
+            )
 
         if process:
-            counterfactuals_dataset = counterfactuals_dataset.map(self._convert_answer_column)
+            counterfactuals_dataset = counterfactuals_dataset.map(
+                self._convert_answer_column
+            )
             if "answer" in counterfactuals_dataset.column_names:
-                counterfactuals_dataset = counterfactuals_dataset.remove_columns("answer")
+                counterfactuals_dataset = counterfactuals_dataset.remove_columns(
+                    "answer"
+                )
 
         # remove samples with no answer
-        counterfactuals_dataset = counterfactuals_dataset.filter(lambda x: x["answers"]["answer_start"][0] != -1)
-        counterfactuals_dataset = counterfactuals_dataset.cast(Features(
-            {
-                "id": Value("string"),
-                "title": Value("string"),
-                "context": Value("string"),
-                "question": Value("string"),
-                "answers": Sequence(
-                    {
-                        "answer_start": Value("int32"),
-                        "text": Value("string"),
-                    }
-                ),
-        }))
-        self.train_set = self.train_set.cast(Features(
-            {
-                "id": Value("string"),
-                "title": Value("string"),
-                "context": Value("string"),
-                "question": Value("string"),
-                "answers": Sequence(
-                    {
-                        "answer_start": Value("int32"),
-                        "text": Value("string"),
-                    }
-                ),
-            }))
+        counterfactuals_dataset = counterfactuals_dataset.filter(
+            lambda x: x["answers"]["answer_start"][0] != -1
+        )
+        counterfactuals_dataset = counterfactuals_dataset.cast(
+            Features(
+                {
+                    "id": Value("string"),
+                    "title": Value("string"),
+                    "context": Value("string"),
+                    "question": Value("string"),
+                    "answers": Sequence(
+                        {"answer_start": Value("int32"), "text": Value("string"),}
+                    ),
+                }
+            )
+        )
+        self.train_set = self.train_set.cast(
+            Features(
+                {
+                    "id": Value("string"),
+                    "title": Value("string"),
+                    "context": Value("string"),
+                    "question": Value("string"),
+                    "answers": Sequence(
+                        {"answer_start": Value("int32"), "text": Value("string"),}
+                    ),
+                }
+            )
+        )
 
         # ex = counterfactuals_dataset[0]
         # print("CF: ", ex)
@@ -260,9 +286,7 @@ def get_dev_examples(data_dir, file_name):
     Data loader for dev set of trivia qa and hotpot qa
     """
 
-    with open(
-            os.path.join(data_dir, file_name), "r", encoding="utf-8"
-    ) as reader:
+    with open(os.path.join(data_dir, file_name), "r", encoding="utf-8") as reader:
         input_data = json.load(reader)["data"]
     sum = 0
     for i in input_data:
@@ -280,8 +304,8 @@ def get_dev_examples(data_dir, file_name):
                 start_position_character = None
                 answer_text = None
                 answers = []
-                question_type = qa.get('question_type', 'none')
-                is_yesno = qa.get('is_yesno', False)
+                question_type = qa.get("question_type", "none")
+                is_yesno = qa.get("is_yesno", False)
                 is_impossible = qa.get("is_impossible", False)
                 if not is_impossible:
                     answer = qa["answers"][0]
@@ -306,9 +330,7 @@ def get_dev_examples_hf():
     Data loader for dev set of trivia qa and hotpot qa
     """
     with open(
-            os.path.join(
-                BASE_PATH+"src/data/dev_trivia.json"),
-            "r", encoding="utf-8"
+        os.path.join(BASE_PATH + "src/data/dev_trivia.json"), "r", encoding="utf-8"
     ) as reader:
         input_data = json.load(reader)["data"]
     sum = 0
@@ -330,8 +352,8 @@ def get_dev_examples_hf():
                 start_position_character = None
                 answer_text = None
                 answers = []
-                question_type = qa.get('question_type', 'none')
-                is_yesno = qa.get('is_yesno', False)
+                question_type = qa.get("question_type", "none")
+                is_yesno = qa.get("is_yesno", False)
                 is_impossible = qa.get("is_impossible", False)
                 if not is_impossible:
                     answer = qa["answers"][0]
@@ -378,16 +400,18 @@ def get_dev_samples_mrqa(data_path):
         return examples
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     save_dir = "../data/squad/train_data/"
     BASE_PATH = "/storage/ukp/work/sachdeva/research_projects/exp_calibration/"
     # BASE_PATH = "/home/sachdeva/projects/ukp/exp_calibration/"
     dataloader = PreprocessData(
-        "squad", "plain_text",
+        "squad",
+        "plain_text",
         # cf_path=None,
-        cf_path=BASE_PATH+"src/data/squad/counterfactual_data_GPT-NeoXT-Chat-Base-20B_qg_pipeline_final_cleaned.jsonl",
+        cf_path=BASE_PATH
+        + "src/data/squad/counterfactual_data_GPT-NeoXT-Chat-Base-20B_qg_pipeline_final_cleaned.jsonl",
         save_data=False,
-        save_path=save_dir
+        save_path=save_dir,
     )
     dataset = dataloader._add_counterfactuals()
     print(len(dataset))

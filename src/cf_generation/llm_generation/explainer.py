@@ -27,9 +27,10 @@ def process_data():
 def _merge_attributions(attributions):
     pass
 
+
 def evaluate(file_name):
     correct = 0
-    mapper = {"a": 0, "b":1, "c":2}
+    mapper = {"a": 0, "b": 1, "c": 2}
 
     with open(file_name, "r") as file:
         data = json.load(file)
@@ -38,20 +39,20 @@ def evaluate(file_name):
         # print(sample)
         answer = sample["answer"][0]
         pred = sample["prediction"][0].strip()
-        if len(pred)>1:
+        if len(pred) > 1:
             pred = pred[0]
         answer_key = mapper.get(pred, None)
         # print("answer key: ", answer_key)
         if answer_key is not None:
             if sample["options"][answer_key] == answer:
-                correct+=1
+                correct += 1
         else:
             # print(sample["options"][answer_key])
             print(answer)
             print("-")
         # break
 
-    accuracy = (correct/total_samples)*100
+    accuracy = (correct / total_samples) * 100
     print(accuracy)
 
 
@@ -65,8 +66,9 @@ def get_attribution(model_name, attribution_type, max_samples=None, top_k=5):
         answers = answers[:max_samples]
 
     model = inseq.load_model(
-        model_name, attribution_type, torch_dtype=torch.bfloat16, device_map="auto")
-        # load_in_8bit=True)
+        model_name, attribution_type, torch_dtype=torch.bfloat16, device_map="auto"
+    )
+    # load_in_8bit=True)
 
     feature_attributions = []
     topk_attributions = []
@@ -85,10 +87,7 @@ def get_attribution(model_name, attribution_type, max_samples=None, top_k=5):
             #          "\n Answer: "
             prompt = f"{ques} The possible answers are a) {option[0]}, b) {option[1]}, but the correct of a, b is"
 
-        attributions = model.attribute(
-            prompt,
-            generation_args={"max_new_tokens": 15},
-        )
+        attributions = model.attribute(prompt, generation_args={"max_new_tokens": 15},)
         # attributions.show()
         # print(attributions)
         # merged_attributions = inseq.FeatureAttributionOutput.merge_attributions([attributions])
@@ -103,12 +102,11 @@ def get_attribution(model_name, attribution_type, max_samples=None, top_k=5):
         #
         # print(score_map)
         # print(attributions.get_scores_dicts())
-        score_dict  = aggr.get_scores_dicts()
+        score_dict = aggr.get_scores_dicts()
         source_attributions = score_dict["source_attributions"]
         # feature_attributions.append(source_attributions)
         # df = pd.DataFrame(source_attributions)
         # print(df.head())
-
 
         averages = {}
         for token, token_dict in source_attributions.items():
@@ -124,11 +122,13 @@ def get_attribution(model_name, attribution_type, max_samples=None, top_k=5):
 
         x_before_options = {}
         for key, value in averages_dict.items():
-            if key == '▁Options':
+            if key == "▁Options":
                 break
             x_before_options[key] = value
         # print(x_before_options)
-        sorted_averages = dict(sorted(x_before_options.items(), key=lambda x: x[1], reverse=True))
+        sorted_averages = dict(
+            sorted(x_before_options.items(), key=lambda x: x[1], reverse=True)
+        )
         # print(sorted_averages)
         top_attributions = dict(islice(sorted_averages.items(), top_k))
         # topk_attributions.append(top_attributions)
@@ -143,14 +143,16 @@ def get_attribution(model_name, attribution_type, max_samples=None, top_k=5):
         # print(output)
 
     save_file_name = model_name.split("/")[-1] + f"_{attribution_type}_social_iqa"
-    output_nbest_file = os.path.join(BASE_PATH, f"predictions_{save_file_name}_prompt_2.json")
+    output_nbest_file = os.path.join(
+        BASE_PATH, f"predictions_{save_file_name}_prompt_2.json"
+    )
     with open(output_nbest_file, "w") as writer:
         writer.write(json.dumps(outputs, indent=4) + "\n")
 
     return feature_attributions
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # source_attributions = get_attribution(
     #     model_name="google/flan-t5-large",
     #     attribution_type="attention",
@@ -178,19 +180,19 @@ if __name__ == '__main__':
     #             'a': 0.004350507166236639, ')': 0.0063089970499277115, '▁Make': 0.05659395083785057,
     #             '▁new': 0.0028916974551975727, '▁plan': 0.0028365186881273985, ',': 0.013565066270530224,
     #             'b': 0.008598132990300655, '▁Go': 0.0036058370023965836, '▁see': 0.0018858902622014284 }},
-         # {'▁': {'▁Question': 0.0004824649658985436, ':': 0.09963615983724594, '▁Tracy': 0.023480601608753204,
-         #        '▁didn': 0.0008805241086520255, "'": 0.0013725516619160771, 't': 0.0015102395555004478,
-         #        '▁go': 0.0005502908607013524, '▁home': 0.0014923501294106245, '▁that': 0.0009823078289628029,
-         #        '▁evening': 0.0018404676811769605, '▁and': 0.00046898151049390435, '▁': 0.09211429953575134,
-         #        're': 0.0004362099862191826, 'sisted': 0.0027353481855243444, '▁Riley': 0.007774821948260069,
-         #        's': 0.0036468186881393194, '▁attacks': 0.004170892760157585, '.': 0.0030060261487960815,
-         #        '▁What': 0.002392962109297514, '▁does': 0.0019515401218086481, '▁need': 0.013643212616443634,
-         #        '▁to': 0.0005810720031149685, '▁do': 0.0037925769574940205, '▁before': 0.00945215579122305,
-         #        '▁this': 0.0017502920236438513, '?': 0.002131211804226041, '▁Options': 0.013728966936469078,
-         #        'a': 0.004350507166236639, ')': 0.0063089970499277115, '▁Make': 0.05659395083785057,
-         #        '▁new': 0.0028916974551975727, '▁plan': 0.0028365186881273985, ',': 0.013565066270530224,
-         #        'b': 0.008598132990300655, '▁Go': 0.0036058370023965836, '▁see': 0.0018858902622014284}}
-         # ]
+    # {'▁': {'▁Question': 0.0004824649658985436, ':': 0.09963615983724594, '▁Tracy': 0.023480601608753204,
+    #        '▁didn': 0.0008805241086520255, "'": 0.0013725516619160771, 't': 0.0015102395555004478,
+    #        '▁go': 0.0005502908607013524, '▁home': 0.0014923501294106245, '▁that': 0.0009823078289628029,
+    #        '▁evening': 0.0018404676811769605, '▁and': 0.00046898151049390435, '▁': 0.09211429953575134,
+    #        're': 0.0004362099862191826, 'sisted': 0.0027353481855243444, '▁Riley': 0.007774821948260069,
+    #        's': 0.0036468186881393194, '▁attacks': 0.004170892760157585, '.': 0.0030060261487960815,
+    #        '▁What': 0.002392962109297514, '▁does': 0.0019515401218086481, '▁need': 0.013643212616443634,
+    #        '▁to': 0.0005810720031149685, '▁do': 0.0037925769574940205, '▁before': 0.00945215579122305,
+    #        '▁this': 0.0017502920236438513, '?': 0.002131211804226041, '▁Options': 0.013728966936469078,
+    #        'a': 0.004350507166236639, ')': 0.0063089970499277115, '▁Make': 0.05659395083785057,
+    #        '▁new': 0.0028916974551975727, '▁plan': 0.0028365186881273985, ',': 0.013565066270530224,
+    #        'b': 0.008598132990300655, '▁Go': 0.0036058370023965836, '▁see': 0.0018858902622014284}}
+    # ]
 
     # attrs = [list(attr.values())[0] for attr in x]
     # # print(attrs)

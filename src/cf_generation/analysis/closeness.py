@@ -5,6 +5,7 @@ import edit_distance
 from munch import Munch
 import itertools
 import random
+
 random.seed(42)
 
 BASE_PATH = "/storage/ukp/work/sachdeva/research_projects/exp_calibration/"
@@ -22,16 +23,19 @@ def normalized_levenshtein_distance(s1, s2):
                 if c1 == c2:
                     distances_.append(distances[i1])
                 else:
-                    distances_.append(1 + min((distances[i1], distances[i1 + 1], distances_[-1])))
+                    distances_.append(
+                        1 + min((distances[i1], distances[i1 + 1], distances_[-1]))
+                    )
             distances = distances_
         return distances[-1]
+
     distance = levenshtein_distance(s1, s2)
     max_length = max(len(s1), len(s2))
     return distance / max_length
 
+
 def compute_lev_distance(doc1, doc2):
-    sm = edit_distance.SequenceMatcher(
-        a=[t for t in doc1], b=[t for t in doc2])
+    sm = edit_distance.SequenceMatcher(a=[t for t in doc1], b=[t for t in doc2])
     return 1 - sm.ratio()
 
 
@@ -73,7 +77,7 @@ def compute_closeness(docs, base_doc, sentence_similarity=None):
     )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # rag_counterfactuals_complete_noise_min_filtered_final_dedup_1
     # counterfactual_data_llama_13b_v1_qg_pipeline_all_data_cleaned.jsonl
     # flan_ul2_collated_data_with_answers_processed.jsonl
@@ -90,8 +94,12 @@ if __name__ == '__main__':
     # load squad data
     dataset = load_dataset("squad", "plain_text")
     train_data = dataset["train"]
-    squad_data = [sample for sample in tqdm(
-        train_data, total=len(train_data), desc="Loading SQuAD data ... ")]
+    squad_data = [
+        sample
+        for sample in tqdm(
+            train_data, total=len(train_data), desc="Loading SQuAD data ... "
+        )
+    ]
 
     # for sample in squad_data:
     #     if sample["id"] == "570c4f18fed7b91900d45893":
@@ -100,7 +108,8 @@ if __name__ == '__main__':
     levenshtein_dist = []
     c = 0
     with jsonlines.open(
-            f"{BASE_PATH}src/data/squad/t5_squad_counterfactuals/rag_counterfactuals_complete_noise_min_filtered_final_dedup_1.jsonl") as reader:
+        f"{BASE_PATH}src/data/squad/t5_squad_counterfactuals/rag_counterfactuals_complete_noise_min_filtered_final_dedup_1.jsonl"
+    ) as reader:
         for example in tqdm(reader):
             id = example["id"].split("_")[0]
             cf_question = example["question"]
@@ -108,13 +117,15 @@ if __name__ == '__main__':
             orig_question = orig_example["question"]
             # print("original: ", orig_question)
             # print("cf: ", cf_question)
-            levenshtein_dist.append(normalized_levenshtein_distance(orig_question, cf_question))
+            levenshtein_dist.append(
+                normalized_levenshtein_distance(orig_question, cf_question)
+            )
             # print(levenshtein_dist)
-    #
-            # c += 1
-            # # break
-            # if c == 20:
-            #     break
+        #
+        # c += 1
+        # # break
+        # if c == 20:
+        #     break
         dist_score = statistics.mean(levenshtein_dist)
     print(dist_score)
 

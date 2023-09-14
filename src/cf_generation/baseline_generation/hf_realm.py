@@ -2,7 +2,13 @@ import os
 import torch
 import numpy as np
 from typing import List
-from transformers import RealmRetriever, RealmTokenizer, RealmConfig, AutoModelForSeq2SeqLM, AutoTokenizer
+from transformers import (
+    RealmRetriever,
+    RealmTokenizer,
+    RealmConfig,
+    AutoModelForSeq2SeqLM,
+    AutoTokenizer,
+)
 from src.rag.modelling_realm import RealmForOpenQA
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -17,7 +23,9 @@ hl_token_id = tokenizer.convert_tokens_to_ids(["<hl>"])[0]
 config = RealmConfig.from_pretrained("google/realm-orqa-nq-openqa")
 # print(config)
 config.reader_beam_size = 5
-model = RealmForOpenQA.from_pretrained("google/realm-orqa-nq-openqa", retriever=retriever, config=config)
+model = RealmForOpenQA.from_pretrained(
+    "google/realm-orqa-nq-openqa", retriever=retriever, config=config
+)
 # model.resize_token_embeddings(len(tokenizer))
 model.to(device)
 
@@ -38,28 +46,47 @@ start_positions = reader_output.reader_output.start_pos.cpu().numpy()
 end_positions = reader_output.reader_output.end_pos.cpu().numpy()
 # add hl_token_id at tensor index start position and end position
 highlight_input_ids = reader_output.input_ids.cpu().numpy()
-inputs: List  = []
+inputs: List = []
 for idx, (start, end) in enumerate(zip(start_positions, end_positions)):
     start = int(start)
     end = int(end)
     # get sep idx
-    sep_idx = np.where(highlight_input_ids[idx, :start] == tokenizer.sep_token_id)[0][-1]
-    inputs.append(np.concatenate([highlight_input_ids[idx, sep_idx:start], [hl_token_id], highlight_input_ids[idx, start:end+1],
-                             [hl_token_id], highlight_input_ids[idx, end+1:]], axis=0))
+    sep_idx = np.where(highlight_input_ids[idx, :start] == tokenizer.sep_token_id)[0][
+        -1
+    ]
+    inputs.append(
+        np.concatenate(
+            [
+                highlight_input_ids[idx, sep_idx:start],
+                [hl_token_id],
+                highlight_input_ids[idx, start : end + 1],
+                [hl_token_id],
+                highlight_input_ids[idx, end + 1 :],
+            ],
+            axis=0,
+        )
+    )
 
 
-predicted_answer = tokenizer.batch_decode(reader_output.predicted_answer_ids, skip_special_tokens=True)
-contexts = tokenizer.batch_decode(torch.tensor(np.array(inputs), device=device), skip_special_tokens=True,
-                                 clean_up_tokenization_spaces=True)
+predicted_answer = tokenizer.batch_decode(
+    reader_output.predicted_answer_ids, skip_special_tokens=True
+)
+contexts = tokenizer.batch_decode(
+    torch.tensor(np.array(inputs), device=device),
+    skip_special_tokens=True,
+    clean_up_tokenization_spaces=True,
+)
 # loss = reader_output.loss
 print("==============================")
 print(contexts)
 print("==============================")
 # print(loss)
 
-retrieved_blocks = np.take(retriever.block_records,
-                           indices=reader_output.retrieved_block_ids.detach().cpu().numpy(),
-                           axis=0)
+retrieved_blocks = np.take(
+    retriever.block_records,
+    indices=reader_output.retrieved_block_ids.detach().cpu().numpy(),
+    axis=0,
+)
 print(retrieved_blocks)
 
 # print(retriever.block_records[0])
@@ -99,7 +126,7 @@ print(retrieved_blocks)
 #     pass
 #
 BASE_PATH = os.getenv("PYTHONPATH", "/home/sachdeva/projects/exp_calibration/")
-model_path = BASE_PATH+"t5-large-squad-qg-seed-42"
+model_path = BASE_PATH + "t5-large-squad-qg-seed-42"
 tokenizer = AutoTokenizer.from_pretrained("t5-large")
 model = AutoModelForSeq2SeqLM.from_pretrained(model_path)
 model.to(device)
@@ -107,9 +134,14 @@ model.eval()
 hl_token = "<hl>"
 prefix = "generate question: "
 
-prepared_inputs = [prefix+context for context in contexts]
-features = tokenizer(prepared_inputs, max_length=640, padding="max_length",
-                     truncation=True, return_tensors="pt").to(device)
+prepared_inputs = [prefix + context for context in contexts]
+features = tokenizer(
+    prepared_inputs,
+    max_length=640,
+    padding="max_length",
+    truncation=True,
+    return_tensors="pt",
+).to(device)
 # print(features)
 outputs = model.generate(**features, max_length=128, num_beams=15, early_stopping=True)
 dec_preds = tokenizer.batch_decode(outputs, skip_special_tokens=True)

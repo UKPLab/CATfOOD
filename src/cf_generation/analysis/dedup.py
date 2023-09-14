@@ -72,8 +72,7 @@ def merge_intervals(
         sorted(
             list(
                 map(
-                    lambda s: slice(s[0], s[1]),
-                    {(s.start, s.stop) for s in intervals},
+                    lambda s: slice(s[0], s[1]), {(s.start, s.stop) for s in intervals},
                 ),
             ),
             key=lambda x: (x.start, -x.stop),
@@ -105,8 +104,7 @@ def merge_intervals(
 
 
 def restore(
-    boundaries: Sequence[slice],
-    segments: str | Path | Sequence[slice],
+    boundaries: Sequence[slice], segments: str | Path | Sequence[slice],
 ) -> Generator:
     """
     Restore the duplicate slices from seg_file to their original document boundaries.
@@ -224,11 +222,7 @@ def restore_and_merge(
 
 
 def __run_command(cmd: str, cwd: str):
-    p = subprocess.Popen(
-        cmd,
-        shell=True,
-        cwd=cwd,
-    )
+    p = subprocess.Popen(cmd, shell=True, cwd=cwd,)
     code = p.wait()
     if code != 0:
         raise RuntimeError(f"Command {cmd} failed with code {code}. CWD: {cwd}")

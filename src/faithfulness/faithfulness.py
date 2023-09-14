@@ -8,10 +8,7 @@ from typing import Tuple, List
 import ast
 import argparse
 
-from transformers import (
-    AutoTokenizer,
-    AutoModelForQuestionAnswering
-)
+from transformers import AutoTokenizer, AutoModelForQuestionAnswering
 import torch
 from collections import OrderedDict
 
@@ -24,10 +21,7 @@ torch.cuda.manual_seed(42)
 np.random.seed(42)
 
 
-def comprehensiveness(
-        full_text_pred,
-        masked_text_pred
-):
+def comprehensiveness(full_text_pred, masked_text_pred):
     """
     Model confidence score before and after removing top k% words
 
@@ -43,15 +37,12 @@ def comprehensiveness(
         comp_score += np.round(np.maximum(0, full_text_pred - score), 4)
         # print(comp_score)
 
-    avg_comp = comp_score/len(masked_text_pred)
+    avg_comp = comp_score / len(masked_text_pred)
     # print(avg_comp)
     return avg_comp
 
 
-def sufficiency(
-        full_text_pred,
-        masked_text_pred
-):
+def sufficiency(full_text_pred, masked_text_pred):
     """
         Model confidence score before and after keeping top k% words
 
@@ -67,14 +58,16 @@ def sufficiency(
 def log_odds():
     pass
 
-class FaithfulEval:
 
+class FaithfulEval:
     def __init__(self, dataset, method, model_type, model_name, tokenizer):
         self.dataset = dataset
         self.method = method
         self.model_type = model_type
         self.model_name = model_name
-        self.model = AutoModelForQuestionAnswering.from_pretrained(BASE_PATH+model_name)
+        self.model = AutoModelForQuestionAnswering.from_pretrained(
+            BASE_PATH + model_name
+        )
         self.tokenizer = AutoTokenizer.from_pretrained(tokenizer)
         self.path = f"src/data/{self.dataset}"
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -82,7 +75,9 @@ class FaithfulEval:
         self.load_data()
 
         if self.dataset == "squad_adversarial":
-            loader = dataloader.PreprocessData("squad_adversarial", "AddSent", save_data=False, save_path="../../../")
+            loader = dataloader.PreprocessData(
+                "squad_adversarial", "AddSent", save_data=False, save_path="../../../"
+            )
             data = loader.processed_val_set()
         elif self.dataset == "trivia_qa":
             data = dataloader.get_dev_examples("./src/data", "dev_trivia.json")
@@ -91,17 +86,21 @@ class FaithfulEval:
         elif self.dataset == "news_qa":
             data = dataloader.get_dev_samples_mrqa(BASE_PATH + "src/data/NewsQA.jsonl")
         elif self.dataset == "bioasq":
-            data = dataloader.get_dev_samples_mrqa(BASE_PATH + "src/data/BioASQ-dev.jsonl")
+            data = dataloader.get_dev_samples_mrqa(
+                BASE_PATH + "src/data/BioASQ-dev.jsonl"
+            )
         elif self.dataset == "natural_questions":
-            data = dataloader.get_dev_samples_mrqa(BASE_PATH + "src/data/NaturalQuestionsShort.jsonl")
+            data = dataloader.get_dev_samples_mrqa(
+                BASE_PATH + "src/data/NaturalQuestionsShort.jsonl"
+            )
         else:
             raise ValueError("Dataset not supported.")
 
         self.data = data
 
     def remove_white_space(self, example):
-        example["question_text"] = ' '.join(example["question_text"].split())
-        example["context_text"] = ' '.join(example["context_text"].split())
+        example["question_text"] = " ".join(example["question_text"].split())
+        example["context_text"] = " ".join(example["context_text"].split())
         return example
 
     def load_interp_info(self, file_dict, qas_id):
@@ -111,16 +110,26 @@ class FaithfulEval:
         # change acc. to paths
         if dataset == "natural_questions":
             dataset = "nq"
-        dataset_name = [dataset.split("_")[0] if dataset == "squad_adversarial" else dataset.replace("_", "")][0]
-        prefix = f'{dataset_name}/dev/roberta'
-        fnames = os.listdir(os.path.join(f'exp_roberta_{model_type}', method, prefix))
+        dataset_name = [
+            dataset.split("_")[0]
+            if dataset == "squad_adversarial"
+            else dataset.replace("_", "")
+        ][0]
+        prefix = f"{dataset_name}/dev/roberta"
+        fnames = os.listdir(os.path.join(f"exp_roberta_{model_type}", method, prefix))
         # print(fnames)
-        qa_ids = [x.split('.')[0] for x in fnames]
-        fullnames = [os.path.join(f'exp_roberta_{model_type}', method, prefix, x) for x in fnames]
+        qa_ids = [x.split(".")[0] for x in fnames]
+        fullnames = [
+            os.path.join(f"exp_roberta_{model_type}", method, prefix, x) for x in fnames
+        ]
         return dict(zip(qa_ids, fullnames))
 
     def load_data(self):
-        if self.model_name.__contains__("llama") or self.model_name.__contains__("gpt-neox") or self.model_name.__contains__("gpt-jt"):
+        if (
+            self.model_name.__contains__("llama")
+            or self.model_name.__contains__("gpt-neox")
+            or self.model_name.__contains__("gpt-jt")
+        ):
             self.pred_df = pd.read_csv(f"{self.path}/outputs_{self.model_name}.csv")
         elif self.model_name.__contains__("flan-ul2"):
             # print(f"{self.path}/outputs_{self.model_type}.csv")
@@ -129,18 +138,20 @@ class FaithfulEval:
             self.pred_df = pd.read_csv(f"{self.path}/outputs_{self.model_name}.csv")
         elif self.model_name.__contains__("t5"):
             self.pred_df = pd.read_csv(f"{self.path}/outputs_{self.model_name}.csv")
-        self.predictions = self.pred_df.set_index('id').T.to_dict('dict')
+        self.predictions = self.pred_df.set_index("id").T.to_dict("dict")
 
         if self.method == "shap":
             self.attributions = self.build_file_dict(
                 dataset=self.dataset, model_type=self.model_type, method=self.method
             )
         else:
-            self.attributions = utils.load_bin(f"{self.path}/{self.method}_info_{self.model_name}.bin")
+            self.attributions = utils.load_bin(
+                f"{self.path}/{self.method}_info_{self.model_name}.bin"
+            )
 
-    def encode(self, inputs: list = None,
-               add_special_tokens: bool = True,
-               return_tensors=None):
+    def encode(
+        self, inputs: list = None, add_special_tokens: bool = True, return_tensors=None
+    ):
         """
         Encode inputs using the model tokenizer
         Args:
@@ -151,13 +162,14 @@ class FaithfulEval:
         Return:
             tokenized inputs
         """
-        return self.tokenizer(inputs,
-                              add_special_tokens=add_special_tokens,
-                              return_tensors=return_tensors,
-                              padding=True,
-                              truncation=True,
-                              max_length=512,
-                              )
+        return self.tokenizer(
+            inputs,
+            add_special_tokens=add_special_tokens,
+            return_tensors=return_tensors,
+            padding=True,
+            truncation=True,
+            max_length=512,
+        )
 
     def decode(self, input_ids: torch.Tensor, skip_special_tokens: bool) -> List[str]:
         """
@@ -167,8 +179,7 @@ class FaithfulEval:
             word tokens for a sentence/document.
         """
         return self.tokenizer.convert_ids_to_tokens(
-            input_ids[0],
-            skip_special_tokens=skip_special_tokens
+            input_ids[0], skip_special_tokens=skip_special_tokens
         )
 
     def _ensure_tensor_on_device(self, **inputs):
@@ -185,12 +196,7 @@ class FaithfulEval:
         """
         return {name: tensor.to(self.model.device) for name, tensor in inputs.items()}
 
-
-    def _predict(
-            self,
-            inputs,
-            **model_kwargs
-    ) -> tuple:
+    def _predict(self, inputs, **model_kwargs) -> tuple:
         """
         Inference on the input.
         Args:
@@ -210,10 +216,7 @@ class FaithfulEval:
 
         all_predictions = list()
         self.model.to(self.device)
-        predictions = self.model(
-            **inputs,
-            **model_kwargs
-        )
+        predictions = self.model(**inputs, **model_kwargs)
         # print(predictions)
         all_predictions.append(predictions)
         keys = all_predictions[0].keys()
@@ -222,16 +225,23 @@ class FaithfulEval:
         for key in keys:
             if isinstance(all_predictions[0][key], tuple):
                 tuple_of_lists = list(
-                    zip(*[[torch.stack(p).to(self.device)
-                           if isinstance(p, tuple) else p.to(self.device)
-                           for p in tpl[key]] for tpl in all_predictions]))
+                    zip(
+                        *[
+                            [
+                                torch.stack(p).to(self.device)
+                                if isinstance(p, tuple)
+                                else p.to(self.device)
+                                for p in tpl[key]
+                            ]
+                            for tpl in all_predictions
+                        ]
+                    )
+                )
                 final_prediction[key] = tuple(torch.cat(l) for l in tuple_of_lists)
             else:
                 final_prediction[key] = torch.cat(
-                    [
-                        p[key].to(self.device)
-                        for p in all_predictions
-                    ])
+                    [p[key].to(self.device) for p in all_predictions]
+                )
 
         return predictions, inputs
 
@@ -243,11 +253,14 @@ class FaithfulEval:
           request: the prediction request
 
         """
-        def decode(start_: np.ndarray,
-                   end_: np.ndarray,
-                   top_k: int,
-                   max_answer_len: int,
-                   undesired_tokens_: np.ndarray) -> Tuple:
+
+        def decode(
+            start_: np.ndarray,
+            end_: np.ndarray,
+            top_k: int,
+            max_answer_len: int,
+            undesired_tokens_: np.ndarray,
+        ) -> Tuple:
 
             """
             Take the output of any :obj:`ModelForQuestionAnswering` and will generate probabilities
@@ -290,15 +303,15 @@ class FaithfulEval:
             # starts_, ends_ = np.unravel_index(idx_sort, candidates.shape)[1:]
             # print(starts_, ends_)
             starts_, ends_ = np.array(answer_pos[0]), np.array(answer_pos[1])
-            desired_spans = np.isin(starts_, undesired_tokens_.nonzero()) \
-                            & np.isin(ends_, undesired_tokens_.nonzero())
+            desired_spans = np.isin(starts_, undesired_tokens_.nonzero()) & np.isin(
+                ends_, undesired_tokens_.nonzero()
+            )
             starts_ = starts_[desired_spans]
             ends_ = ends_[desired_spans]
             scores_ = candidates[0, starts_, ends_]
 
-
             replacement = np.array([])  # Replacement array
-            if np.array_equal(starts_, [0]) and  np.array_equal(ends_, [0]):
+            if np.array_equal(starts_, [0]) and np.array_equal(ends_, [0]):
                 starts_ = replacement
                 ends_ = replacement
             if np.array_equal(scores_, [0]):
@@ -314,17 +327,26 @@ class FaithfulEval:
         # print(predictions)
 
         task_outputs = {"answers": []}
-        for idx, (start, end, context, answer_pos) in enumerate(zip(predictions["start_logits"],
-                                                             predictions["end_logits"],
-                                                             request["context"], request["answer_pos"])):
+        for idx, (start, end, context, answer_pos) in enumerate(
+            zip(
+                predictions["start_logits"],
+                predictions["end_logits"],
+                request["context"],
+                request["answer_pos"],
+            )
+        ):
             start = start.cpu().detach().numpy()
             end = end.cpu().detach().numpy()
             # print(features.sequence_ids(idx))
             # Ensure padded tokens & question tokens cannot belong to the set of candidate answers.
-            question_tokens = np.abs(np.array([s != 1 for s in features.sequence_ids(idx)]) - 1)
+            question_tokens = np.abs(
+                np.array([s != 1 for s in features.sequence_ids(idx)]) - 1
+            )
             # Unmask CLS token for 'no answer'
             question_tokens[0] = 1
-            undesired_tokens = question_tokens & features["attention_mask"][idx].detach().cpu().numpy()
+            undesired_tokens = (
+                question_tokens & features["attention_mask"][idx].detach().cpu().numpy()
+            )
 
             # Generate mask
             undesired_tokens_mask = undesired_tokens == 0.0
@@ -333,36 +355,39 @@ class FaithfulEval:
             start = np.where(undesired_tokens_mask, -10000.0, start)
             end = np.where(undesired_tokens_mask, -10000.0, end)
 
-            start = np.exp(start - np.log(np.sum(np.exp(start), axis=-1, keepdims=True)))
+            start = np.exp(
+                start - np.log(np.sum(np.exp(start), axis=-1, keepdims=True))
+            )
             end = np.exp(end - np.log(np.sum(np.exp(end), axis=-1, keepdims=True)))
 
             # print(start, end)
             # print(answer_pos)
 
-
             # Get score for 'no answer' then mask for decoding step (CLS token
             no_answer_score = (start[0] * end[0]).item()
             start[0] = end[0] = 0.0
 
-            starts, ends, scores = decode(
-                start, end, top_k, 128, undesired_tokens
-            )
+            starts, ends, scores = decode(start, end, top_k, 128, undesired_tokens)
 
             enc = features[idx]
             # print(enc)
             answers = [
                 {
                     "score": score.item(),
-                    "start": enc.word_to_chars(
-                        enc.token_to_word(s), sequence_index=1)[0],
+                    "start": enc.word_to_chars(enc.token_to_word(s), sequence_index=1)[
+                        0
+                    ],
                     "end": enc.word_to_chars(enc.token_to_word(e), sequence_index=1)[1],
                     "answer": context[
-                              enc.word_to_chars(enc.token_to_word(s), sequence_index=1)[0]:
-                              enc.word_to_chars(enc.token_to_word(e), sequence_index=1)[1]],
+                        enc.word_to_chars(enc.token_to_word(s), sequence_index=1)[
+                            0
+                        ] : enc.word_to_chars(enc.token_to_word(e), sequence_index=1)[1]
+                    ],
                 }
-                for s, e, score in zip(starts, ends, scores)]
+                for s, e, score in zip(starts, ends, scores)
+            ]
             # answers.append({"score": no_answer_score, "start": 0, "end": 0, "answer": ""})
-            answers = sorted(answers, key=lambda x: x["score"], reverse=True)  #[:topk]
+            answers = sorted(answers, key=lambda x: x["score"], reverse=True)  # [:topk]
             # print(answers)
             task_outputs["answers"].append(answers)
         return task_outputs
@@ -416,13 +441,17 @@ class FaithfulEval:
             pred_score = predictions[0][0]["score"]
             pred_text = predictions[0][0]["answer"]
             # print("Original:", pred_text)
-            answer_start, answer_end = \
-                ast.literal_eval(pred["answer_start"])[0], ast.literal_eval(pred["answer_end"])[0]
+            answer_start, answer_end = (
+                ast.literal_eval(pred["answer_start"])[0],
+                ast.literal_eval(pred["answer_end"])[0],
+            )
             inputs = self.encode([[question, context]])
 
             if context_only:
-                context_start = inputs["input_ids"][0].index(self.tokenizer.sep_token_id)
-                filtered_attributions = importance[context_start + 2:]
+                context_start = inputs["input_ids"][0].index(
+                    self.tokenizer.sep_token_id
+                )
+                filtered_attributions = importance[context_start + 2 :]
             else:
                 filtered_attributions = importance
 
@@ -433,10 +462,10 @@ class FaithfulEval:
                 # print(k)
                 # batch_inputs = {"input_ids": [], "attention_mask": []}
                 if metric == "comp":
-                    num_tokens_to_mask = int(len(importance)*(k/100))
+                    num_tokens_to_mask = int(len(importance) * (k / 100))
                 else:
                     # for suff, keep topk tokens only, so we'll mask (100-topk) % tokens
-                    num_tokens_to_mask = int(len(importance) * ((100-k) / 100))
+                    num_tokens_to_mask = int(len(importance) * ((100 - k) / 100))
 
                 orig_mask = inputs["attention_mask"]
                 # print("attn mask", orig_mask)
@@ -448,25 +477,33 @@ class FaithfulEval:
                     # remove answer indices from rankings
                     attention_mask = orig_mask
                     answer_position_list = range(answer_start, answer_end)
-                    filtered_list = [x for x in rankings if x not in answer_position_list]
+                    filtered_list = [
+                        x for x in rankings if x not in answer_position_list
+                    ]
                     # print("fil 1", filtered_list)
                     filtered_list = filtered_list[::-1]
                     # print(filtered_list)
                     zero_indices = filtered_list[:num_tokens_to_mask]
-                    altered_attn_mask = self.alter_attention_mask(attention_mask, zero_indices)
+                    altered_attn_mask = self.alter_attention_mask(
+                        attention_mask, zero_indices
+                    )
                     # print(altered_attn_mask)
                 else:
                     # filtered_list = rankings
                     attention_mask = orig_mask
                     answer_position_list = range(answer_start, answer_end)
-                    filtered_list = [x for x in rankings if x not in answer_position_list]
+                    filtered_list = [
+                        x for x in rankings if x not in answer_position_list
+                    ]
                     # print("fil 1", filtered_list)
                     # print("num", num_tokens_to_mask)
                     # filtered_list = filtered_list[::]
                     # print(filtered_list)
                     zero_indices = filtered_list[:num_tokens_to_mask]
                     # print(zero_indices)
-                    altered_attn_mask = self.alter_attention_mask(attention_mask, zero_indices)
+                    altered_attn_mask = self.alter_attention_mask(
+                        attention_mask, zero_indices
+                    )
                     # print("alter mask:", altered_attn_mask)
 
                 inputs["input_ids"] = torch.tensor(inputs["input_ids"]).to(self.device)
@@ -504,13 +541,19 @@ class FaithfulEval:
             # c+=1
             # if c==10:
             #     break
-        utils.dump_to_bin(processed_instances,
-                          BASE_PATH + f"src/data/{self.dataset}/{self.method}_{metric}_{self.model_type}.bin")
+        utils.dump_to_bin(
+            processed_instances,
+            BASE_PATH
+            + f"src/data/{self.dataset}/{self.method}_{metric}_{self.model_type}.bin",
+        )
 
     def get_mean_score(self, metric):
         sum_score, mean_score = 0, 0
         # if method == "shap":
-        scores = utils.load_bin(BASE_PATH + f"src/data/{self.dataset}/{self.method}_{metric}_{self.model_type}.bin")
+        scores = utils.load_bin(
+            BASE_PATH
+            + f"src/data/{self.dataset}/{self.method}_{metric}_{self.model_type}.bin"
+        )
         # else:
         #     scores = utils.load_bin(BASE_PATH + f"src/data/{self.dataset}/{self.method}_{metric}_{self.model_name}.bin")
         for ex in tqdm(self.data):
@@ -521,25 +564,46 @@ class FaithfulEval:
                 q_id = ex["qas_id"]
             else:
                 q_id = ex["id"]
-            sum_score+=scores[q_id]
+            sum_score += scores[q_id]
 
-        mean_score = sum_score/len(scores)
+        mean_score = sum_score / len(scores)
         return round(mean_score, 2)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser(description="Passing arguments for model, tokenizer, and dataset.")
+    parser = argparse.ArgumentParser(
+        description="Passing arguments for model, tokenizer, and dataset."
+    )
     parser.add_argument(
         "--model_name",
         default="",
-        type=str, required=True, help="Specify the model to use.")
-    parser.add_argument("--tokenizer", default="roberta-base", type=str, required=False,
-                        help="Specify the tokenizer to use.")
-    parser.add_argument("--dataset", type=str, required=True, help="Specify the dataset to use.")
-    parser.add_argument("--model_type", type=str, required=True, help="Specify the model type to use.")
-    parser.add_argument("--metric", type=str, required=True, help="Specify the evaluation metric to use.")
-    parser.add_argument("--get_score", action="store_true", help="Whether to get mean score.")
+        type=str,
+        required=True,
+        help="Specify the model to use.",
+    )
+    parser.add_argument(
+        "--tokenizer",
+        default="roberta-base",
+        type=str,
+        required=False,
+        help="Specify the tokenizer to use.",
+    )
+    parser.add_argument(
+        "--dataset", type=str, required=True, help="Specify the dataset to use."
+    )
+    parser.add_argument(
+        "--model_type", type=str, required=True, help="Specify the model type to use."
+    )
+    parser.add_argument(
+        "--metric",
+        type=str,
+        required=True,
+        help="Specify the evaluation metric to use.",
+    )
+    parser.add_argument(
+        "--get_score", action="store_true", help="Whether to get mean score."
+    )
 
     args = parser.parse_args()
 

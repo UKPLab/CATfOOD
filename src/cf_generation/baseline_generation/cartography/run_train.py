@@ -47,17 +47,21 @@ MAX_VAL_SAMPLES = None
 
 WANDB_RUN_NAME = OUTPUT_DIR
 
-wandb.init(config={
-    "lr": LEARNING_RATE, "warmup_ratio": WARMUP_RATIO,
-    "epochs": MAX_EPOCHS,
-    "model": MODEL_NAME, "batch_size": BATCH_SIZE, "output_dir": OUTPUT_DIR,
-})
+wandb.init(
+    config={
+        "lr": LEARNING_RATE,
+        "warmup_ratio": WARMUP_RATIO,
+        "epochs": MAX_EPOCHS,
+        "model": MODEL_NAME,
+        "batch_size": BATCH_SIZE,
+        "output_dir": OUTPUT_DIR,
+    }
+)
 wandb.run.name = WANDB_RUN_NAME
 BASE_PATH = "/storage/ukp/work/sachdeva/research_projects/exp_calibration/"
 
 
 class CustomTrainer(Trainer):
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.ep_train_ids = None
@@ -100,10 +104,18 @@ class CustomTrainer(Trainer):
             self.ep_gold_start = start_positions
             self.ep_gold_end = end_positions
         else:
-            self.ep_train_ids = np.concatenate((self.ep_train_ids,  np.array(idx)), axis=0)
-            self.ep_start_logits = np.concatenate((self.ep_start_logits, start_logits), axis=0)
-            self.ep_end_logits = np.concatenate((self.ep_end_logits, end_logits), axis=0)
-            self.ep_gold_start = np.concatenate((self.ep_gold_start, start_positions), axis=0)
+            self.ep_train_ids = np.concatenate(
+                (self.ep_train_ids, np.array(idx)), axis=0
+            )
+            self.ep_start_logits = np.concatenate(
+                (self.ep_start_logits, start_logits), axis=0
+            )
+            self.ep_end_logits = np.concatenate(
+                (self.ep_end_logits, end_logits), axis=0
+            )
+            self.ep_gold_start = np.concatenate(
+                (self.ep_gold_start, start_positions), axis=0
+            )
             self.ep_gold_end = np.concatenate((self.ep_gold_end, end_positions), axis=0)
 
         # log the metrics after every epoch
@@ -127,14 +139,14 @@ class CustomTrainer(Trainer):
 
     @staticmethod
     def log_training_dynamics(
-            output_dir: os.path,
-            epoch: int,
-            train_ids: List[int],
-            start_logits: List[List[float]],
-            end_logits: List[List[float]],
-            start_golds: List[int],
-            end_golds: List[int]
-        ):
+        output_dir: os.path,
+        epoch: int,
+        train_ids: List[int],
+        start_logits: List[List[float]],
+        end_logits: List[List[float]],
+        start_golds: List[int],
+        end_golds: List[int],
+    ):
         """
         Save training dynamics (logits) from given epoch as records of a `.jsonl` file.
         """
@@ -144,7 +156,7 @@ class CustomTrainer(Trainer):
                 f"start_logits_epoch_{epoch}": start_logits,
                 f"end_logits_epoch_{epoch}": end_logits,
                 "start_gold": start_golds,
-                "end_gold": end_golds
+                "end_gold": end_golds,
             }
         )
 
@@ -159,19 +171,19 @@ class CustomTrainer(Trainer):
 
 class RobertaSquad:
     def __init__(
-            self,
-            dataset_name: str,
-            dataset_config: str,
-            cf_path: str,
-            max_src_len: int,
-            stride: int,
-            do_train: bool,
-            do_eval: bool,
-            model_name: str,
-            cache_dir: str=None,
-            max_train_samples: int=None,
-            max_val_samples: int=None,
-            save_results: bool=False
+        self,
+        dataset_name: str,
+        dataset_config: str,
+        cf_path: str,
+        max_src_len: int,
+        stride: int,
+        do_train: bool,
+        do_eval: bool,
+        model_name: str,
+        cache_dir: str = None,
+        max_train_samples: int = None,
+        max_val_samples: int = None,
+        save_results: bool = False,
     ):
         self.dataset_name = dataset_name
         self.dataset_config = dataset_config
@@ -208,26 +220,19 @@ class RobertaSquad:
         Load model, tokenizer and data
         """
 
-        config = AutoConfig.from_pretrained(
-            self.model_name,
-            cache_dir=self.cache_dir,
-        )
+        config = AutoConfig.from_pretrained(self.model_name, cache_dir=self.cache_dir,)
         self.tokenizer = AutoTokenizer.from_pretrained(
-            self.model_name,
-            cache_dir=self.cache_dir,
-            use_fast=True,
+            self.model_name, cache_dir=self.cache_dir, use_fast=True,
         )
         self.model = AutoModelForQuestionAnswering.from_pretrained(
-            self.model_name,
-            config=config,
-            cache_dir=self.cache_dir,
+            self.model_name, config=config, cache_dir=self.cache_dir,
         )
         dataloader = PreprocessData(
             self.dataset_name,
             self.dataset_config,
             cf_path=BASE_PATH + self.cf_path,
             save_data=False,
-            save_path=""
+            save_path="",
         )
         if self.do_train and not self.do_eval:
             self.train_set, _ = dataloader.processed_counterfactuals()
@@ -277,7 +282,10 @@ class RobertaSquad:
             context_end = idx - 1
 
             # If the answer is not fully inside the context, label is (0, 0)
-            if offset[context_start][0] > start_char or offset[context_end][1] < end_char:
+            if (
+                offset[context_start][0] > start_char
+                or offset[context_end][1] < end_char
+            ):
                 start_positions.append(0)
                 end_positions.append(0)
             else:
@@ -394,7 +402,7 @@ class RobertaSquad:
         wandb.finish()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     trainer = RobertaSquad(
         dataset_name="squad",
         dataset_config="plain_text",
@@ -406,6 +414,6 @@ if __name__ == '__main__':
         model_name=MODEL_NAME,
         max_train_samples=MAX_TRAIN_SAMPLES,
         max_val_samples=MAX_VAL_SAMPLES,
-        save_results=True
+        save_results=True,
     )
     trainer.train()

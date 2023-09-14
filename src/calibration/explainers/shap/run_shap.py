@@ -21,11 +21,11 @@ from common.config import InterpConfig, load_config_and_tokenizer
 
 import dataloader
 
-from transformers import (
-    MODEL_FOR_QUESTION_ANSWERING_MAPPING,
-)
+from transformers import MODEL_FOR_QUESTION_ANSWERING_MAPPING
 
-from transformers.models.roberta.modeling_roberta import create_position_ids_from_input_ids
+from transformers.models.roberta.modeling_roberta import (
+    create_position_ids_from_input_ids,
+)
 from transformers import PreTrainedTokenizer, PreTrainedModel
 from data.qa_metrics import squad_evaluate
 
@@ -64,7 +64,7 @@ def ig_analyze(args, tokenizer):
     # print(filenames)
     filenames = filenames[:2]
     _mkdir_f(args.visual_dir)
-    for fname in tqdm(filenames, desc='Visualizing'):
+    for fname in tqdm(filenames, desc="Visualizing"):
         interp_info = torch.load(os.path.join(args.interp_dir, fname))
         # datset_stats.append(stats_of_ig_interpretation(tokenizer, interp_info))
         visualize_token_attributions(args, tokenizer, interp_info, fname)
@@ -72,12 +72,9 @@ def ig_analyze(args, tokenizer):
 
 class ShapLM:
     def __init__(
-        self,
-        args,
-        model: PreTrainedModel,
-        tokenizer: PreTrainedTokenizer,
+        self, args, model: PreTrainedModel, tokenizer: PreTrainedTokenizer,
     ):
-        self.args =args
+        self.args = args
         self.model = model
         self.tokenizer = tokenizer
 
@@ -87,10 +84,14 @@ class ShapLM:
             self.ref_token_id = self.tokenizer.pad_token_id
 
         self.sep_token_id = (
-            self.tokenizer.sep_token_id if self.tokenizer.sep_token_id is not None else self.tokenizer.eos_token_id
+            self.tokenizer.sep_token_id
+            if self.tokenizer.sep_token_id is not None
+            else self.tokenizer.eos_token_id
         )
         self.cls_token_id = (
-            self.tokenizer.cls_token_id if self.tokenizer.cls_token_id is not None else self.tokenizer.bos_token_id
+            self.tokenizer.cls_token_id
+            if self.tokenizer.cls_token_id is not None
+            else self.tokenizer.bos_token_id
         )
 
         self.model_prefix = self.model.base_model_prefix
@@ -109,7 +110,9 @@ class ShapLM:
         """
         return {name: tensor.to(self.model.device) for name, tensor in inputs.items()}
 
-    def encode(self, inputs: list = None, add_special_tokens: bool = True, return_tensors=None):
+    def encode(
+        self, inputs: list = None, add_special_tokens: bool = True, return_tensors=None
+    ):
         """
         Encode inputs using the model tokenizer
         Args:
@@ -119,8 +122,14 @@ class ShapLM:
         Return:
             tokenized inputs
         """
-        return self.tokenizer(inputs, add_special_tokens=add_special_tokens, return_tensors=return_tensors,
-                              padding=True, truncation=True, max_length=512)
+        return self.tokenizer(
+            inputs,
+            add_special_tokens=add_special_tokens,
+            return_tensors=return_tensors,
+            padding=True,
+            truncation=True,
+            max_length=512,
+        )
 
     def decode(self, input_ids: torch.Tensor, skip_special_tokens: bool) -> List[str]:
         """
@@ -129,13 +138,11 @@ class ShapLM:
             input_ids (torch.Tensor): Input ids representing
             word tokens for a sentence/document.
         """
-        return self.tokenizer.convert_ids_to_tokens(input_ids[0], skip_special_tokens=skip_special_tokens)
+        return self.tokenizer.convert_ids_to_tokens(
+            input_ids[0], skip_special_tokens=skip_special_tokens
+        )
 
-    def _predict(
-            self,
-            request,
-            batch_size: int = 1
-    ) -> tuple:
+    def _predict(self, request, batch_size: int = 1) -> tuple:
         """
         Inference on the input.
         Args:
@@ -146,15 +153,14 @@ class ShapLM:
         all_predictions = []
         # self.model.to("cuda" if torch.cuda.is_available() else "cpu")
 
-        features = self.encode(
-            request,
-            add_special_tokens=True,
-            return_tensors="pt",
-        )
+        features = self.encode(request, add_special_tokens=True, return_tensors="pt",)
 
         for start_idx in range(0, len(request), batch_size):
             with torch.no_grad():
-                input_features = {k: features[k][start_idx:start_idx + batch_size] for k in features.keys()}
+                input_features = {
+                    k: features[k][start_idx : start_idx + batch_size]
+                    for k in features.keys()
+                }
                 input_features = self._ensure_tensor_on_device(**input_features)
                 predictions = self.model(**input_features)
                 all_predictions.append(predictions)
@@ -163,11 +169,23 @@ class ShapLM:
         for key in keys:
             if isinstance(all_predictions[0][key], tuple):
                 tuple_of_lists = list(
-                    zip(*[[torch.stack(p).to(self.device) if isinstance(p, tuple) else p.to(self.device)
-                           for p in tpl[key]] for tpl in all_predictions]))
+                    zip(
+                        *[
+                            [
+                                torch.stack(p).to(self.device)
+                                if isinstance(p, tuple)
+                                else p.to(self.device)
+                                for p in tpl[key]
+                            ]
+                            for tpl in all_predictions
+                        ]
+                    )
+                )
                 final_prediction[key] = tuple(torch.cat(l) for l in tuple_of_lists)
             else:
-                final_prediction[key] = torch.cat([p[key].to(self.device) for p in all_predictions])
+                final_prediction[key] = torch.cat(
+                    [p[key].to(self.device) for p in all_predictions]
+                )
         return final_prediction, features
 
     def question_answering(self, request, top_k: int = 1):
@@ -180,11 +198,13 @@ class ShapLM:
 
         """
 
-        def decode(start_: np.ndarray,
-                   end_: np.ndarray,
-                   topk: int,
-                   max_answer_len: int,
-                   undesired_tokens_: np.ndarray) -> Tuple:
+        def decode(
+            start_: np.ndarray,
+            end_: np.ndarray,
+            topk: int,
+            max_answer_len: int,
+            undesired_tokens_: np.ndarray,
+        ) -> Tuple:
             """
             Take the output of any :obj:`ModelForQuestionAnswering` and will generate probabilities
             for each span to be the actual answer.
@@ -224,7 +244,9 @@ class ShapLM:
                 idx_sort = idx[np.argsort(-scores_flat[idx])]
 
             starts_, ends_ = np.unravel_index(idx_sort, candidates.shape)[1:]
-            desired_spans = np.isin(starts_, undesired_tokens_.nonzero()) & np.isin(ends_, undesired_tokens_.nonzero())
+            desired_spans = np.isin(starts_, undesired_tokens_.nonzero()) & np.isin(
+                ends_, undesired_tokens_.nonzero()
+            )
             starts_ = starts_[desired_spans]
             ends_ = ends_[desired_spans]
             scores_ = candidates[0, starts_, ends_]
@@ -234,9 +256,9 @@ class ShapLM:
         predictions, features = self._predict(request)
 
         task_outputs = {"answers": [], "answer_start": [], "answer_end": []}
-        for idx, (start, end, (_, context)) in enumerate(zip(predictions["start_logits"],
-                                                             predictions["end_logits"],
-                                                             request)):
+        for idx, (start, end, (_, context)) in enumerate(
+            zip(predictions["start_logits"], predictions["end_logits"], request)
+        ):
 
             start_idx = torch.argmax(start)
             end_idx = torch.argmax(end)
@@ -246,7 +268,9 @@ class ShapLM:
             start = start.cpu().detach().numpy()
             end = end.cpu().detach().numpy()
             # Ensure padded tokens & question tokens cannot belong to the set of candidate answers.
-            question_tokens = np.abs(np.array([s != 1 for s in features.sequence_ids(idx)]) - 1)
+            question_tokens = np.abs(
+                np.array([s != 1 for s in features.sequence_ids(idx)]) - 1
+            )
             # Unmask CLS token for 'no answer'
             question_tokens[0] = 1
             undesired_tokens = question_tokens & features["attention_mask"][idx].numpy()
@@ -258,37 +282,45 @@ class ShapLM:
             start = np.where(undesired_tokens_mask, -10000.0, start)
             end = np.where(undesired_tokens_mask, -10000.0, end)
 
-            start = np.exp(start - np.log(np.sum(np.exp(start), axis=-1, keepdims=True)))
+            start = np.exp(
+                start - np.log(np.sum(np.exp(start), axis=-1, keepdims=True))
+            )
             end = np.exp(end - np.log(np.sum(np.exp(end), axis=-1, keepdims=True)))
 
             # Get score for 'no answer' then mask for decoding step (CLS token
             no_answer_score = (start[0] * end[0]).item()
             start[0] = end[0] = 0.0
 
-            starts, ends, scores = decode(
-                start, end, top_k, 128, undesired_tokens
-            )
+            starts, ends, scores = decode(start, end, top_k, 128, undesired_tokens)
             enc = features[idx]
             answers = [
                 {
                     "score": score.item(),
-                    "start": enc.word_to_chars(
-                        enc.token_to_word(s), sequence_index=1)[0],
+                    "start": enc.word_to_chars(enc.token_to_word(s), sequence_index=1)[
+                        0
+                    ],
                     "end": enc.word_to_chars(enc.token_to_word(e), sequence_index=1)[1],
                     "answer": context[
-                              enc.word_to_chars(enc.token_to_word(s), sequence_index=1)[0]:
-                              enc.word_to_chars(enc.token_to_word(e), sequence_index=1)[1]],
+                        enc.word_to_chars(enc.token_to_word(s), sequence_index=1)[
+                            0
+                        ] : enc.word_to_chars(enc.token_to_word(e), sequence_index=1)[1]
+                    ],
                 }
-                for s, e, score in zip(starts, ends, scores)]
+                for s, e, score in zip(starts, ends, scores)
+            ]
 
-            answers.append({"score": no_answer_score, "start": 0, "end": 0, "answer": ""})
+            answers.append(
+                {"score": no_answer_score, "start": 0, "end": 0, "answer": ""}
+            )
             answers = sorted(answers, key=lambda x: x["score"], reverse=True)[:top_k]
             task_outputs["answers"].append(answers)
             task_outputs["answer_start"].extend(answer_start.cpu().detach().numpy())
             task_outputs["answer_end"].extend(answer_end.cpu().detach().numpy())
         return predictions, features, task_outputs
 
-    def predict_with_mask(self, active_mask, tokenizer, model, base_inputs, answers, full_input_ids):
+    def predict_with_mask(
+        self, active_mask, tokenizer, model, base_inputs, answers, full_input_ids
+    ):
         input_ids = tokenizer.mask_token_id * torch.ones_like(full_input_ids)
         input_ids[0, active_mask == 1] = full_input_ids[0, active_mask == 1]
         prob = model.probe_forward(**base_inputs, input_ids=input_ids, answers=answers)
@@ -300,21 +332,28 @@ class ShapLM:
         input_features = copy.deepcopy(features)
         input_features = input_features.to(self.device)
         tokens = input_features.tokens()
-        input_features['return_kl'] = False
+        input_features["return_kl"] = False
 
-        full_input_ids = input_features.pop('input_ids')
-        full_position_ids = create_position_ids_from_input_ids(full_input_ids, self.tokenizer.pad_token_id).to(
-            full_input_ids.device)
+        full_input_ids = input_features.pop("input_ids")
+        full_position_ids = create_position_ids_from_input_ids(
+            full_input_ids, self.tokenizer.pad_token_id
+        ).to(full_input_ids.device)
 
         # fix position id
-        input_features['position_ids'] = full_position_ids
+        input_features["position_ids"] = full_position_ids
         # fix cls ? maybe
-        score_fn = partial(self.predict_with_mask, tokenizer=self.tokenizer, model=self.model,
-                           base_inputs=input_features,
-                           answers=answers,
-                           full_input_ids=full_input_ids)
+        score_fn = partial(
+            self.predict_with_mask,
+            tokenizer=self.tokenizer,
+            model=self.model,
+            base_inputs=input_features,
+            answers=answers,
+            full_input_ids=full_input_ids,
+        )
 
-        np_attribution = run_shap_attribution(self.args, len(tokens), score_fn).reshape((1, -1))
+        np_attribution = run_shap_attribution(self.args, len(tokens), score_fn).reshape(
+            (1, -1)
+        )
         return torch.from_numpy(np_attribution)
 
     def shap_interp(self, prefix=""):
@@ -356,7 +395,9 @@ class ShapLM:
 
         # MRQA datasets
         ##############################################################################################
-        data = dataloader.get_dev_samples_mrqa(BASE_PATH + "src/data/NaturalQuestionsShort.jsonl")
+        data = dataloader.get_dev_samples_mrqa(
+            BASE_PATH + "src/data/NaturalQuestionsShort.jsonl"
+        )
         data = data[11700:11850]
 
         # Define a dictionary to map old keys to new keys
@@ -373,7 +414,9 @@ class ShapLM:
         renamed_samples = []
         for sample in data:
             renamed_sample = {
-                new_key: [sample[old_key]] if old_key == "answer_text" else sample[old_key]
+                new_key: [sample[old_key]]
+                if old_key == "answer_text"
+                else sample[old_key]
                 for old_key, new_key in key_mapping.items()
             }
             renamed_samples.append(renamed_sample)
@@ -399,13 +442,19 @@ class ShapLM:
         all_predictions = []
         start_time = timeit.default_timer()
 
-        for idx, batch in tqdm(enumerate(eval_dataloader), desc="Interpreting",
-                               total=min(len(dataset), args.first_n_samples)):
+        for idx, batch in tqdm(
+            enumerate(eval_dataloader),
+            desc="Interpreting",
+            total=min(len(dataset), args.first_n_samples),
+        ):
             if idx == args.first_n_samples:
                 break
             # changes here for dataset
             predictions, features, answers = self.question_answering(
-                request=[[ques, cxt] for ques, cxt in zip(batch["question"], batch["context"])],
+                request=[
+                    [ques, cxt]
+                    for ques, cxt in zip(batch["question"], batch["context"])
+                ],
             )
 
             # input_features = features
@@ -422,13 +471,20 @@ class ShapLM:
             # break
 
         evalTime = timeit.default_timer() - start_time
-        logger.info("  Evaluation done in total %f secs (%f sec per example)", evalTime, evalTime / len(dataset))
+        logger.info(
+            "  Evaluation done in total %f secs (%f sec per example)",
+            evalTime,
+            evalTime / len(dataset),
+        )
 
         # Compute the F1 and exact scores.
         def merge_predictions(dicts):
             return dict(itertools.chain(*[list(x.items()) for x in dicts]))
+
         all_predictions = merge_predictions(all_predictions)
-        results = squad_evaluate(eval_dataloader[:len(all_predictions["id"])], all_predictions)
+        results = squad_evaluate(
+            eval_dataloader[: len(all_predictions["id"])], all_predictions
+        )
         return results
 
     def dump_shap_info(self, args, examples, features, predictions, attributions):
@@ -439,21 +495,32 @@ class ShapLM:
 
             actual_len = len(features.tokens(idx))
             attribution = attributions[idx][:actual_len].clone().detach()
-            example = [examples["question"][idx], examples["context"][idx], examples["answers"][idx]]
+            example = [
+                examples["question"][idx],
+                examples["context"][idx],
+                examples["answers"][idx],
+            ]
 
             filename = os.path.join(args.interp_dir, f'{examples["id"][idx]}.bin')
-            prelim_result = [predictions["answer_start"][idx], predictions["answer_end"][idx]]
+            prelim_result = [
+                predictions["answer_start"][idx],
+                predictions["answer_end"][idx],
+            ]
             prediction = predictions["answers"][idx]
-            feature = [features.tokens(idx), features.input_ids[idx].numpy(), features.attention_mask[idx].numpy()]
+            feature = [
+                features.tokens(idx),
+                features.input_ids[idx].numpy(),
+                features.attention_mask[idx].numpy(),
+            ]
             torch.save(
                 {
-                    'example': example,
-                    'feature': feature,
-                    'prediction': prediction,
-                    'prelim_result': prelim_result,
-                    'attribution': attribution
+                    "example": example,
+                    "feature": feature,
+                    "prediction": prediction,
+                    "prelim_result": prelim_result,
+                    "attribution": attribution,
                 },
-                filename
+                filename,
             )
 
 
@@ -462,7 +529,9 @@ def main():
 
     # Setup CUDA, GPU & distributed training
     if args.local_rank == -1 or args.no_cuda:
-        device = torch.device("cuda" if torch.cuda.is_available() and not args.no_cuda else "cpu")
+        device = torch.device(
+            "cuda" if torch.cuda.is_available() and not args.no_cuda else "cpu"
+        )
         args.n_gpu = 0 if args.no_cuda else torch.cuda.device_count()
     else:  # Initializes the distributed backend which will take care of sychronizing nodes/GPUs
         torch.cuda.set_device(args.local_rank)

@@ -8,13 +8,14 @@ from dataclasses import dataclass
 MODEL_CONFIG_CLASSES = list(MODEL_FOR_QUESTION_ANSWERING_MAPPING.keys())
 MODEL_TYPES = tuple(conf.model_type for conf in MODEL_CONFIG_CLASSES)
 # BASE_PATH="/home/sachdeva/projects/ukp/exp_calibration"
-BASE_PATH="/storage/ukp/work/sachdeva/research_projects/exp_calibration"
+BASE_PATH = "/storage/ukp/work/sachdeva/research_projects/exp_calibration"
 
 # roberta-squad-llama-13b-v2-temp-0.7-seed-1
 # roberta-squad-flan-ul2-v1-temp-0.7
 # roberta-squad-gpt-jt-v2-temp-0.7-seed-0
 # roberta-squad-gpt-neox-context-rel-seed-42
 # roberta-squad-flan-ul2-context-rel-noise-seed-42
+
 
 @dataclass
 class InterpConfig:
@@ -50,25 +51,36 @@ class InterpConfig:
 
 
 def load_config_and_tokenizer(args):
-    if args.dataset in ['simple', 'synth', 'comp']:
+    if args.dataset in ["simple", "synth", "comp"]:
         tokenizer = SimBertTokenizer()
-        if args.dataset == 'simple':
+        if args.dataset == "simple":
             config = SimBertConfig()
-        elif args.dataset == 'comp':
+        elif args.dataset == "comp":
             config = CompBertConfig()
         else:
             config = SynBertConfig()
-    elif args.dataset in ['hpqa', 'squad', 'bioasq', 'newsqa', 'natq', 'trivia', 'hotpot', 'squad_adversarial']:
+    elif args.dataset in [
+        "hpqa",
+        "squad",
+        "bioasq",
+        "newsqa",
+        "natq",
+        "trivia",
+        "hotpot",
+        "squad_adversarial",
+    ]:
         config = AutoConfig.from_pretrained(
-        args.config_name if args.config_name else args.model_name_or_path,
-        cache_dir=args.cache_dir if args.cache_dir else None,
+            args.config_name if args.config_name else args.model_name_or_path,
+            cache_dir=args.cache_dir if args.cache_dir else None,
         )
         tokenizer = AutoTokenizer.from_pretrained(
-            args.tokenizer_name_or_path if args.tokenizer_name_or_path else args.model_name_or_path,
+            args.tokenizer_name_or_path
+            if args.tokenizer_name_or_path
+            else args.model_name_or_path,
             do_lower_case=args.do_lower_case,
             cache_dir=args.cache_dir if args.cache_dir else None,
         )
     else:
-        raise RuntimeError('Dataset not supported')
+        raise RuntimeError("Dataset not supported")
 
     return config, tokenizer

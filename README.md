@@ -39,7 +39,7 @@ bash scripts/run_flan.sh
 - [UKP lab](https://www.ukp.tu-darmstadt.de/)
 - [TU Darmstadt](https://www.tu-darmstadt.de/)
 
-### Disclainer
+### Disclaimer
 >**NOTE**
 > This repository contains experimental software and is published for the sole purpose of giving additional background details on the respective publication. 
 

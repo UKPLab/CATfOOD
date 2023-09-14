@@ -1,32 +1,20 @@
-import os
-import sys
 from collections import OrderedDict
+import argparse
+import collections
+from collections import OrderedDict
+from itertools import chain
 from itertools import islice
 
-# sys.path.append('../..')
-import argparse
 import numpy as np
-import pandas as pd
-from tqdm import tqdm
-from src.calibration.baseline.common import IndexedFeature, FeatureVocab
-from src.calibration.baseline.utils import load_bin, dump_to_bin
-from itertools import chain
-import matplotlib.pyplot as plt
-import collections
-
-from sklearn.linear_model import LogisticRegression
-from sklearn.svm import SVC
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, RandomForestRegressor
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.preprocessing import MinMaxScaler, StandardScaler, scale
-from sklearn.metrics import roc_curve, auc, roc_auc_score
-# from calib_exp.calib_metrics import f1auc_score
-from sklearn.inspection import permutation_importance
-import xgboost as xg
-from sklearn.feature_selection import RFECV
-import json
 import shap
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import auc
+from sklearn.svm import SVC
+from tqdm import tqdm
+
+from src.calibration.baseline.common import IndexedFeature, FeatureVocab
+from src.calibration.baseline.utils import load_bin
 
 
 def _f1auc_score(x, y):
@@ -37,17 +25,12 @@ def _f1auc_score(x, y):
     y = y[desc_score_indices]
 
     distinct_value_indices = np.where(np.diff(x, append=0))[0]
-    # threshold_idxs = np.r_[distinct_value_indices, y.size - 1]
-
     # accumulate the true positives with decreasing threshold
     threshold_values = x[distinct_value_indices]
 
-    # for t in threshold_values:
-    #     results = np.array([np.mean(y[x < t])  for t in T])
     threshold_f1 = np.array([np.mean(y[:(t + 1)]) for t in distinct_value_indices])
-    # print(threshold_values)
-    # print(threshold_f1)
     return auc(threshold_values, threshold_f1)
+
 
 def f1auc_score(score, f1):
     score = np.ravel(score)
@@ -58,9 +41,8 @@ def f1auc_score(score, f1):
     num_test = f1.size
     segment = min(1000, score.size - 1)
     T = np.arange(segment) + 1
-    T = T/segment
-    results = np.array([np.mean(f1[:int(num_test * t)])  for t in T])
-    # print(results)
+    T = T / segment
+    results = np.array([np.mean(f1[:int(num_test * t)]) for t in T])
     return np.mean(results)
 
 
@@ -111,9 +93,6 @@ def train_max_accuracy(x, y):
     x = x.flatten()
     best_acc = 0
     best_v = 0
-    # print("Training max accuracy...")
-    # print("x: ", x.shape, " y: ", y.shape)
-    # print("x: ", x, " y: ", y)
     for v in x:
         p = x > v
         ac = np.sum(p == y) / y.size
@@ -210,8 +189,6 @@ def proc_input_data(args, data):
     if args.dataset == 'squad':
         data = OrderedDict([(k, v) for (k, v) in data.items() if '-' in k])
     new_data = OrderedDict()
-    # print('Total Num of Data', len(data))
-    # print(data)
     for qas_id, ex in data.items():
         new_feat = IndexedFeature()
         for f, val in ex['feature'].data.items():
@@ -219,12 +196,6 @@ def proc_input_data(args, data):
                 continue
             if not args.do_unnorm and 'UNNORM' in f:
                 continue
-            # if f == 'FIRST_DISTINCT_PROB':
-            #     continue
-            # if f.startswith('BASELINE_PROB') and not f.startswith('BASELINE_PROB_0'):
-            #     continue
-            # if 'TOK_C_' in f:
-            #     continue
             if 'TOK_IN_' in f:
                 continue
             if 'BOW_IN_' in f:
@@ -279,49 +250,7 @@ def proc_input_data(args, data):
             for f, val in ex['feature'].data.items():
                 if not ('BASELINE' in f or 'BOW' in f):
                     continue
-                # if not ('BASELINE' in f
-                #         or f.startswith('BOW')
-                        # or 'ENT' in f
-                        # or 'WOR' in f
-                        # or 'BOW_C_NNP' in f
-                        # or 'WOR_at_SbL1C_C_C' in f
-                        # or 'WOR_at_SbSBC_C_C' in f
-                        # or 'WOR_at_SbCDC_C_C' in f
-                        # or 'WOR_at_SbL1W_C_C' in f
 
-                        # or 'TTR_CorrTTR_S_C' in f
-                        # or 'TTR_SimpTTR_S_C' in f  # 64.1
-                        # or 'TTR_BiLoTTR_S_C' in f  #f1 82.9
-                        # or 'TTR_UberTTR_S_C' in f
-                        # or 'TTR_CorrTTR_S_C' in f
-                        # or 'VAR_SquaAjV_S_C' in f
-                        # or 'VAR_at_CoTag_C_C' in f
-                        # or 'VAR_CorrAjV_S_C' in f
-                        # or 'VAR_SquaNoV_S_C' in f  # 64 and 83 f1
-                        # or 'VAR_CorrNoV_S_C' in f  # gg
-                        # or 'VAR_SquaVeV_S_C' in f  # gg 64.2
-                        # or 'VAR_CorrVeV_S_C' in f   # gg 64.2
-                        # or f.startswith('_POS')
-                        # or '_POS_as_NoTag_C_Q' in f
-                        # or '_POS_at_NoTag_C_C' in f
-                        # or '_POS_at_NoTag_C_Q' in f
-                        # or '_POS_to_NoTag_C_Q' in f
-                        # or 'PSY_at_AAKuL_C_C' in f
-                        # or 'PSY_at_AABiL_C_Q' in f
-                        # or 'ENT_at_UEnti_C' in f  # use this
-                        # or 'ENT_at_EntiM_C' in f        # use this
-                        # or 'SHA_at_Sylla_C_Q' in f
-                        # or 'SHA_as_Sylla_C_C' in f
-                        # or 'SHA_at_Sylla_C_C' in f
-                        # or 'SHA_TokSenL_S_C' in f
-                # ):  # and 'BOW_A' in f:
-                #     continue
-                # if not ('SHA_at_Sylla_C_C' in f or 'ENT_at_UEnti_C' in f
-                #         or 'SHA_at_Sylla_C_Q' in f or 'ENT_at_EntiM_C' in f or 'SHA_as_Sylla_C_C' in f
-                #         or 'SHA_TokSenL_S_C' in f):
-                #     continue
-                # if 'BOW_A' in f:
-                #     continue
                 new_feat.add(f, val)
             new_data[qas_id] = {'label': ex['label'], 'f1_score': ex['f1_score'], 'feature': new_feat}
         data = new_data
@@ -349,7 +278,7 @@ def proc_input_data(args, data):
     return data
 
 
-def  get_feature_importances(cls):
+def get_feature_importances(cls):
     if isinstance(cls, LogisticRegression):
         feat_imp = cls.coef_.flatten()
     elif isinstance(cls, RandomForestClassifier):
@@ -368,44 +297,6 @@ def selection_based_rf(train_x, train_y, dev_x, n_feat=80):
     train_x = train_x[:, imp_idx[:n_feat], ]
     dev_x = dev_x[:, imp_idx[:n_feat]]
     return RandomForestClassifier(n_estimators=300).fit(train_x, train_y), train_x, dev_x
-
-
-# def permutation_importance(rf, x_train, y_train, x_test, y_test):
-#     # calculate permutation importance for test data
-#     result_test = permutation_importance(
-#         rf, x_test, y_test, n_repeats=20, random_state=42, n_jobs=2
-#     )
-#
-#     sorted_importances_idx_test = result_test.importances_mean.argsort()
-#     importances_test = pd.DataFrame(
-#         result_test.importances[sorted_importances_idx_test].T,
-#         columns=X.columns[sorted_importances_idx_test],
-#     )
-#
-#     # calculate permutation importance for training data
-#     result_train = permutation_importance(
-#         rf, x_train, y_train, n_repeats=20, random_state=42, n_jobs=2
-#     )
-#
-#     sorted_importances_idx_train = result_train.importances_mean.argsort()
-#     importances_train = pd.DataFrame(
-#         result_train.importances[sorted_importances_idx_train].T,
-#         columns=X.columns[sorted_importances_idx_train],
-#     )
-#
-#     f, axs = plt.subplots(1, 2, figsize=(15, 5))
-#
-#     importances_test.plot.box(vert=False, whis=10, ax=axs[0])
-#     axs[0].set_title("Permutation Importances (test set)")
-#     axs[0].axvline(x=0, color="k", linestyle="--")
-#     axs[0].set_xlabel("Decrease in accuracy score")
-#     axs[0].figure.tight_layout()
-#
-#     importances_train.plot.box(vert=False, whis=10, ax=axs[1])
-#     axs[1].set_title("Permutation Importances (train set)")
-#     axs[1].axvline(x=0, color="k", linestyle="--")
-#     axs[1].set_xlabel("Decrease in accuracy score")
-#     axs[1].figure.tight_layout()
 
 
 def one_pass_exp(args, X, Y, F1, vocab, train_test_split):
@@ -441,57 +332,23 @@ def one_pass_exp(args, X, Y, F1, vocab, train_test_split):
             # min_samples_split=3,
             max_depth=args.arg_max_depth).fit(train_x, train_y)
 
-
-
-        # clf = RandomForest    Regressor(n_estimators=100, max_depth=3).fit(train_x, train_F1)
-        # clf, train_x, dev_x = selection_based_rf(train_x, train_y, dev_x)
-        # rfe = RFECV(clf, scoring="neg_mean_squared_error")
-        # rfe.fit(train_x, train_y)
-        # selected_features = [rfe.get_support()]
-        # print("selected_features:", selected_features)
-        # Get feature importance scores
-        # importances = clf.feature_importances_
-        #
-        # # Sort feature importances in descending order
-        # indices = np.argsort(importances)[::-1]
-        #
-        # # Print the feature ranking
-        # print("Feature ranking:")
-        # for f in range(X.shape[1]):
-        #     print("%d. %s (%f)" % (f + 1, indices[f], importances[indices[f]]))
-        # print(train_x.columns)
-
     elif args.model == 'svm':
         clf = SVC(C=10.0).fit(train_x, train_y)
     elif args.model == 'gdbt':
         clf = GradientBoostingClassifier(n_estimators=100, max_depth=10).fit(train_x, train_y)
     else:
         raise RuntimeError('Model not supported')
-    # clf = DecisionTreeClassifier(max_depth=3).fit(train_x, train_y)
-    # clf = GradientBoostingClassifier(random_state=args.seed, n_estimators=1
     train_pred = clf.predict(train_x)
     dev_pred = clf.predict(dev_x)
-    # print('Label Distribution', np.sum(dev_y == 0)/dev_y.size, np.sum(dev_y == 1)/dev_y.size)
-    # print('Train ACC', np.sum(train_pred == train_y)/train_pred.size,
-    #     'Dev Acc', np.sum(dev_pred == dev_y) / dev_pred.size)
-    # interp_calibrator_model(clf, vocab)
+
     train_acc = np.sum(train_pred == train_y) / train_pred.size
     dev_acc = np.sum(dev_pred == dev_y) / dev_pred.size
     dev_score = clf.predict_proba(dev_x)[:, 1]
-    # dev_auc = auc_score(dev_score, dev_y)
-    # print(dev_score)
-    # print(dev_F1)
+
     dev_auc = f1auc_score(dev_score, dev_F1)
     f1_curve = f1_prob_curve(dev_F1, clf.predict_proba(dev_x)[:, 1])
-    # f1_curve = f1_prob_curve(dev_F1, clf.predict(dev_x))
-    # imp = get_feature_importances(clf, dev_x, dev_y)
-    # feats = vocab.get_names()
-    # for k,v in zip(feats, imp):
-    #     print(k, v)
-    # print(clf.predict_proba(dev_x)[:, 1])
-    # num_correct = np.sum(dev_pred == dev_y)
+
     _macro_ce = macro_ce(dev_pred, dev_y, clf.predict_proba(dev_x)[:, 1])
-    # print("Dev x: ", dev_x)
     if args.show_imp:
         outputs = []
         selected_indices = [i for i in range(len(dev_pred)) if dev_pred[i] == dev_y[i]]
@@ -499,12 +356,13 @@ def one_pass_exp(args, X, Y, F1, vocab, train_test_split):
         explainer = shap.TreeExplainer(clf)
         shap_values_all = explainer.shap_values(dev_x)[1]
         shap.summary_plot(shap_values_all[selected_indices, :], dev_x[selected_indices, :], feature_names=feature_names)
-        # print("incorrect_indices", incorrect_indices)
-        for i, idx  in tqdm(enumerate(selected_indices)):
+
+        for i, idx in tqdm(enumerate(selected_indices)):
             # Calculate Shap values
             choosen_instance = dev_x[idx]
             shap_values = explainer.shap_values(choosen_instance)[1]
-            # print(shap_values)
+
+            # identify importances
             # shap.initjs()
             # shap.force_plot(explainer.expected_value[1], shap_values[1], choosen_instance)
             # break
@@ -521,10 +379,6 @@ def one_pass_exp(args, X, Y, F1, vocab, train_test_split):
 
             # Identify the misclassified samples
             # misclassified = dev_x[i]
-            # print("Mis", misclassified)
-            # print(misclassified[0])
-            # print(dev_x[idx])
-            # print(dev_y[idx])
 
             # Estimate the feature importance for the misclassified samples using permutation importance
             # imp = permutation_importance(
@@ -537,25 +391,14 @@ def one_pass_exp(args, X, Y, F1, vocab, train_test_split):
             # # imp_idx = np.argsort(-np.abs(misclassified_importance))
             # # Sort the feature importances in descending order
             sorted_indices = np.argsort(shap_values)[::-1]
-            # # print("Sort ind: ", sorted_indices)
             importance = []
             for rank, j in enumerate(sorted_indices[:20]):
-                # print('Feat Rank:', rank, vocab.get_word(i), agg_feat_imp[i])
-                # print(rank, vocab.get_word(j), misclassified_importance[j])
                 importance.append((rank, vocab.get_word(j), shap_values[j]))
-            # print(importance)
-            # break
-            #
+
             output = collections.OrderedDict()
             output["idx"] = idx
             output["importance"] = importance
             outputs.append(output)
-            # print(output)
-        # BASE_PATH = "/storage/ukp/work/sachdeva/research_projects/exp_calibration/"
-        # save_file_name = "lime_squad_adv_classified_using_shap"
-        # output_nbest_file = os.path.join(BASE_PATH, f"predictions_{save_file_name}.json")
-        # with open(output_nbest_file, "w") as writer:
-        #     writer.write(json.dumps(outputs, indent=4) + "\n")
 
     return majority_acc, train_acc, dev_acc, dev_auc, f1_curve, get_feature_importances(clf), _macro_ce
 
@@ -568,7 +411,7 @@ def macro_ce(preds, golds, probs):
         pred = preds[i]
         pred_proba = probs[i]
         gold = golds[i]
-        if pred==gold:
+        if pred == gold:
             ice_pos += 1 - pred_proba
             num_pos += 1
         else:
@@ -597,26 +440,11 @@ def gen_predefined_train_test_splits(baseids, n_run, train_size):
     baseid_groups = list(baseid_indexer.values())
     num_train = train_size
 
-    # num_data_cf = len(cf_baseids)
-    # baseid_indexer_cf = OrderedDict()
-    # for i, b in enumerate(cf_baseids):
-    #     if b in baseid_indexer_cf:
-    #         baseid_indexer_cf[b].append(i)
-    #     else:
-    #         baseid_indexer_cf[b] = [i]
-    # num_base_cf = len(baseid_indexer_cf)
-    # print('Number of cf Exs', num_data_cf, 'Number of Unique cf Base', num_base_cf)
-
-    # predefined_permutations_cf = [np.random.permutation(num_base_cf) for _ in range(n_run)]
-    # baseid_groups_cf = list(baseid_indexer_cf.values())
-    # num_train_cf = train_size
-
     splits = []
     for perm in predefined_permutations:
         flat_idx = list(chain(*[baseid_groups[i] for i in perm]))
         # flat_idx_cf = list(chain(*[baseid_groups_cf[i] for i in perm_cf]))
-        # print(flat_idx_cf[:num_train_cf])
-        train_index = flat_idx[:num_train] #+ flat_idx_cf[:num_train_cf]
+        train_index = flat_idx[:num_train]  # + flat_idx_cf[:num_train_cf]
         # train_index.append(flat_idx_cf[:num_train_cf])
         dev_index = flat_idx[num_train:]
         splits.append((train_index, dev_index))
@@ -665,7 +493,9 @@ def main():
     args = _parse_args()
     # print(args)
     np.random.seed(args.seed)
-    data = load_bin(f'./src/data/{args.dataset}/calib_data_{args.method}_{args.model_name}.bin')
+    # data = load_bin(f'./src/data/{args.dataset}/calib_data_{args.method}_{args.model_name}.bin')
+    data = load_bin(f'./src/data/squad_adversarial/calibration_data_sc_attn_llama_context_rel.bin')
+
     def take(n, iterable):
         """Return the first n items of the iterable as a list."""
         return list(islice(iterable, n))
@@ -675,12 +505,8 @@ def main():
     print("Total samples: ", len(data))
 
     X, Y, F1, vocab = make_np_dataset(args, data)
-    # print(Y)
-    # print(np.sum(Y))
     if args.quant_size > 0:
         X, vocab = quantify_dataset(X, vocab, args.quant_size, args.quant_type)
-    # print(X.shape, Y.shape)
-    # print(np.sum(Y == 0)/ Y.size, np.sum(Y == 1)/ Y.size)
 
     if args.dataset == 'squad':
         # filter cf baseids
@@ -706,7 +532,7 @@ def main():
     agg_results = []
     for train_test_split in tqdm(predefined_splits, total=len(predefined_splits), desc='Running Exp...'):
         if args.include_cf:
-            indices =[]
+            indices = []
             train_set = train_test_split[0]
             test_set = train_test_split[1]
             for i, b in enumerate(train_set):
@@ -747,19 +573,15 @@ def main():
                                                                                          agg_dev_acc.min()))
 
     # print numbers for copy paste
-    exp_numbers = [agg_base_acc.mean(), agg_dev_acc.mean(), agg_auc.mean()] + [agg_macro_ce] # + agg_f1_curve.tolist()
+    exp_numbers = [agg_base_acc.mean(), agg_dev_acc.mean(), agg_auc.mean()] + [agg_macro_ce]  # + agg_f1_curve.tolist()
     print(','.join(['{:.3f}'.format(x) for x in exp_numbers]))
     exp_numbers = exp_numbers[1:]
     print(','.join(['{:.1f}'.format(a * 100) for a in exp_numbers]))
     if agg_results[0][5] is not None and args.show_imp:
         agg_feat_imp = np.array([x[5] for x in agg_results])
-        # print(agg_feat_imp.shape)
         agg_feat_imp = np.mean(agg_feat_imp, axis=0)
         imp_idx = np.argsort(-np.abs(agg_feat_imp))
-        # pred_direction = prediction_direction_of_feat(X, Y, F1)
         for rank, i in enumerate(imp_idx[:100]):
-            # print(imp_idx[i])
-            # print('Feat Rank:', rank, vocab.get_word(i), agg_feat_imp[i])
             print(rank, vocab.get_word(i), agg_feat_imp[i])
 
 

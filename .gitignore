@@ -2,6 +2,7 @@
 .DS_Store
 *.pdf
 
+**/__pycache__
 .cache/
 .env
 .env.swp

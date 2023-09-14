@@ -15,7 +15,7 @@ sns.set_context('paper')
 # rc('font', family='serif')
 plt.rcParams['text.color'] = 'black'
 # rc('text', usetex=True)
-#
+
 # matplotlib.use("pgf")
 # matplotlib.rcParams.update({
 #     "pgf.texsystem": "pdflatex",
@@ -49,7 +49,7 @@ def save_results_conf(path):
     }
 
     # Add data to the dictionary
-    models = ["Base", "RAG", "LLaMA", "GPT-NeoxT", "Flan-UL2"]
+    models = ["Base", "RGF", "LLaMA", "GPT-NeoxT", "Flan-UL2"]
     datasets = ["squad_adversarial", "trivia", "hotpot"]
     acc_values = [
         [0.642, 0.644, 0.656, 0.660, 0.666],
@@ -191,19 +191,44 @@ def load_data(method, dataset):
         mce = [0.507, 0.502, 0.495, 0.495, 0.488, 0.487, 0.502, 0.501]
     return acc, auc, mce
 
+
+def calculate_calibration_gain(method="conf", dataset=["squad_adversarial"], metric="auc"):
+    all_scores = []
+    for set in dataset:
+        acc, auc, mce = load_data(method, set)
+        if metric=="acc":
+            score = [round(element * 100, 2) for element in acc]
+        elif metric=="auc":
+            score = [round(element * 100, 2) for element in auc]
+
+        result = []
+        for s in score[1:]:
+            result.append(round(s-score[0], 2))
+        # print(result)
+        all_scores.append(result)
+
+    print(all_scores)
+    # Calculate the sums for each position
+    sums = [sum(col) for col in zip(*all_scores)]
+
+    # Calculate the averages
+    averages = [round(s / len(all_scores), 2) for s in sums]
+    print(averages)
+
+
 def visualize_calibration(method="conf", dataset="squad_adversarial"):
 
     acc, auc, mce =load_data(method,dataset)
     mce_flip = [round(1-m, 3) for m in mce]
 
     if method == "conf":
-        header = ["Base", "RAG", "LLaMA", "GPT-NeoxT", "Flan-UL2"]
+        header = ["Base", "RGF", "LLaMA", "GPT-NeoxT", "Flan-UL2"]
         colors = ['#1f77b4', '#ff7f0e', '#d62728', '#9467bd', '#2ca02c']
         # marker_sym = ['D', 's', '*', '^', 'o']
         dashes = ["solid", "dashed", (0, (3,2,1,2)), "dotted", "dashdot"]
 
     else:
-        header = ["Base", "RAG", "LLaMA", "LLaMA + F", "GPT-NeoxT", "GPT-NeoxT + F", "Flan-UL2", "Flan-UL2 + F"]
+        header = ["Base", "RGF", "LLaMA", "LLaMA + F", "GPT-NeoxT", "GPT-NeoxT + F", "Flan-UL2", "Flan-UL2 + F"]
         colors = ['#1f77b4', '#ff7f0e',  '#d62728', '#8c564b', '#9467bd', '#e377c2','#2ca02c', '#008080']
         dashes = ["solid",
                   "dashed",
@@ -300,7 +325,7 @@ def plot_bar_chart(methods: List, datasets: List, subplot_titles: List, show_leg
     # Define consistent colors for models
     # model_colors = {
     #     "Base": "#1f77b4",
-    #     "RAG": "#ff7f0e",
+    #     "RGF": "#ff7f0e",
     #     "LLaMA": "#2ca02c",
     #     "LLaMA + F<sub>d": "#8c564b",
     #     "GPT-NeoxT": "#d62728",
@@ -311,7 +336,7 @@ def plot_bar_chart(methods: List, datasets: List, subplot_titles: List, show_leg
 
     # model_colors = {
     #     "Base": 'rgb(251,180,174)',
-    #     "RAG": 'rgb(179,205,227)',
+    #     "RGF": 'rgb(179,205,227)',
     #     "LLaMA": 'rgb(204,235,197)',
     #     "LLaMA + F<sub>d": 'rgb(222,203,228)',
     #     "GPT-NeoxT": 'rgb(254,217,166)',
@@ -322,7 +347,7 @@ def plot_bar_chart(methods: List, datasets: List, subplot_titles: List, show_leg
 
     # model_colors = {
     #     "Base": 'rgb(102, 197, 204)',
-    #     "RAG":  'rgb(246, 207, 113)',
+    #     "RGF":  'rgb(246, 207, 113)',
     #     "LLaMA":  'rgb(248, 156, 116)',
     #     "LLaMA + F<sub>d": 'rgb(220, 176, 242)',
     #     "GPT-NeoxT":  'rgb(135, 197, 95)',
@@ -333,7 +358,7 @@ def plot_bar_chart(methods: List, datasets: List, subplot_titles: List, show_leg
     #nein
     # model_colors = {
     #     "Base": 'rgb(102,194,165)',
-    #     "RAG": 'rgb(252,141,98)',
+    #     "RGF": 'rgb(252,141,98)',
     #     "LLaMA":  'rgb(141,160,203)',
     #     "LLaMA + F<sub>d":  'rgb(231,138,195)',
     #     "GPT-NeoxT": 'rgb(166,216,84)',
@@ -344,7 +369,7 @@ def plot_bar_chart(methods: List, datasets: List, subplot_titles: List, show_leg
 
     # model_colors = {
     #     "Base": 'rgb(141,211,199)',
-    #     "RAG": 'rgb(255,255,179)',
+    #     "RGF": 'rgb(255,255,179)',
     #     "LLaMA":  'rgb(190,186,218)',
     #     "LLaMA + F<sub>d": 'rgb(251,128,114)',
     #     "GPT-NeoxT":   'rgb(128,177,211)',
@@ -355,7 +380,7 @@ def plot_bar_chart(methods: List, datasets: List, subplot_titles: List, show_leg
 
     model_colors = {
         "Base": "#636EFA",
-        "RAG": "#EF553B",
+        "RGF": "#EF553B",
         "LLaMA": "#00CC96",
         "LLaMA + F<sub>d": "#B6E880",
         "GPT-NeoxT": "#FFA15A",
@@ -368,9 +393,9 @@ def plot_bar_chart(methods: List, datasets: List, subplot_titles: List, show_leg
         data: Dict = {}
         data["Metric"] = metrics
         if methods[i] == "conf":
-            models = ["Base", "RAG", "LLaMA", "GPT-NeoxT", "Flan-UL2"]
+            models = ["Base", "RGF", "LLaMA", "GPT-NeoxT", "Flan-UL2"]
         else:
-            models = ["Base", "RAG", "LLaMA", "LLaMA + F<sub>d", "GPT-NeoxT", "GPT-NeoxT + F<sub>d", "Flan-UL2", "Flan-UL2 + F<sub>d"]
+            models = ["Base", "RGF", "LLaMA", "LLaMA + F<sub>d", "GPT-NeoxT", "GPT-NeoxT + F<sub>d", "Flan-UL2", "Flan-UL2 + F<sub>d"]
         acc, auc, mce = load_data(methods[i], datasets[i])
         mce_flip = [round(1 - m, 3) for m in mce]
         df = pd.DataFrame({'Accuracy': acc, 'AUC': auc, '1-MCE': mce_flip})
@@ -401,10 +426,10 @@ def plot_bar_chart(methods: List, datasets: List, subplot_titles: List, show_leg
             showlegend = False
         subplot = go.Figure()
         if methods[i] == "conf":
-            models = ["Base", "RAG", "LLaMA", "GPT-NeoxT", "Flan-UL2"]
+            models = ["Base", "RGF", "LLaMA", "GPT-NeoxT", "Flan-UL2"]
             legend_models = models
         else:
-            models = ["Base", "RAG", "LLaMA + F<sub>d", "GPT-NeoxT + F<sub>d", "Flan-UL2 + F<sub>d"]
+            models = ["Base", "RGF", "LLaMA + F<sub>d", "GPT-NeoxT + F<sub>d", "Flan-UL2 + F<sub>d"]
             legend_models = [ "LLaMA + F<sub>d", "GPT-NeoxT + F<sub>d", "Flan-UL2 + F<sub>d"]
         for j, model in enumerate(models):
             subplot.add_trace(
@@ -524,11 +549,16 @@ if __name__ == '__main__':
     # save_results_conf("./src/calibration/visualize/data/calib_results_exp.csv")
     plot_bar_chart(
         methods=["conf"]*3+["shap"]*3+["sc_attn"]*3+["ig"]*3,
-        # datasets=["natural_questions", "news_qa", "bioasq"]*4,
-        # subplot_titles=["NQ", "News QA", "BioASQ"],
-        datasets=["squad_adversarial", "trivia_qa", "hotpot_qa"] * 4,
-        subplot_titles =  ['SQuAD Adversarial', 'Trivia QA', 'Hotpot QA'],
+        datasets=["natural_questions", "news_qa", "bioasq"]*4,
+        subplot_titles=["NQ", "News QA", "BioASQ"],
+        # datasets=["squad_adversarial", "trivia_qa", "hotpot_qa"] * 4,
+        # subplot_titles =  ['SQuAD Adversarial', 'Trivia QA', 'Hotpot QA'],
         show_legend=True,
-        save_path='calibration_plots_3.pdf',
+        save_path='calibration_plots_5.pdf',
     )
     # print(px.colors.qualitative.Plotly)
+    # calculate_calibration_gain(
+    #     method="ig",
+    #     dataset=["squad_adversarial", "trivia_qa", "hotpot_qa", "natural_questions", "news_qa", "bioasq"],
+    #     metric="auc"
+    # )

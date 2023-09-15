@@ -74,4 +74,12 @@ python src/calibration/baseline/modelling.py --dataset squad --train_size 500 --
 > This repository contains experimental software and is published for the sole purpose of giving additional background
 > details on the respective publication.
 
-### Citation (Coming soon!)
+### Citation 
+> @misc{sachdeva2023catfood,
+      title={CATfOOD: Counterfactual Augmented Training for Improving Out-of-Domain Performance and Calibration}, 
+      author={Rachneet Sachdeva and Martin Tutek and Iryna Gurevych},
+      year={2023},
+      eprint={2309.07822},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL}
+}

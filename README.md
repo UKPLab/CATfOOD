@@ -75,7 +75,9 @@ python src/calibration/baseline/modelling.py --dataset squad --train_size 500 --
 > details on the respective publication.
 
 ### Citation 
-> @misc{sachdeva2023catfood,
+Please use the following citation:
+```
+@misc{sachdeva2023catfood,
       title={CATfOOD: Counterfactual Augmented Training for Improving Out-of-Domain Performance and Calibration}, 
       author={Rachneet Sachdeva and Martin Tutek and Iryna Gurevych},
       year={2023},
@@ -83,3 +85,4 @@ python src/calibration/baseline/modelling.py --dataset squad --train_size 500 --
       archivePrefix={arXiv},
       primaryClass={cs.CL}
 }
+```
